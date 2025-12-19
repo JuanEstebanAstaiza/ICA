@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sistema de Declaración ICA - Panel de Control">
+    <title>Panel de Control - Sistema ICA</title>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+    <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
+    
+    <!-- Header -->
+    <header class="header">
+        <div class="container header-content">
+            <div class="logo">
+                <span class="logo-text">Sistema ICA</span>
+            </div>
+            
+            <nav>
+                <ul class="nav-menu">
+                    <li><a href="dashboard.html">Inicio</a></li>
+                    <li><a href="form.html">Nueva Declaración</a></li>
+                    <li><a href="admin.html" id="admin-link" style="display: none;">Administración</a></li>
+                </ul>
+            </nav>
+            
+            <div class="user-info">
+                <span id="user-name"></span>
+                <button class="btn btn-outline" id="btn-logout">Cerrar Sesión</button>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Main Content -->
+    <main id="main-content" class="main-content">
+        <div class="container">
+            <div id="alert-container"></div>
+            
+            <div class="row">
+                <div class="col-12">
+                    <h1>Panel de Control</h1>
+                    <p class="text-muted">Bienvenido al Sistema de Declaración ICA</p>
+                </div>
+            </div>
+            
+            <!-- Quick Stats -->
+            <div class="row" style="margin-top: 2rem;">
+                <div class="col-3">
+                    <div class="card">
+                        <div class="card-body" style="text-align: center;">
+                            <h3 id="stat-total">0</h3>
+                            <p>Total Declaraciones</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-3">
+                    <div class="card">
+                        <div class="card-body" style="text-align: center;">
+                            <h3 id="stat-draft">0</h3>
+                            <p>En Borrador</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-3">
+                    <div class="card">
+                        <div class="card-body" style="text-align: center;">
+                            <h3 id="stat-signed">0</h3>
+                            <p>Firmadas</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-3">
+                    <div class="card">
+                        <div class="card-body" style="text-align: center;">
+                            <a href="form.html" class="btn btn-primary btn-lg">
+                                + Nueva Declaración
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recent Declarations -->
+            <div class="row" style="margin-top: 2rem;">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            Mis Declaraciones
+                        </div>
+                        <div class="card-body">
+                            <table class="table" id="declarations-table">
+                                <thead>
+                                    <tr>
+                                        <th>No. Formulario</th>
+                                        <th>Año Gravable</th>
+                                        <th>Tipo</th>
+                                        <th>Estado</th>
+                                        <th>Fecha Creación</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="declarations-body">
+                                    <tr>
+                                        <td colspan="6" style="text-align: center;">
+                                            Cargando declaraciones...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2024 Sistema ICA - Formulario Único Nacional de Declaración y Pago</p>
+            <p>Basado en: Documents/formulario-ICA.md</p>
+        </div>
+    </footer>
+    
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="spinner"></div>
+    </div>
+    
+    <script src="../js/api.js"></script>
+    <script>
+        // Verificar autenticación
+        if (!AuthAPI.isAuthenticated()) {
+            window.location.href = 'login.html';
+        }
+        
+        // Cargar datos del usuario
+        async function loadUserData() {
+            try {
+                const user = await AuthAPI.getCurrentUser();
+                document.getElementById('user-name').textContent = user.full_name;
+                
+                // Mostrar link de admin si tiene permisos
+                if (user.role === 'admin_alcaldia' || user.role === 'admin_sistema') {
+                    document.getElementById('admin-link').style.display = 'inline';
+                }
+            } catch (error) {
+                console.error('Error loading user:', error);
+            }
+        }
+        
+        // Cargar declaraciones
+        async function loadDeclarations() {
+            try {
+                const declarations = await DeclarationsAPI.list();
+                
+                // Actualizar estadísticas
+                document.getElementById('stat-total').textContent = declarations.length;
+                document.getElementById('stat-draft').textContent = 
+                    declarations.filter(d => d.status === 'borrador').length;
+                document.getElementById('stat-signed').textContent = 
+                    declarations.filter(d => d.status === 'firmado').length;
+                
+                // Renderizar tabla
+                const tbody = document.getElementById('declarations-body');
+                
+                if (declarations.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="6" style="text-align: center;">
+                                No tiene declaraciones. 
+                                <a href="form.html">Crear nueva declaración</a>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                tbody.innerHTML = declarations.map(d => `
+                    <tr>
+                        <td>${d.form_number}</td>
+                        <td>${d.tax_year}</td>
+                        <td>${formatDeclarationType(d.declaration_type)}</td>
+                        <td>
+                            <span class="badge badge-${d.status}">
+                                ${d.status.toUpperCase()}
+                            </span>
+                        </td>
+                        <td>${new Date(d.created_at).toLocaleDateString('es-CO')}</td>
+                        <td>
+                            <a href="form.html?id=${d.id}" class="btn btn-sm btn-primary">
+                                ${d.is_signed ? 'Ver' : 'Editar'}
+                            </a>
+                            ${d.is_signed ? `
+                                <button class="btn btn-sm btn-secondary" onclick="downloadPDF(${d.id})">
+                                    Descargar PDF
+                                </button>
+                            ` : ''}
+                        </td>
+                    </tr>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Error loading declarations:', error);
+                document.getElementById('declarations-body').innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align: center; color: red;">
+                            Error al cargar declaraciones
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+        
+        function formatDeclarationType(type) {
+            const types = {
+                'inicial': 'Inicial',
+                'correccion': 'Corrección',
+                'correccion_disminuye': 'Corrección (-)',
+                'correccion_aumenta': 'Corrección (+)'
+            };
+            return types[type] || type;
+        }
+        
+        async function downloadPDF(declarationId) {
+            try {
+                showLoading();
+                await DeclarationsAPI.downloadPDF(declarationId);
+                hideLoading();
+            } catch (error) {
+                hideLoading();
+                alert('Error al descargar PDF: ' + error.message);
+            }
+        }
+        
+        function showLoading() {
+            document.getElementById('loading-overlay').classList.add('active');
+        }
+        
+        function hideLoading() {
+            document.getElementById('loading-overlay').classList.remove('active');
+        }
+        
+        // Logout
+        document.getElementById('btn-logout').addEventListener('click', async () => {
+            await AuthAPI.logout();
+            window.location.href = 'login.html';
+        });
+        
+        // Inicializar
+        loadUserData();
+        loadDeclarations();
+    </script>
+</body>
+</html>
