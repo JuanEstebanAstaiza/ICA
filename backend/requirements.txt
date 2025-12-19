@@ -30,7 +30,7 @@ redis==5.0.1
 
 # Testing
 pytest==8.0.0
-pytest-asyncio==0.23.4
+pytest-asyncio==0.23.5
 httpx==0.26.0
 
 # Utilities
