@@ -125,13 +125,14 @@ La forma más rápida de probar el sistema es usando Docker:
 git clone https://github.com/JuanEstebanAstaiza/ICA.git
 cd ICA
 
-# 2. Iniciar todos los servicios (backend, PostgreSQL, Redis)
+# 2. Iniciar todos los servicios (backend, frontend, PostgreSQL, Redis)
 docker compose up -d
 
 # 3. Verificar que los servicios estén corriendo
 docker compose ps
 
 # 4. Acceder a la aplicación
+# - Frontend: http://localhost:3000
 # - API: http://localhost:8000
 # - Documentación: http://localhost:8000/api/docs
 # - Health check: http://localhost:8000/health
