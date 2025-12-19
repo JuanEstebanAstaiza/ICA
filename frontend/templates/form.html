@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Formulario Único Nacional de Declaración y Pago ICA">
+    <title>Formulario ICA - Sistema de Declaración</title>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+    <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
+    
+    <!-- Header -->
+    <header class="header">
+        <div class="container header-content">
+            <div class="logo">
+                <span class="logo-text">Sistema ICA</span>
+            </div>
+            
+            <nav>
+                <ul class="nav-menu">
+                    <li><a href="dashboard.html">Inicio</a></li>
+                    <li><a href="form.html" class="active">Declaración</a></li>
+                </ul>
+            </nav>
+            
+            <div class="user-info">
+                <span id="user-name"></span>
+                <button class="btn btn-outline" id="btn-logout">Cerrar Sesión</button>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Main Content -->
+    <main id="main-content" class="main-content">
+        <div class="container">
+            <div id="alert-container"></div>
+            
+            <form id="ica-form">
+                <!-- Encabezado del Formulario -->
+                <div class="card">
+                    <div class="card-header">
+                        📋 Formulario Único Nacional de Declaración y Pago ICA
+                    </div>
+                    <div class="card-body">
+                        <p><small>Basado en: Documents/formulario-ICA.md</small></p>
+                        
+                        <div class="row">
+                            <div class="col-3">
+                                <div class="form-group">
+                                    <label for="form_number" class="form-label">No. Formulario</label>
+                                    <input type="text" id="form_number" class="form-control" readonly>
+                                </div>
+                            </div>
+                            <div class="col-3">
+                                <div class="form-group">
+                                    <label for="tax_year" class="form-label required">Año Gravable</label>
+                                    <input type="number" id="tax_year" class="form-control" 
+                                           min="2000" max="2100" required>
+                                </div>
+                            </div>
+                            <div class="col-3">
+                                <div class="form-group">
+                                    <label for="declaration_type" class="form-label required">Tipo de Declaración</label>
+                                    <select id="declaration_type" class="form-control" required>
+                                        <option value="inicial">Declaración Inicial</option>
+                                        <option value="correccion">Corrección</option>
+                                        <option value="correccion_disminuye">Corrección que disminuye valor</option>
+                                        <option value="correccion_aumenta">Corrección que aumenta valor</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-3">
+                                <div class="form-group">
+                                    <label for="municipality_id" class="form-label required">Municipio</label>
+                                    <select id="municipality_id" class="form-control" required>
+                                        <option value="">Seleccione...</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Sección A - Información del Contribuyente -->
+                <div class="card">
+                    <div class="card-header">
+                        📝 Sección A – Información del Contribuyente
+                    </div>
+                    <div class="card-body">
+                        <h4>Identificación</h4>
+                        <div class="row">
+                            <div class="col-3">
+                                <div class="form-group">
+                                    <label for="document_type" class="form-label required">Tipo de Documento</label>
+                                    <select id="document_type" class="form-control" required>
+                                        <option value="">Seleccione...</option>
+                                        <option value="CC">Cédula de Ciudadanía</option>
+                                        <option value="CE">Cédula de Extranjería</option>
+                                        <option value="NIT">NIT</option>
+                                        <option value="PAS">Pasaporte</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="form-group">
+                                    <label for="document_number" class="form-label required">Número de Documento / NIT</label>
+                                    <input type="text" id="document_number" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="col-2">
+                                <div class="form-group">
+                                    <label for="verification_digit" class="form-label">DV</label>
+                                    <input type="text" id="verification_digit" class="form-control" maxlength="1">
+                                </div>
+                            </div>
+                            <div class="col-3">
+                                <div class="form-group">
+                                    <label for="legal_name" class="form-label required">Razón Social / Nombre</label>
+                                    <input type="text" id="legal_name" class="form-control" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <h4 style="margin-top: 1rem;">Ubicación</h4>
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="form-group">
+                                    <label for="address" class="form-label">Dirección</label>
+                                    <input type="text" id="address" class="form-control">
+                                </div>
+                            </div>
+                            <div class="col-3">
+                                <div class="form-group">
+                                    <label for="taxpayer_municipality" class="form-label">Municipio</label>
+                                    <input type="text" id="taxpayer_municipality" class="form-control">
+                                </div>
+                            </div>
+                            <div class="col-3">
+                                <div class="form-group">
+                                    <label for="taxpayer_department" class="form-label">Departamento</label>
+                                    <input type="text" id="taxpayer_department" class="form-control">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-4">
+                                <div class="form-group">
+                                    <label for="phone" class="form-label">Teléfono</label>
+                                    <input type="tel" id="phone" class="form-control">
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="form-group">
+                                    <label for="email" class="form-label">Correo Electrónico</label>
+                                    <input type="email" id="email" class="form-control">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Sección B - Base Gravable -->
+                <div class="card">
+                    <div class="card-header">
+                        💰 Sección B – Base Gravable
+                    </div>
+                    <div class="card-body">
+                        <p class="form-text">
+                            Complete los renglones 8-15. Los renglones 10 y 16 se calculan automáticamente.
+                        </p>
+                        
+                        <div class="ica-row">
+                            <div class="ica-row-number">8</div>
+                            <div class="ica-row-label">Total ingresos ordinarios</div>
+                            <div class="ica-row-value">
+                                <input type="number" id="row_8" class="form-control" min="0" step="0.01" value="0">
+                            </div>
+                        </div>
+                        
+                        <div class="ica-row">
+                            <div class="ica-row-number">9</div>
+                            <div class="ica-row-label">Ingresos extraordinarios</div>
+                            <div class="ica-row-value">
+                                <input type="number" id="row_9" class="form-control" min="0" step="0.01" value="0">
+                            </div>
+                        </div>
+                        
+                        <div class="ica-row calculated-field">
+                            <div class="ica-row-number">10</div>
+                            <div class="ica-row-label"><strong>TOTAL INGRESOS</strong> (Calculado: R8 + R9)</div>
+                            <div class="ica-row-value">
+                                <input type="number" id="row_10" class="form-control" readonly>
+                            </div>
+                        </div>
+                        
+                        <div class="ica-row">
+                            <div class="ica-row-number">11</div>
+                            <div class="ica-row-label">Devoluciones</div>
+                            <div class="ica-row-value">
+                                <input type="number" id="row_11" class="form-control" min="0" step="0.01" value="0">
+                            </div>
+                        </div>
+                        
+                        <div class="ica-row">
+                            <div class="ica-row-number">12</div>
+                            <div class="ica-row-label">Exportaciones</div>
+                            <div class="ica-row-value">
+                                <input type="number" id="row_12" class="form-control" min="0" step="0.01" value="0">
+                            </div>
+                        </div>
+                        
+                        <div class="ica-row">
+                            <div class="ica-row-number">13</div>
+                            <div class="ica-row-label">Ventas de activos fijos</div>
+                            <div class="ica-row-value">
+                                <input type="number" id="row_13" class="form-control" min="0" step="0.01" value="0">
+                            </div>
+                        </div>
+                        
+                        <div class="ica-row">
+                            <div class="ica-row-number">14</div>
+                            <div class="ica-row-label">Ingresos excluidos</div>
+                            <div class="ica-row-value">
+                                <input type="number" id="row_14" class="form-control" min="0" step="0.01" value="0">
+                            </div>
+                        </div>
+                        
+                        <div class="ica-row">
+                            <div class="ica-row-number">15</div>
+                            <div class="ica-row-label">Ingresos no gravados</div>
+                            <div class="ica-row-value">
+                                <input type="number" id="row_15" class="form-control" min="0" step="0.01" value="0">
+                            </div>
+                        </div>
+                        
+                        <div class="ica-row calculated-field">
+                            <div class="ica-row-number">16</div>
+                            <div class="ica-row-label">
+                                <strong>TOTAL INGRESOS GRAVABLES</strong>
+                                <br><small>(Calculado: R10 - (R11 + R12 + R13 + R14 + R15))</small>
+                            </div>
+                            <div class="ica-row-value">
+                                <input type="number" id="row_16" class="form-control" readonly>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Sección C - Actividades Gravadas -->
+                <div class="card">
+                    <div class="card-header">
+                        📊 Sección C – Actividades Gravadas
+                    </div>
+                    <div class="card-body">
+                        <p class="form-text">
+                            Agregue las actividades económicas con su código CIIU, ingresos y tarifa ICA (en ‰).
+                        </p>
+                        
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Código CIIU</th>
+                                    <th>Descripción</th>
+                                    <th>Ingresos</th>
+                                    <th>Tarifa (‰)</th>
+                                    <th>Impuesto</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="activities-container">
+                                <!-- Actividades dinámicas -->
+                            </tbody>
+                            <tfoot>
+                                <tr class="table-total">
+                                    <td colspan="4" style="text-align: right;">
+                                        <strong>TOTAL IMPUESTO POR ACTIVIDADES:</strong>
+                                    </td>
+                                    <td id="total-activities-tax">$0.00</td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                        
+                        <button type="button" class="btn btn-secondary" id="btn-add-activity">
+                            + Agregar Actividad
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Sección D - Liquidación -->
+                <div class="card">
+                    <div class="card-header">
+                        📑 Sección D – Liquidación del Impuesto
+                    </div>
+                    <div class="card-body">
+                        <div class="ica-row calculated-field">
+                            <div class="ica-row-number">30</div>
+                            <div class="ica-row-label"><strong>Impuesto de Industria y Comercio</strong> (Suma de actividades)</div>
+                            <div class="ica-row-value">
+                                <input type="number" id="row_30" class="form-control" readonly>
+                            </div>
+                        </div>
+                        
+                        <div class="ica-row">
+                            <div class="ica-row-number">31</div>
+                            <div class="ica-row-label">Avisos y Tableros</div>
+                            <div class="ica-row-value">
+                                <input type="number" id="row_31" class="form-control" min="0" step="0.01" value="0">
+                            </div>
+                        </div>
+                        
+                        <div class="ica-row">
+                            <div class="ica-row-number">32</div>
+                            <div class="ica-row-label">Sobretasa</div>
+                            <div class="ica-row-value">
+                                <input type="number" id="row_32" class="form-control" min="0" step="0.01" value="0">
+                            </div>
+                        </div>
+                        
+                        <div class="ica-row calculated-field">
+                            <div class="ica-row-number">33</div>
+                            <div class="ica-row-label"><strong>TOTAL IMPUESTO</strong> (Calculado: R30 + R31 + R32)</div>
+                            <div class="ica-row-value">
+                                <input type="number" id="row_33" class="form-control" readonly>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Sección E - Descuentos -->
+                <div class="card">
+                    <div class="card-header">
+                        💳 Sección E – Descuentos, Créditos y Anticipos
+                    </div>
+                    <div class="card-body">
+                        <div class="ica-row">
+                            <div class="ica-row-number"></div>
+                            <div class="ica-row-label">Descuentos tributarios</div>
+                            <div class="ica-row-value">
+                                <input type="number" id="tax_discounts" class="form-control" min="0" step="0.01" value="0">
+                            </div>
+                        </div>
+                        
+                        <div class="ica-row">
+                            <div class="ica-row-number"></div>
+                            <div class="ica-row-label">Anticipos pagados</div>
+                            <div class="ica-row-value">
+                                <input type="number" id="advance_payments" class="form-control" min="0" step="0.01" value="0">
+                            </div>
+                        </div>
+                        
+                        <div class="ica-row">
+                            <div class="ica-row-number"></div>
+                            <div class="ica-row-label">Retenciones sufridas</div>
+                            <div class="ica-row-value">
+                                <input type="number" id="withholdings" class="form-control" min="0" step="0.01" value="0">
+                            </div>
+                        </div>
+                        
+                        <div class="ica-row calculated-field">
+                            <div class="ica-row-number"></div>
+                            <div class="ica-row-label"><strong>TOTAL CRÉDITOS</strong></div>
+                            <div class="ica-row-value">
+                                <input type="number" id="total_credits" class="form-control" readonly>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Sección F - Resultado -->
+                <div class="card">
+                    <div class="card-header">
+                        💵 Sección F – Total a Pagar / Saldo a Favor
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <strong>Nota:</strong> Solo uno de estos campos tendrá valor. Si el impuesto es mayor que los créditos, 
+                            habrá valor a pagar. Si los créditos son mayores, habrá saldo a favor.
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-6" id="amount_to_pay_container">
+                                <div class="form-group">
+                                    <label for="amount_to_pay" class="form-label"><strong>Total a Pagar</strong></label>
+                                    <input type="number" id="amount_to_pay" class="form-control" readonly 
+                                           style="font-size: 1.5rem; font-weight: bold; color: var(--danger-color);">
+                                </div>
+                            </div>
+                            <div class="col-6" id="balance_in_favor_container">
+                                <div class="form-group">
+                                    <label for="balance_in_favor" class="form-label"><strong>Saldo a Favor</strong></label>
+                                    <input type="number" id="balance_in_favor" class="form-control" readonly
+                                           style="font-size: 1.5rem; font-weight: bold; color: var(--success-color);">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Acciones del Formulario -->
+                <div class="card">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-6">
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    💾 Guardar Declaración
+                                </button>
+                                <button type="button" class="btn btn-secondary btn-lg" id="btn-calculate">
+                                    🔄 Recalcular
+                                </button>
+                            </div>
+                            <div class="col-6" style="text-align: right;">
+                                <button type="button" class="btn btn-success btn-lg" id="btn-open-signature">
+                                    ✍️ Firmar Declaración
+                                </button>
+                                <button type="button" class="btn btn-secondary btn-lg" id="btn-generate-pdf">
+                                    📄 Generar PDF
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </main>
+    
+    <!-- Modal de Firma -->
+    <div id="signature-modal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">✍️ Sección G – Firma y Responsabilidad</h2>
+                <button type="button" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <strong>⚠️ Atención:</strong> Una vez firmada la declaración, no podrá ser modificada.
+                </div>
+                
+                <div class="form-group">
+                    <label for="declarant_name" class="form-label required">Nombre del Declarante</label>
+                    <input type="text" id="declarant_name" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="declaration_date" class="form-label required">Fecha de Declaración</label>
+                    <input type="date" id="declaration_date" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="accountant_name" class="form-label">Nombre Contador / Revisor Fiscal</label>
+                    <input type="text" id="accountant_name" class="form-control">
+                </div>
+                
+                <div class="form-group">
+                    <label for="professional_card" class="form-label">Número de Tarjeta Profesional</label>
+                    <input type="text" id="professional_card" class="form-control">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label required">Firma Digital</label>
+                    <p class="form-text">Dibuje su firma en el recuadro a continuación:</p>
+                    <div class="signature-container">
+                        <canvas id="signature-canvas" class="signature-canvas"></canvas>
+                    </div>
+                    <div class="signature-actions">
+                        <button type="button" class="btn btn-outline" id="btn-clear-signature">
+                            Limpiar Firma
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary modal-close">Cancelar</button>
+                <button type="button" class="btn btn-success" id="btn-confirm-signature">
+                    ✅ Confirmar y Firmar
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2024 Sistema ICA - Formulario Único Nacional de Declaración y Pago</p>
+        </div>
+    </footer>
+    
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="spinner"></div>
+    </div>
+    
+    <script src="../js/api.js"></script>
+    <script src="../js/ica-form.js"></script>
+    <script src="../js/signature.js"></script>
+    <script>
+        // Verificar autenticación
+        if (!AuthAPI.isAuthenticated()) {
+            window.location.href = 'login.html';
+        }
+        
+        // Obtener ID de declaración de la URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const declarationId = urlParams.get('id');
+        
+        // Cargar datos del usuario
+        async function loadUserData() {
+            try {
+                const user = await AuthAPI.getCurrentUser();
+                document.getElementById('user-name').textContent = user.full_name;
+            } catch (error) {
+                console.error('Error loading user:', error);
+            }
+        }
+        
+        // Cargar municipios
+        async function loadMunicipalities() {
+            try {
+                const municipalities = await AdminAPI.listMunicipalities();
+                const select = document.getElementById('municipality_id');
+                
+                municipalities.forEach(m => {
+                    const option = document.createElement('option');
+                    option.value = m.id;
+                    option.textContent = `${m.name} - ${m.department}`;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading municipalities:', error);
+            }
+        }
+        
+        // Inicializar formulario
+        function initializeForm() {
+            // Establecer año actual por defecto
+            document.getElementById('tax_year').value = new Date().getFullYear();
+            
+            // Establecer fecha actual para firma
+            document.getElementById('declaration_date').value = 
+                new Date().toISOString().split('T')[0];
+            
+            // Inicializar controlador de formulario
+            const form = document.getElementById('ica-form');
+            formController = new ICAFormController(form, declarationId ? parseInt(declarationId) : null);
+            
+            // Inicializar modal de firma
+            const signatureModal = new SignatureModal('signature-modal', 'signature-canvas', {
+                declarationId: declarationId ? parseInt(declarationId) : null,
+                onSign: (data) => {
+                    console.log('Declaración firmada:', data);
+                }
+            });
+        }
+        
+        // Botón recalcular
+        document.getElementById('btn-calculate').addEventListener('click', () => {
+            if (formController) {
+                formController.recalculate();
+                showAlert('Valores recalculados', 'success');
+            }
+        });
+        
+        // Botón generar PDF
+        document.getElementById('btn-generate-pdf').addEventListener('click', async () => {
+            if (!formController || !formController.declarationId) {
+                showAlert('Primero debe guardar la declaración', 'warning');
+                return;
+            }
+            
+            try {
+                showLoading();
+                await DeclarationsAPI.generatePDF(formController.declarationId);
+                hideLoading();
+                showAlert('PDF generado correctamente. Puede descargarlo desde el panel de control.', 'success');
+            } catch (error) {
+                hideLoading();
+                showAlert('Error al generar PDF: ' + error.message, 'danger');
+            }
+        });
+        
+        // Logout
+        document.getElementById('btn-logout').addEventListener('click', async () => {
+            await AuthAPI.logout();
+            window.location.href = 'login.html';
+        });
+        
+        // Inicializar
+        loadUserData();
+        loadMunicipalities();
+        initializeForm();
+    </script>
+</body>
+</html>

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sistema de Declaración ICA - Inicio de Sesión">
+    <title>Iniciar Sesión - Sistema ICA</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <style>
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        }
+        
+        .login-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 450px;
+            padding: 2rem;
+        }
+        
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .login-header img {
+            height: 80px;
+            margin-bottom: 1rem;
+        }
+        
+        .login-header h1 {
+            color: var(--primary-color);
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .login-header p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+        
+        .login-form .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .login-form .btn {
+            width: 100%;
+            padding: 1rem;
+        }
+        
+        .login-footer {
+            text-align: center;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        .login-footer a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+        
+        .login-footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
+    
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <h1>Sistema ICA</h1>
+                <p>Formulario Único Nacional de Declaración y Pago<br>del Impuesto de Industria y Comercio</p>
+            </div>
+            
+            <div id="alert-container"></div>
+            
+            <form id="login-form" class="login-form">
+                <div class="form-group">
+                    <label for="email" class="form-label required">Correo Electrónico</label>
+                    <input type="email" 
+                           id="email" 
+                           name="email" 
+                           class="form-control" 
+                           placeholder="correo@ejemplo.com"
+                           required 
+                           autocomplete="email">
+                </div>
+                
+                <div class="form-group">
+                    <label for="password" class="form-label required">Contraseña</label>
+                    <input type="password" 
+                           id="password" 
+                           name="password" 
+                           class="form-control" 
+                           placeholder="Ingrese su contraseña"
+                           required 
+                           autocomplete="current-password"
+                           minlength="8">
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-lg">
+                    Iniciar Sesión
+                </button>
+            </form>
+            
+            <div class="login-footer">
+                <p>¿No tiene una cuenta? <a href="register.html">Registrarse</a></p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="spinner"></div>
+    </div>
+    
+    <script src="../js/api.js"></script>
+    <script>
+        document.getElementById('login-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            if (!email || !password) {
+                showLocalAlert('Por favor complete todos los campos', 'warning');
+                return;
+            }
+            
+            try {
+                showLoading();
+                
+                await AuthAPI.login(email, password);
+                
+                // Redirigir al dashboard
+                window.location.href = 'dashboard.html';
+            } catch (error) {
+                hideLoading();
+                showLocalAlert('Error: ' + error.message, 'danger');
+            }
+        });
+        
+        function showLoading() {
+            document.getElementById('loading-overlay').classList.add('active');
+        }
+        
+        function hideLoading() {
+            document.getElementById('loading-overlay').classList.remove('active');
+        }
+        
+        function showLocalAlert(message, type) {
+            const container = document.getElementById('alert-container');
+            container.innerHTML = `
+                <div class="alert alert-${type}">
+                    ${message}
+                </div>
+            `;
+            
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 5000);
+        }
+        
+        // Verificar si ya está autenticado
+        if (AuthAPI.isAuthenticated()) {
+            window.location.href = 'dashboard.html';
+        }
+    </script>
+</body>
+</html>

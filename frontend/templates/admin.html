@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Panel de Administración - Sistema ICA">
+    <title>Administración - Sistema ICA</title>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+    <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
+    
+    <!-- Header -->
+    <header class="header">
+        <div class="container header-content">
+            <div class="logo">
+                <span class="logo-text">Sistema ICA - Admin</span>
+            </div>
+            
+            <nav>
+                <ul class="nav-menu">
+                    <li><a href="dashboard.html">Panel Usuario</a></li>
+                    <li><a href="admin.html" class="active">Administración</a></li>
+                </ul>
+            </nav>
+            
+            <div class="user-info">
+                <span id="user-name"></span>
+                <button class="btn btn-outline" id="btn-logout">Cerrar Sesión</button>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Main Content -->
+    <main id="main-content" class="main-content">
+        <div class="container">
+            <div id="alert-container"></div>
+            
+            <h1>Panel de Administración</h1>
+            <p class="text-muted">Configuración marca blanca y gestión del sistema</p>
+            
+            <div class="row" style="margin-top: 2rem;">
+                <!-- Configuración Marca Blanca -->
+                <div class="col-6">
+                    <div class="card">
+                        <div class="card-header">
+                            🎨 Configuración Marca Blanca
+                        </div>
+                        <div class="card-body">
+                            <form id="white-label-form">
+                                <div class="form-group">
+                                    <label for="wl-municipality" class="form-label">Municipio</label>
+                                    <select id="wl-municipality" class="form-control">
+                                        <option value="">Seleccione municipio...</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="wl-form-title" class="form-label">Título del Formulario</label>
+                                    <input type="text" id="wl-form-title" class="form-control" 
+                                           value="Formulario Único Nacional de Declaración y Pago ICA">
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-4">
+                                        <div class="form-group">
+                                            <label for="wl-primary-color" class="form-label">Color Primario</label>
+                                            <input type="color" id="wl-primary-color" class="form-control" value="#003366">
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="form-group">
+                                            <label for="wl-secondary-color" class="form-label">Color Secundario</label>
+                                            <input type="color" id="wl-secondary-color" class="form-control" value="#0066CC">
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="form-group">
+                                            <label for="wl-accent-color" class="form-label">Color Acento</label>
+                                            <input type="color" id="wl-accent-color" class="form-control" value="#FF9900">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="wl-font" class="form-label">Tipografía</label>
+                                    <select id="wl-font" class="form-control">
+                                        <option value="Arial, sans-serif">Arial</option>
+                                        <option value="'Segoe UI', sans-serif">Segoe UI</option>
+                                        <option value="'Times New Roman', serif">Times New Roman</option>
+                                        <option value="Georgia, serif">Georgia</option>
+                                        <option value="'Roboto', sans-serif">Roboto</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="wl-header" class="form-label">Texto de Encabezado</label>
+                                    <textarea id="wl-header" class="form-control" rows="2" 
+                                              placeholder="Texto institucional para el encabezado..."></textarea>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="wl-legal" class="form-label">Notas Legales</label>
+                                    <textarea id="wl-legal" class="form-control" rows="3" 
+                                              placeholder="Notas legales para el pie del formulario..."></textarea>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="wl-footer" class="form-label">Texto de Pie de Página</label>
+                                    <textarea id="wl-footer" class="form-control" rows="2" 
+                                              placeholder="Texto para el pie de página..."></textarea>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="wl-logo" class="form-label">Logo Institucional</label>
+                                    <input type="file" id="wl-logo" class="form-control" accept="image/*">
+                                </div>
+                                
+                                <button type="submit" class="btn btn-primary">
+                                    💾 Guardar Configuración
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Actividades Económicas -->
+                <div class="col-6">
+                    <div class="card">
+                        <div class="card-header">
+                            📊 Actividades Económicas (CIIU)
+                        </div>
+                        <div class="card-body">
+                            <form id="activity-form">
+                                <div class="form-group">
+                                    <label for="act-municipality" class="form-label">Municipio</label>
+                                    <select id="act-municipality" class="form-control">
+                                        <option value="">Seleccione municipio...</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-4">
+                                        <div class="form-group">
+                                            <label for="act-ciiu" class="form-label">Código CIIU</label>
+                                            <input type="text" id="act-ciiu" class="form-control" placeholder="G4711">
+                                        </div>
+                                    </div>
+                                    <div class="col-8">
+                                        <div class="form-group">
+                                            <label for="act-description" class="form-label">Descripción</label>
+                                            <input type="text" id="act-description" class="form-control" 
+                                                   placeholder="Comercio al por menor">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="act-rate" class="form-label">Tarifa ICA (‰)</label>
+                                    <input type="number" id="act-rate" class="form-control" 
+                                           min="0" max="100" step="0.01" value="4.14">
+                                </div>
+                                
+                                <button type="submit" class="btn btn-primary">
+                                    ➕ Agregar Actividad
+                                </button>
+                            </form>
+                            
+                            <hr>
+                            
+                            <h4>Actividades Registradas</h4>
+                            <table class="table" id="activities-table">
+                                <thead>
+                                    <tr>
+                                        <th>Código</th>
+                                        <th>Descripción</th>
+                                        <th>Tarifa</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="activities-body">
+                                    <tr>
+                                        <td colspan="4" style="text-align: center;">
+                                            Seleccione un municipio para ver actividades
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Gestión de Municipios -->
+            <div class="row" style="margin-top: 2rem;">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            🏛️ Gestión de Municipios
+                        </div>
+                        <div class="card-body">
+                            <form id="municipality-form" style="display: flex; gap: 1rem; align-items: flex-end;">
+                                <div class="form-group" style="flex: 0 0 150px;">
+                                    <label for="muni-code" class="form-label">Código DANE</label>
+                                    <input type="text" id="muni-code" class="form-control" placeholder="05001">
+                                </div>
+                                <div class="form-group" style="flex: 1;">
+                                    <label for="muni-name" class="form-label">Nombre del Municipio</label>
+                                    <input type="text" id="muni-name" class="form-control" placeholder="Medellín">
+                                </div>
+                                <div class="form-group" style="flex: 1;">
+                                    <label for="muni-department" class="form-label">Departamento</label>
+                                    <input type="text" id="muni-department" class="form-control" placeholder="Antioquia">
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    ➕ Crear Municipio
+                                </button>
+                            </form>
+                            
+                            <hr>
+                            
+                            <table class="table" id="municipalities-table">
+                                <thead>
+                                    <tr>
+                                        <th>Código</th>
+                                        <th>Municipio</th>
+                                        <th>Departamento</th>
+                                        <th>Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="municipalities-body">
+                                    <tr>
+                                        <td colspan="4" style="text-align: center;">
+                                            Cargando municipios...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2024 Sistema ICA - Panel de Administración</p>
+        </div>
+    </footer>
+    
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="spinner"></div>
+    </div>
+    
+    <script src="../js/api.js"></script>
+    <script>
+        // Verificar autenticación
+        if (!AuthAPI.isAuthenticated()) {
+            window.location.href = 'login.html';
+        }
+        
+        // Cargar datos del usuario
+        async function loadUserData() {
+            try {
+                const user = await AuthAPI.getCurrentUser();
+                document.getElementById('user-name').textContent = user.full_name;
+                
+                // Verificar permisos de admin
+                if (user.role !== 'admin_alcaldia' && user.role !== 'admin_sistema') {
+                    alert('No tiene permisos para acceder a esta página');
+                    window.location.href = 'dashboard.html';
+                }
+            } catch (error) {
+                console.error('Error loading user:', error);
+            }
+        }
+        
+        // Cargar municipios
+        async function loadMunicipalities() {
+            try {
+                const municipalities = await AdminAPI.listMunicipalities();
+                
+                // Llenar selects
+                const selects = ['wl-municipality', 'act-municipality'];
+                selects.forEach(selectId => {
+                    const select = document.getElementById(selectId);
+                    select.innerHTML = '<option value="">Seleccione municipio...</option>';
+                    municipalities.forEach(m => {
+                        const option = document.createElement('option');
+                        option.value = m.id;
+                        option.textContent = `${m.name} - ${m.department}`;
+                        select.appendChild(option);
+                    });
+                });
+                
+                // Llenar tabla de municipios
+                const tbody = document.getElementById('municipalities-body');
+                if (municipalities.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No hay municipios registrados</td></tr>';
+                } else {
+                    tbody.innerHTML = municipalities.map(m => `
+                        <tr>
+                            <td>${m.code}</td>
+                            <td>${m.name}</td>
+                            <td>${m.department}</td>
+                            <td>
+                                <span class="badge ${m.is_active ? 'badge-firmado' : 'badge-anulado'}">
+                                    ${m.is_active ? 'Activo' : 'Inactivo'}
+                                </span>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Error loading municipalities:', error);
+            }
+        }
+        
+        // Cargar configuración marca blanca
+        async function loadWhiteLabelConfig(municipalityId) {
+            if (!municipalityId) return;
+            
+            try {
+                const config = await AdminAPI.getWhiteLabelConfig(municipalityId);
+                
+                document.getElementById('wl-form-title').value = config.form_title || '';
+                document.getElementById('wl-primary-color').value = config.primary_color || '#003366';
+                document.getElementById('wl-secondary-color').value = config.secondary_color || '#0066CC';
+                document.getElementById('wl-accent-color').value = config.accent_color || '#FF9900';
+                document.getElementById('wl-font').value = config.font_family || 'Arial, sans-serif';
+                document.getElementById('wl-header').value = config.header_text || '';
+                document.getElementById('wl-legal').value = config.legal_notes || '';
+                document.getElementById('wl-footer').value = config.footer_text || '';
+            } catch (error) {
+                console.error('Error loading config:', error);
+            }
+        }
+        
+        // Cargar actividades
+        async function loadActivities(municipalityId) {
+            if (!municipalityId) {
+                document.getElementById('activities-body').innerHTML = 
+                    '<tr><td colspan="4" style="text-align: center;">Seleccione un municipio</td></tr>';
+                return;
+            }
+            
+            try {
+                const activities = await AdminAPI.listActivities(municipalityId);
+                const tbody = document.getElementById('activities-body');
+                
+                if (activities.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No hay actividades registradas</td></tr>';
+                } else {
+                    tbody.innerHTML = activities.map(a => `
+                        <tr>
+                            <td>${a.ciiu_code}</td>
+                            <td>${a.description}</td>
+                            <td>${a.tax_rate}‰</td>
+                            <td>
+                                <button class="btn btn-sm btn-danger" onclick="deleteActivity(${a.id})">
+                                    Eliminar
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Error loading activities:', error);
+            }
+        }
+        
+        // Event listeners
+        document.getElementById('wl-municipality').addEventListener('change', (e) => {
+            loadWhiteLabelConfig(e.target.value);
+        });
+        
+        document.getElementById('act-municipality').addEventListener('change', (e) => {
+            loadActivities(e.target.value);
+        });
+        
+        // Formulario de configuración marca blanca
+        document.getElementById('white-label-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const municipalityId = document.getElementById('wl-municipality').value;
+            if (!municipalityId) {
+                alert('Seleccione un municipio');
+                return;
+            }
+            
+            try {
+                showLoading();
+                
+                const config = {
+                    form_title: document.getElementById('wl-form-title').value,
+                    primary_color: document.getElementById('wl-primary-color').value,
+                    secondary_color: document.getElementById('wl-secondary-color').value,
+                    accent_color: document.getElementById('wl-accent-color').value,
+                    font_family: document.getElementById('wl-font').value,
+                    header_text: document.getElementById('wl-header').value,
+                    legal_notes: document.getElementById('wl-legal').value,
+                    footer_text: document.getElementById('wl-footer').value
+                };
+                
+                await AdminAPI.updateWhiteLabelConfig(municipalityId, config);
+                
+                // Subir logo si se seleccionó
+                const logoInput = document.getElementById('wl-logo');
+                if (logoInput.files.length > 0) {
+                    await AdminAPI.uploadLogo(municipalityId, logoInput.files[0]);
+                }
+                
+                hideLoading();
+                alert('Configuración guardada correctamente');
+            } catch (error) {
+                hideLoading();
+                alert('Error: ' + error.message);
+            }
+        });
+        
+        // Formulario de actividades
+        document.getElementById('activity-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const municipalityId = document.getElementById('act-municipality').value;
+            if (!municipalityId) {
+                alert('Seleccione un municipio');
+                return;
+            }
+            
+            try {
+                showLoading();
+                
+                await AdminAPI.createActivity({
+                    municipality_id: parseInt(municipalityId),
+                    ciiu_code: document.getElementById('act-ciiu').value,
+                    description: document.getElementById('act-description').value,
+                    tax_rate: parseFloat(document.getElementById('act-rate').value)
+                });
+                
+                // Limpiar formulario
+                document.getElementById('act-ciiu').value = '';
+                document.getElementById('act-description').value = '';
+                document.getElementById('act-rate').value = '4.14';
+                
+                // Recargar actividades
+                loadActivities(municipalityId);
+                
+                hideLoading();
+                alert('Actividad creada correctamente');
+            } catch (error) {
+                hideLoading();
+                alert('Error: ' + error.message);
+            }
+        });
+        
+        // Formulario de municipios
+        document.getElementById('municipality-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            try {
+                showLoading();
+                
+                await AdminAPI.createMunicipality({
+                    code: document.getElementById('muni-code').value,
+                    name: document.getElementById('muni-name').value,
+                    department: document.getElementById('muni-department').value
+                });
+                
+                // Limpiar formulario
+                document.getElementById('muni-code').value = '';
+                document.getElementById('muni-name').value = '';
+                document.getElementById('muni-department').value = '';
+                
+                // Recargar municipios
+                loadMunicipalities();
+                
+                hideLoading();
+                alert('Municipio creado correctamente');
+            } catch (error) {
+                hideLoading();
+                alert('Error: ' + error.message);
+            }
+        });
+        
+        function showLoading() {
+            document.getElementById('loading-overlay').classList.add('active');
+        }
+        
+        function hideLoading() {
+            document.getElementById('loading-overlay').classList.remove('active');
+        }
+        
+        // Logout
+        document.getElementById('btn-logout').addEventListener('click', async () => {
+            await AuthAPI.logout();
+            window.location.href = 'login.html';
+        });
+        
+        // Inicializar
+        loadUserData();
+        loadMunicipalities();
+    </script>
+</body>
+</html>
