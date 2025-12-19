@@ -33,6 +33,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copiar código de la aplicación
 COPY backend/app ./app
+COPY backend/scripts ./scripts
 COPY frontend ./frontend
 
 # Crear directorios necesarios con permisos
