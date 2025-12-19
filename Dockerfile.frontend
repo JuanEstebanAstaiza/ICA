@@ -1,0 +1,20 @@
+# Dockerfile para el Frontend del Sistema ICA
+# Basado en Nginx Alpine para servir archivos estáticos
+
+FROM nginx:alpine
+
+# Metadata
+LABEL maintainer="Sistema ICA"
+LABEL description="Frontend del Sistema ICA - Formulario Único Nacional"
+
+# Copiar archivos del frontend
+COPY frontend/ /usr/share/nginx/html/
+
+# Copiar configuración de nginx
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Exponer puerto
+EXPOSE 80
+
+# Comando por defecto (nginx se ejecuta en primer plano)
+CMD ["nginx", "-g", "daemon off;"]

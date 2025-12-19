@@ -88,8 +88,9 @@ docker compose up -d
 ```
 
 Este comando:
-- ✅ Descarga las imágenes necesarias (PostgreSQL, Redis)
+- ✅ Descarga las imágenes necesarias (PostgreSQL, Redis, Nginx)
 - ✅ Construye la imagen del backend
+- ✅ Construye la imagen del frontend
 - ✅ Crea los contenedores
 - ✅ Inicia todos los servicios
 - ✅ Configura la red interna
@@ -105,6 +106,7 @@ Deberías ver algo como:
 
 ```
 NAME                IMAGE               STATUS              PORTS
+ica_frontend        ica-frontend        Up (healthy)        0.0.0.0:3000->80/tcp
 ica_backend         ica-backend         Up (healthy)        0.0.0.0:8000->8000/tcp
 ica_postgres        postgres:15-alpine  Up (healthy)        0.0.0.0:5432->5432/tcp
 ica_redis           redis:7-alpine      Up (healthy)        0.0.0.0:6379->6379/tcp
@@ -114,6 +116,7 @@ ica_redis           redis:7-alpine      Up (healthy)        0.0.0.0:6379->6379/t
 
 Una vez que los servicios estén corriendo:
 
+- **Frontend (Interfaz de Usuario)**: http://localhost:3000
 - **API Backend**: http://localhost:8000
 - **Documentación Swagger**: http://localhost:8000/api/docs
 - **Documentación ReDoc**: http://localhost:8000/api/redoc
