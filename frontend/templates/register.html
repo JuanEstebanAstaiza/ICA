@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sistema de Declaración ICA - Registro de Usuario">
+    <title>Registro - Sistema ICA</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <style>
+        .register-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            padding: 2rem 1rem;
+        }
+        
+        .register-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 550px;
+            padding: 2rem;
+        }
+        
+        .register-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .register-header img {
+            height: 80px;
+            margin-bottom: 1rem;
+        }
+        
+        .register-header h1 {
+            color: var(--primary-color);
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .register-header p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+        
+        .register-form .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .register-form .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        
+        .register-form .btn {
+            width: 100%;
+            padding: 1rem;
+        }
+        
+        .register-footer {
+            text-align: center;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        .register-footer a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+        
+        .register-footer a:hover {
+            text-decoration: underline;
+        }
+        
+        .password-requirements {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+        }
+        
+        .password-requirements ul {
+            margin: 0.5rem 0;
+            padding-left: 1.5rem;
+        }
+        
+        .password-requirements li {
+            margin: 0.25rem 0;
+        }
+        
+        .password-requirements .valid {
+            color: var(--success-color);
+        }
+        
+        .password-requirements .invalid {
+            color: var(--danger-color);
+        }
+        
+        @media (max-width: 768px) {
+            .register-form .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
+    
+    <div class="register-container">
+        <div class="register-card">
+            <div class="register-header">
+                <h1>Crear Cuenta</h1>
+                <p>Sistema ICA - Formulario Único Nacional</p>
+            </div>
+            
+            <div id="alert-container"></div>
+            
+            <form id="register-form" class="register-form">
+                <div class="form-group">
+                    <label for="email" class="form-label required">Correo Electrónico</label>
+                    <input type="email" 
+                           id="email" 
+                           name="email" 
+                           class="form-control" 
+                           placeholder="correo@ejemplo.com"
+                           required 
+                           autocomplete="email">
+                    <small class="form-text">Este será su nombre de usuario para iniciar sesión</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="full_name" class="form-label required">Nombre Completo / Razón Social</label>
+                    <input type="text" 
+                           id="full_name" 
+                           name="full_name" 
+                           class="form-control" 
+                           placeholder="Ej: Juan Pérez o Empresa XYZ SAS"
+                           required 
+                           minlength="2"
+                           maxlength="255"
+                           autocomplete="name">
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="document_type" class="form-label">Tipo de Documento</label>
+                        <select id="document_type" 
+                                name="document_type" 
+                                class="form-control">
+                            <option value="">Seleccione...</option>
+                            <option value="NIT">NIT</option>
+                            <option value="CC">Cédula de Ciudadanía</option>
+                            <option value="CE">Cédula de Extranjería</option>
+                            <option value="PA">Pasaporte</option>
+                            <option value="TI">Tarjeta de Identidad</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="document_number" class="form-label">Número de Documento</label>
+                        <input type="text" 
+                               id="document_number" 
+                               name="document_number" 
+                               class="form-control" 
+                               placeholder="Ej: 900123456-7">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="phone" class="form-label">Teléfono</label>
+                    <input type="tel" 
+                           id="phone" 
+                           name="phone" 
+                           class="form-control" 
+                           placeholder="Ej: 3001234567"
+                           autocomplete="tel">
+                </div>
+                
+                <div class="form-group">
+                    <label for="password" class="form-label required">Contraseña</label>
+                    <input type="password" 
+                           id="password" 
+                           name="password" 
+                           class="form-control" 
+                           placeholder="Ingrese una contraseña segura"
+                           required 
+                           minlength="8"
+                           maxlength="100"
+                           autocomplete="new-password">
+                    <div class="password-requirements">
+                        <strong>La contraseña debe contener:</strong>
+                        <ul id="password-checks">
+                            <li id="check-length" class="invalid">• Al menos 8 caracteres</li>
+                            <li id="check-uppercase" class="invalid">• Una letra mayúscula</li>
+                            <li id="check-lowercase" class="invalid">• Una letra minúscula</li>
+                            <li id="check-number" class="invalid">• Un número</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="confirm_password" class="form-label required">Confirmar Contraseña</label>
+                    <input type="password" 
+                           id="confirm_password" 
+                           name="confirm_password" 
+                           class="form-control" 
+                           placeholder="Repita su contraseña"
+                           required 
+                           minlength="8"
+                           autocomplete="new-password">
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-lg" id="submit-btn">
+                    Crear Cuenta
+                </button>
+            </form>
+            
+            <div class="register-footer">
+                <p>¿Ya tiene una cuenta? <a href="login.html">Iniciar Sesión</a></p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="spinner"></div>
+    </div>
+    
+    <script src="../js/api.js"></script>
+    <script>
+        // Validación de contraseña en tiempo real
+        const passwordInput = document.getElementById('password');
+        const confirmPasswordInput = document.getElementById('confirm_password');
+        
+        passwordInput.addEventListener('input', function() {
+            const password = this.value;
+            
+            // Verificar longitud
+            const checkLength = document.getElementById('check-length');
+            if (password.length >= 8) {
+                checkLength.classList.remove('invalid');
+                checkLength.classList.add('valid');
+            } else {
+                checkLength.classList.remove('valid');
+                checkLength.classList.add('invalid');
+            }
+            
+            // Verificar mayúscula
+            const checkUppercase = document.getElementById('check-uppercase');
+            if (/[A-Z]/.test(password)) {
+                checkUppercase.classList.remove('invalid');
+                checkUppercase.classList.add('valid');
+            } else {
+                checkUppercase.classList.remove('valid');
+                checkUppercase.classList.add('invalid');
+            }
+            
+            // Verificar minúscula
+            const checkLowercase = document.getElementById('check-lowercase');
+            if (/[a-z]/.test(password)) {
+                checkLowercase.classList.remove('invalid');
+                checkLowercase.classList.add('valid');
+            } else {
+                checkLowercase.classList.remove('valid');
+                checkLowercase.classList.add('invalid');
+            }
+            
+            // Verificar número
+            const checkNumber = document.getElementById('check-number');
+            if (/\d/.test(password)) {
+                checkNumber.classList.remove('invalid');
+                checkNumber.classList.add('valid');
+            } else {
+                checkNumber.classList.remove('valid');
+                checkNumber.classList.add('invalid');
+            }
+        });
+        
+        // Manejo del formulario
+        document.getElementById('register-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const fullName = document.getElementById('full_name').value;
+            const documentType = document.getElementById('document_type').value;
+            const documentNumber = document.getElementById('document_number').value;
+            const phone = document.getElementById('phone').value;
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm_password').value;
+            
+            // Validaciones
+            if (!email || !fullName || !password || !confirmPassword) {
+                showLocalAlert('Por favor complete todos los campos obligatorios', 'warning');
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                showLocalAlert('Las contraseñas no coinciden', 'warning');
+                return;
+            }
+            
+            // Validar requisitos de contraseña
+            if (password.length < 8) {
+                showLocalAlert('La contraseña debe tener al menos 8 caracteres', 'warning');
+                return;
+            }
+            
+            if (!/[A-Z]/.test(password)) {
+                showLocalAlert('La contraseña debe contener al menos una mayúscula', 'warning');
+                return;
+            }
+            
+            if (!/[a-z]/.test(password)) {
+                showLocalAlert('La contraseña debe contener al menos una minúscula', 'warning');
+                return;
+            }
+            
+            if (!/\d/.test(password)) {
+                showLocalAlert('La contraseña debe contener al menos un número', 'warning');
+                return;
+            }
+            
+            try {
+                showLoading();
+                
+                const userData = {
+                    email: email,
+                    password: password,
+                    full_name: fullName,
+                    document_type: documentType || null,
+                    document_number: documentNumber || null,
+                    phone: phone || null
+                };
+                
+                await AuthAPI.register(userData);
+                
+                // Mostrar mensaje de éxito
+                showLocalAlert('¡Cuenta creada exitosamente! Redirigiendo al login...', 'success');
+                
+                // Redirigir al login después de 2 segundos
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+                
+            } catch (error) {
+                hideLoading();
+                showLocalAlert('Error al crear la cuenta: ' + error.message, 'danger');
+            }
+        });
+        
+        function showLoading() {
+            document.getElementById('loading-overlay').classList.add('active');
+            document.getElementById('submit-btn').disabled = true;
+        }
+        
+        function hideLoading() {
+            document.getElementById('loading-overlay').classList.remove('active');
+            document.getElementById('submit-btn').disabled = false;
+        }
+        
+        function showLocalAlert(message, type) {
+            const container = document.getElementById('alert-container');
+            container.innerHTML = `
+                <div class="alert alert-${type}">
+                    ${message}
+                </div>
+            `;
+            
+            setTimeout(() => {
+                if (type !== 'success') {
+                    container.innerHTML = '';
+                }
+            }, 5000);
+        }
+        
+        // Verificar si ya está autenticado
+        if (AuthAPI.isAuthenticated()) {
+            window.location.href = 'dashboard.html';
+        }
+    </script>
+</body>
+</html>

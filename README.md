@@ -150,6 +150,25 @@ docker compose down
 
 📘 **Documentación completa de Docker**: [docs/DOCKER.md](docs/DOCKER.md)
 
+### 🧪 Datos de Prueba
+
+Para acceder al sistema, puedes usar las credenciales de prueba predefinidas:
+
+**Usuario Contribuyente:**
+- Email: `contribuyente@example.com`
+- Contraseña: `Test1234!`
+
+**Admin de Alcaldía:**
+- Email: `admin@alcaldia.gov.co`
+- Contraseña: `Admin2024!`
+
+📖 **Ver todas las credenciales y datos de prueba**: [docs/DATOS_PRUEBA.md](docs/DATOS_PRUEBA.md)
+
+**Crear usuarios de prueba:**
+```bash
+docker compose exec backend python scripts/seed_data.py
+```
+
 ---
 
 ### 💻 Opción 2: Instalación Local
@@ -232,9 +251,11 @@ La documentación OpenAPI está disponible en:
 
 ## 📚 Documentación
 
+- 🧪 **[Datos de Prueba](docs/DATOS_PRUEBA.md)** - Credenciales y datos para probar el sistema
 - 📘 **[Guía Completa de Docker](docs/DOCKER.md)** - Instrucciones detalladas para ejecutar el sistema con Docker
 - 📗 **[Documentación Completa del Sistema](docs/DOCUMENTACION_COMPLETA.md)** - Casos de uso, pruebas y seguridad
 - 📙 **[Guía de Despliegue On-Premise](docs/DEPLOYMENT.md)** - Instalación en producción
+- 🔬 **[Guía de Pruebas](docs/TESTING.md)** - Pruebas manuales y automatizadas
 
 ## 📄 Licencia
 
