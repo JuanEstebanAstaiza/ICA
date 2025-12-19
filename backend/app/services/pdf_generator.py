@@ -517,7 +517,8 @@ class PDFGenerator:
                 img_buffer = BytesIO(img_data)
                 sig_img = Image(img_buffer, width=2*inch, height=1*inch)
                 elements.append(sig_img)
-            except Exception:
+            except (ValueError, TypeError, KeyError) as e:
+                # Manejar errores de decodificación base64 o formato de imagen
                 elements.append(Paragraph('[Firma digital incluida]', self.styles['Normal']))
             
             # Información de integridad

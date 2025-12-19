@@ -112,9 +112,9 @@ class MunicipalityResponse(MunicipalityBase):
 
 class WhiteLabelConfigBase(BaseModel):
     logo_path: Optional[str] = None
-    primary_color: str = Field(default="#003366", regex=r'^#[0-9A-Fa-f]{6}$')
-    secondary_color: str = Field(default="#0066CC", regex=r'^#[0-9A-Fa-f]{6}$')
-    accent_color: str = Field(default="#FF9900", regex=r'^#[0-9A-Fa-f]{6}$')
+    primary_color: str = Field(default="#003366", pattern=r'^#[0-9A-Fa-f]{6}$')
+    secondary_color: str = Field(default="#0066CC", pattern=r'^#[0-9A-Fa-f]{6}$')
+    accent_color: str = Field(default="#FF9900", pattern=r'^#[0-9A-Fa-f]{6}$')
     font_family: str = Field(default="Arial, sans-serif", max_length=100)
     header_text: Optional[str] = None
     footer_text: Optional[str] = None
