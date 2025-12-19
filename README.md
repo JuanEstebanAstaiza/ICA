@@ -116,23 +116,60 @@ balance = row_33 - (discounts + advances + withholdings)
 
 ## 🚀 Instalación y Despliegue
 
-### Requisitos
+### 🐋 Opción 1: Docker (Recomendado para Pruebas)
+
+La forma más rápida de probar el sistema es usando Docker:
+
+```bash
+# 1. Clonar repositorio
+git clone https://github.com/JuanEstebanAstaiza/ICA.git
+cd ICA
+
+# 2. Iniciar todos los servicios (backend, PostgreSQL, Redis)
+docker compose up -d
+
+# 3. Verificar que los servicios estén corriendo
+docker compose ps
+
+# 4. Acceder a la aplicación
+# - API: http://localhost:8000
+# - Documentación: http://localhost:8000/api/docs
+# - Health check: http://localhost:8000/health
+```
+
+**Ver logs**:
+```bash
+docker compose logs -f backend
+```
+
+**Detener servicios**:
+```bash
+docker compose down
+```
+
+📘 **Documentación completa de Docker**: [docs/DOCKER.md](docs/DOCKER.md)
+
+---
+
+### 💻 Opción 2: Instalación Local
+
+#### Requisitos
 
 - Python 3.10+
 - PostgreSQL 14+
 - Redis (opcional, para cache)
 
-### Instalación Local
+#### Pasos de Instalación
 
 ```bash
 # 1. Clonar repositorio
-cd /opt
-git clone <repository_url> ica-system
+git clone https://github.com/JuanEstebanAstaiza/ICA.git
+cd ICA
 
 # 2. Crear entorno virtual
-cd ica-system/backend
+cd backend
 python -m venv venv
-source venv/bin/activate
+source venv/bin/activate  # En Windows: venv\Scripts\activate
 
 # 3. Instalar dependencias
 pip install -r requirements.txt
@@ -191,6 +228,12 @@ La documentación OpenAPI está disponible en:
 | POST | `/api/v1/declarations/{id}/generate-pdf` | Generar PDF |
 | GET | `/api/v1/declarations/{id}/download-pdf` | Descargar PDF |
 | PUT | `/api/v1/admin/white-label/{id}` | Configurar marca blanca |
+
+## 📚 Documentación
+
+- 📘 **[Guía Completa de Docker](docs/DOCKER.md)** - Instrucciones detalladas para ejecutar el sistema con Docker
+- 📗 **[Documentación Completa del Sistema](docs/DOCUMENTACION_COMPLETA.md)** - Casos de uso, pruebas y seguridad
+- 📙 **[Guía de Despliegue On-Premise](docs/DEPLOYMENT.md)** - Instalación en producción
 
 ## 📄 Licencia
 

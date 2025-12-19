@@ -1,0 +1,51 @@
+# Git
+.git
+.gitignore
+.github
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Tests
+backend/tests/
+*.pytest_cache
+
+# Documentation (se copia por separado)
+Documents/
+docs/
+README.md
+
+# Temporal
+tmp/
+*.log
+*.pid
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Node (si existiera)
+node_modules/
+npm-debug.log
