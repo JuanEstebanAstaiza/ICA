@@ -985,6 +985,17 @@ select.form-control {
     font-size: 0.875rem;
 }
 
+/* Empty state */
+.empty-state {
+    padding: 3rem !important;
+    color: var(--text-muted);
+}
+
+.empty-state-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
 /* Highlight container */
 .highlight-box {
     background: var(--accent-gradient);

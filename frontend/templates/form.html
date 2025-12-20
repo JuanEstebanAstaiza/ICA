@@ -194,10 +194,11 @@
                                     <label for="document_type" class="form-label required">Tipo Documento</label>
                                     <select id="document_type" class="form-control" required>
                                         <option value="">Seleccione...</option>
-                                        <option value="CC">CC - Cédula</option>
-                                        <option value="NIT">NIT</option>
-                                        <option value="TI">TI - Tarjeta ID</option>
-                                        <option value="CE">CE - Extranjería</option>
+                                        <option value="CC">CC - Cédula de Ciudadanía</option>
+                                        <option value="NIT">NIT - Número de Identificación Tributaria</option>
+                                        <option value="TI">TI - Tarjeta de Identidad</option>
+                                        <option value="CE">CE - Cédula de Extranjería</option>
+                                        <option value="PAS">PAS - Pasaporte</option>
                                     </select>
                                 </div>
                             </div>
@@ -704,9 +705,10 @@
         }
         
         // Mostrar/ocultar sección de Bogotá según departamento
+        const BOGOTA_DEPARTMENT = 'Bogotá D.C.';
         document.getElementById('department').addEventListener('change', function() {
             const bogotaSection = document.getElementById('bogota-section');
-            if (this.value === 'Bogotá D.C.') {
+            if (this.value === BOGOTA_DEPARTMENT) {
                 bogotaSection.style.display = 'block';
             } else {
                 bogotaSection.style.display = 'none';

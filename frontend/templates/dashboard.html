@@ -169,12 +169,10 @@
                 if (declarations.length === 0) {
                     tbody.innerHTML = `
                         <tr>
-                            <td colspan="6" class="text-center" style="padding: 3rem;">
-                                <div style="color: var(--text-muted);">
-                                    <div style="font-size: 3rem; margin-bottom: 1rem;">📄</div>
-                                    <p>No tiene declaraciones aún.</p>
-                                    <a href="form.html" class="btn btn-primary">➕ Crear nueva declaración</a>
-                                </div>
+                            <td colspan="6" class="text-center empty-state">
+                                <div class="empty-state-icon">📄</div>
+                                <p>No tiene declaraciones aún.</p>
+                                <a href="form.html" class="btn btn-primary">➕ Crear nueva declaración</a>
                             </td>
                         </tr>
                     `;
