@@ -9,12 +9,13 @@ import uuid
 
 from ...db.database import get_db
 from ...models.models import (
-    User, UserRole, Municipality, WhiteLabelConfig, TaxActivity
+    User, UserRole, Municipality, WhiteLabelConfig, TaxActivity, FormulaParameters
 )
 from ...schemas.schemas import (
     MunicipalityCreate, MunicipalityResponse,
     WhiteLabelConfigUpdate, WhiteLabelConfigResponse,
-    TaxActivityCreate, TaxActivityResponse
+    TaxActivityCreate, TaxActivityResponse,
+    FormulaParametersCreate, FormulaParametersUpdate, FormulaParametersResponse
 )
 from ...core.config import settings
 from .auth import get_current_active_user, require_role
@@ -470,3 +471,163 @@ async def assign_user_municipality(
     db.commit()
     
     return {"message": f"Usuario asignado al municipio {municipality.name}"}
+
+
+# ===================== PARÁMETROS DE FÓRMULAS (EDICIÓN EN CALIENTE) =====================
+
+@router.get("/formula-parameters/{municipality_id}", response_model=FormulaParametersResponse)
+async def get_formula_parameters(
+    municipality_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Obtiene los parámetros de fórmulas configurables de un municipio.
+    Permite visualizar los valores numéricos que se usan en los cálculos.
+    """
+    municipality = db.query(Municipality).filter(
+        Municipality.id == municipality_id
+    ).first()
+    
+    if not municipality:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Municipio no encontrado"
+        )
+    
+    params = db.query(FormulaParameters).filter(
+        FormulaParameters.municipality_id == municipality_id
+    ).first()
+    
+    # Si no existen parámetros, crear unos por defecto
+    if not params:
+        params = FormulaParameters(municipality_id=municipality_id)
+        db.add(params)
+        db.commit()
+        db.refresh(params)
+    
+    return params
+
+
+@router.put("/formula-parameters/{municipality_id}", response_model=FormulaParametersResponse)
+async def update_formula_parameters(
+    municipality_id: int,
+    data: FormulaParametersUpdate,
+    current_user: User = Depends(require_role([
+        UserRole.ADMIN_ALCALDIA, 
+        UserRole.ADMIN_SISTEMA
+    ])),
+    db: Session = Depends(get_db)
+):
+    """
+    Actualiza los parámetros de fórmulas de un municipio.
+    
+    EDICIÓN EN CALIENTE:
+    Permite modificar valores numéricos de las fórmulas sin cambiar código,
+    para adaptarse a cambios en legislación municipal.
+    
+    Parámetros configurables:
+    - avisos_tableros_porcentaje: % sobre impuesto ICA para avisos y tableros
+    - sobretasa_bomberil_porcentaje: % sobretasa bomberil
+    - sobretasa_seguridad_porcentaje: % sobretasa seguridad
+    - ley_56_tarifa_por_kw: Tarifa por kW instalado (Ley 56 de 1981)
+    - anticipo_ano_siguiente_porcentaje: % anticipo año siguiente
+    - descuento_pronto_pago_porcentaje: % descuento por pronto pago
+    - descuento_pronto_pago_dias: Días para aplicar descuento pronto pago
+    - interes_mora_mensual: % mensual de intereses por mora
+    - unidades_adicionales_financiero_valor: Valor unidades comerciales adicionales financiero
+    """
+    # Verificar permisos para admin de alcaldía
+    if current_user.role == UserRole.ADMIN_ALCALDIA:
+        if current_user.municipality_id != municipality_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Solo puede modificar los parámetros de su municipio"
+            )
+    
+    municipality = db.query(Municipality).filter(
+        Municipality.id == municipality_id
+    ).first()
+    
+    if not municipality:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Municipio no encontrado"
+        )
+    
+    params = db.query(FormulaParameters).filter(
+        FormulaParameters.municipality_id == municipality_id
+    ).first()
+    
+    if not params:
+        # Crear nuevos parámetros
+        params = FormulaParameters(
+            municipality_id=municipality_id,
+            updated_by=current_user.id
+        )
+        db.add(params)
+    
+    # Actualizar campos
+    for key, value in data.dict(exclude_unset=True).items():
+        setattr(params, key, value)
+    
+    params.updated_by = current_user.id
+    
+    db.commit()
+    db.refresh(params)
+    
+    return params
+
+
+@router.post("/formula-parameters", response_model=FormulaParametersResponse)
+async def create_formula_parameters(
+    data: FormulaParametersCreate,
+    current_user: User = Depends(require_role([
+        UserRole.ADMIN_ALCALDIA, 
+        UserRole.ADMIN_SISTEMA
+    ])),
+    db: Session = Depends(get_db)
+):
+    """
+    Crea parámetros de fórmulas para un municipio.
+    """
+    # Verificar permisos para admin de alcaldía
+    if current_user.role == UserRole.ADMIN_ALCALDIA:
+        if current_user.municipality_id != data.municipality_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Solo puede crear parámetros para su municipio"
+            )
+    
+    # Verificar que el municipio existe
+    municipality = db.query(Municipality).filter(
+        Municipality.id == data.municipality_id
+    ).first()
+    
+    if not municipality:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Municipio no encontrado"
+        )
+    
+    # Verificar que no existan parámetros para este municipio
+    existing = db.query(FormulaParameters).filter(
+        FormulaParameters.municipality_id == data.municipality_id
+    ).first()
+    
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Ya existen parámetros para este municipio. Use PUT para actualizarlos."
+        )
+    
+    params = FormulaParameters(
+        **data.dict(),
+        updated_by=current_user.id
+    )
+    
+    db.add(params)
+    db.commit()
+    db.refresh(params)
+    
+    return params

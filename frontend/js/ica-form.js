@@ -9,78 +9,155 @@
  * Motor de cálculo del formulario ICA (cliente)
  * Replica las fórmulas del backend para validación doble
  * 
- * ESTRUCTURA DE RENGLONES (según formulario-ICA.md):
- * - Renglón 9: Total ingresos ordinarios
- * - Renglón 10: Total ingresos extraordinarios
- * - Renglón 11: TOTAL INGRESOS (calculado: R9 + R10)
- * - Renglón 12: Devoluciones
- * - Renglón 13: Exportaciones
- * - Renglón 14: Ventas de activos fijos
- * - Renglón 15: Ingresos excluidos
- * - Renglón 16: Ingresos no gravados
- * - Renglón 17: TOTAL INGRESOS GRAVABLES (calculado: R11 - (R12+R13+R14+R15+R16))
- * - Renglón 18: Impuesto de Industria y Comercio
- * - Renglón 19: Avisos y tableros
- * - Renglón 20: Sobretasa
- * - Renglón 21: Total impuesto (calculado: R18 + R19 + R20)
- * - Renglón 22: Descuentos tributarios
- * - Renglón 23: Anticipos del período anterior
- * - Renglón 24: Retenciones sufridas
- * - Renglón 25: Total saldo a pagar
- * - Renglón 26: Total saldo a favor
+ * ESTRUCTURA DE RENGLONES (según formulario-ICA.md actualizado):
+ * 
+ * SECCIÓN B - BASE GRAVABLE:
+ * - Renglón 8: Total ingresos ordinarios y extraordinarios del período en todo el país
+ * - Renglón 9: Menos ingresos fuera del municipio
+ * - Renglón 10: Total ingresos ordinarios y extraordinarios en el municipio (R8 - R9)
+ * - Renglón 11: Menos ingresos por devoluciones, rebajas y descuentos
+ * - Renglón 12: Menos ingresos por exportaciones y venta de activos fijos
+ * - Renglón 13: Menos ingresos por actividades excluidas o no sujetas
+ * - Renglón 14: Menos ingresos por actividades exentas en el municipio
+ * - Renglón 15: Total ingresos gravables (R10 - (R11 + R12 + R13 + R14))
+ * 
+ * SECCIÓN C - DISCRIMINACIÓN DE INGRESOS:
+ * - Renglón 16: Total ingresos gravados en el municipio (suma actividades)
+ * - Renglón 17: Total impuesto ICA (suma impuesto por actividades)
+ * - Renglón 18: Generación de energía – Capacidad instalada (kW)
+ * - Renglón 19: Impuesto Ley 56 de 1981
+ * 
+ * SECCIÓN D - LIQUIDACIÓN:
+ * - Renglón 20: Total impuesto de industria y comercio (R17 + R19)
+ * - Renglón 21: Impuesto de avisos y tableros
+ * - Renglón 22: Pago por unidades comerciales adicionales del sector financiero
+ * - Renglón 23: Sobretasa bomberil
+ * - Renglón 24: Sobretasa de seguridad
+ * - Renglón 25: Total impuesto a cargo (R20 + R21 + R22 + R23 + R24)
+ * - Renglón 26: Menos exenciones o exoneraciones sobre el impuesto
+ * - Renglón 27: Menos retenciones practicadas en el municipio
+ * - Renglón 28: Menos autorretenciones practicadas en el municipio
+ * - Renglón 29: Menos anticipo liquidado en el año anterior
+ * - Renglón 30: Anticipo del año siguiente
+ * - Renglón 31: Sanciones
+ * - Renglón 32: Menos saldo a favor del período anterior
+ * - Renglón 33: Total saldo a cargo
+ * - Renglón 34: Total saldo a favor
+ * 
+ * SECCIÓN E - PAGO:
+ * - Renglón 35: Valor a pagar
+ * - Renglón 36: Descuento por pronto pago
+ * - Renglón 37: Intereses de mora
+ * - Renglón 38: Total a pagar (R35 - R36 + R37)
+ * - Renglón 39: Pago voluntario
+ * - Renglón 40: Total a pagar con pago voluntario (R38 + R39)
  */
 const ICACalculator = {
     /**
-     * Renglón 11: Total ingresos = R9 + R10
+     * Renglón 10: Total ingresos en el municipio = R8 - R9
      */
-    calculateTotalIncome(row9, row10) {
-        return (parseFloat(row9) || 0) + (parseFloat(row10) || 0);
+    calculateTotalIncomeInMunicipality(row8, row9) {
+        return Math.max(0, (parseFloat(row8) || 0) - (parseFloat(row9) || 0));
     },
     
     /**
-     * Renglón 17: Total ingresos gravables
-     * Fórmula: R11 - (R12 + R13 + R14 + R15 + R16)
+     * Renglón 15: Total ingresos gravables
+     * Fórmula: R10 - (R11 + R12 + R13 + R14)
      */
-    calculateTaxableIncome(row11, row12, row13, row14, row15, row16) {
+    calculateTaxableIncome(row10, row11, row12, row13, row14) {
         const deductions = 
+            (parseFloat(row11) || 0) +
             (parseFloat(row12) || 0) +
             (parseFloat(row13) || 0) +
-            (parseFloat(row14) || 0) +
-            (parseFloat(row15) || 0) +
-            (parseFloat(row16) || 0);
-        return Math.max(0, row11 - deductions);
+            (parseFloat(row14) || 0);
+        return Math.max(0, (parseFloat(row10) || 0) - deductions);
     },
     
     /**
      * Impuesto por actividad = ingresos * tarifa / 1000
      */
-    calculateActivityTax(income, rate) {
-        return (parseFloat(income) || 0) * (parseFloat(rate) || 0) / 1000;
+    calculateActivityTax(income, rate, specialRate = null) {
+        const effectiveRate = specialRate !== null ? specialRate : rate;
+        return (parseFloat(income) || 0) * (parseFloat(effectiveRate) || 0) / 1000;
     },
     
     /**
-     * Renglón 21: Total impuesto = R18 + R19 + R20
+     * Renglón 19: Impuesto Ley 56 de 1981 = capacidad_kW * tarifa_por_kW
      */
+    calculateLaw56Tax(capacityKw, ratePerKw) {
+        return (parseFloat(capacityKw) || 0) * (parseFloat(ratePerKw) || 0);
+    },
+    
+    /**
+     * Renglón 20: Total impuesto de industria y comercio = R17 + R19
+     */
+    calculateTotalICATax(row17, row19) {
+        return (parseFloat(row17) || 0) + (parseFloat(row19) || 0);
+    },
+    
+    /**
+     * Renglón 25: Total impuesto a cargo = R20 + R21 + R22 + R23 + R24
+     */
+    calculateTotalTaxPayable(row20, row21, row22, row23, row24) {
+        return (parseFloat(row20) || 0) + 
+               (parseFloat(row21) || 0) + 
+               (parseFloat(row22) || 0) +
+               (parseFloat(row23) || 0) +
+               (parseFloat(row24) || 0);
+    },
+    
+    /**
+     * Renglones 33 y 34: Total saldo a cargo / a favor
+     * Fórmula: R25 - R26 - R27 - R28 - R29 + R30 + R31 - R32
+     */
+    calculateFinalBalance(row25, row26, row27, row28, row29, row30, row31, row32) {
+        const balance = (parseFloat(row25) || 0) 
+            - (parseFloat(row26) || 0)  // exenciones
+            - (parseFloat(row27) || 0)  // retenciones municipio
+            - (parseFloat(row28) || 0)  // autorretenciones
+            - (parseFloat(row29) || 0)  // anticipo año anterior
+            + (parseFloat(row30) || 0)  // anticipo año siguiente
+            + (parseFloat(row31) || 0)  // sanciones
+            - (parseFloat(row32) || 0); // saldo favor anterior
+        
+        if (balance > 0) {
+            return { saldoCargo: balance, saldoFavor: 0 };
+        } else {
+            return { saldoCargo: 0, saldoFavor: Math.abs(balance) };
+        }
+    },
+    
+    /**
+     * Renglón 38: Total a pagar = R35 - R36 + R37
+     */
+    calculateTotalToPay(row35, row36, row37) {
+        return Math.max(0, (parseFloat(row35) || 0) - (parseFloat(row36) || 0) + (parseFloat(row37) || 0));
+    },
+    
+    /**
+     * Renglón 40: Total a pagar con pago voluntario = R38 + R39
+     */
+    calculateTotalWithVoluntary(row38, row39) {
+        return (parseFloat(row38) || 0) + (parseFloat(row39) || 0);
+    },
+    
+    // ===== Métodos legacy para compatibilidad =====
+    calculateTotalIncome(row9, row10) {
+        return (parseFloat(row9) || 0) + (parseFloat(row10) || 0);
+    },
+    
     calculateTotalTax(row18, row19, row20) {
         return (parseFloat(row18) || 0) + 
                (parseFloat(row19) || 0) + 
                (parseFloat(row20) || 0);
     },
     
-    /**
-     * Total créditos = R22 + R23 + R24
-     */
     calculateTotalCredits(row22, row23, row24) {
         return (parseFloat(row22) || 0) +
                (parseFloat(row23) || 0) +
                (parseFloat(row24) || 0);
     },
     
-    /**
-     * Resultado final (Renglones 25 y 26)
-     * - Renglón 25: Total saldo a pagar
-     * - Renglón 26: Total saldo a favor
-     */
     calculateResult(totalTax, totalCredits) {
         const result = totalTax - totalCredits;
         if (result > 0) {
@@ -116,10 +193,15 @@ class ICAFormController {
     bindEvents() {
         // Eventos de cálculo automático en campos editables
         // Actualizado según nueva estructura de renglones (formulario-ICA.md)
+        // Sección B - Base Gravable (8-14)
+        // Sección C - Energía (18)
+        // Sección D - Liquidación (21-32)
+        // Sección E - Pago (35-37, 39)
         const calculableInputs = [
-            'row_9', 'row_10', 'row_12', 'row_13', 'row_14', 'row_15', 'row_16',
-            'row_19', 'row_20',
-            'row_22', 'row_23', 'row_24'
+            'row_8', 'row_9', 'row_11', 'row_12', 'row_13', 'row_14',
+            'row_18_energy_kw',
+            'row_21', 'row_22', 'row_23', 'row_24', 'row_26', 'row_27', 'row_28', 'row_29', 'row_30', 'row_31', 'row_32',
+            'row_35', 'row_36', 'row_37', 'row_39'
         ];
         
         calculableInputs.forEach(inputId => {
@@ -213,25 +295,27 @@ class ICAFormController {
      * Actualizado según estructura de renglones del formulario-ICA.md
      */
     recalculate() {
-        // Sección C - Ingresos y Base Gravable
-        const row9 = this.getValue('row_9');   // Total ingresos ordinarios
-        const row10 = this.getValue('row_10'); // Total ingresos extraordinarios
-        const row11 = ICACalculator.calculateTotalIncome(row9, row10); // TOTAL INGRESOS
-        this.setValue('row_11', row11);
+        // ===== SECCIÓN B - BASE GRAVABLE =====
+        const row8 = this.getValue('row_8');   // Total ingresos en todo el país
+        const row9 = this.getValue('row_9');   // Menos ingresos fuera del municipio
+        const row10 = ICACalculator.calculateTotalIncomeInMunicipality(row8, row9); // Total en municipio
+        this.setValue('row_10', row10);
         
-        const row12 = this.getValue('row_12'); // Devoluciones
-        const row13 = this.getValue('row_13'); // Exportaciones
-        const row14 = this.getValue('row_14'); // Ventas de activos fijos
-        const row15 = this.getValue('row_15'); // Ingresos excluidos
-        const row16 = this.getValue('row_16'); // Ingresos no gravados
-        const row17 = ICACalculator.calculateTaxableIncome(row11, row12, row13, row14, row15, row16);
-        this.setValue('row_17', row17);
+        const row11 = this.getValue('row_11'); // Devoluciones, rebajas y descuentos
+        const row12 = this.getValue('row_12'); // Exportaciones y activos fijos
+        const row13 = this.getValue('row_13'); // Actividades excluidas
+        const row14 = this.getValue('row_14'); // Actividades exentas
+        const row15 = ICACalculator.calculateTaxableIncome(row10, row11, row12, row13, row14);
+        this.setValue('row_15', row15);
         
-        // Sección B - Actividades Gravadas (recalcular impuestos)
+        // ===== SECCIÓN C - DISCRIMINACIÓN DE INGRESOS =====
+        // Recalcular impuestos de actividades
+        let totalActivitiesIncome = 0;
         let totalActivitiesTax = 0;
         this.activities.forEach((activity, index) => {
-            const tax = ICACalculator.calculateActivityTax(activity.income, activity.tax_rate);
+            const tax = ICACalculator.calculateActivityTax(activity.income, activity.tax_rate, activity.special_rate);
             activity.generated_tax = tax;
+            totalActivitiesIncome += parseFloat(activity.income) || 0;
             totalActivitiesTax += tax;
             
             const taxElement = document.getElementById(`activity_tax_${index}`);
@@ -240,35 +324,73 @@ class ICAFormController {
             }
         });
         
-        // Actualizar total de actividades en el footer de la tabla
+        // Actualizar totales en el footer de la tabla
+        const totalTaxedIncomeElement = document.getElementById('total-taxed-income');
+        if (totalTaxedIncomeElement) {
+            totalTaxedIncomeElement.textContent = this.formatMoney(totalActivitiesIncome);
+        }
         const totalActivitiesTaxElement = document.getElementById('total-activities-tax');
         if (totalActivitiesTaxElement) {
             totalActivitiesTaxElement.textContent = this.formatMoney(totalActivitiesTax);
         }
         
-        // Sección D - Liquidación del Impuesto
-        const row18 = totalActivitiesTax; // Impuesto de Industria y Comercio
-        this.setValue('row_18', row18);
+        // Renglón 17: Total impuesto ICA (suma de actividades)
+        const row17 = totalActivitiesTax;
         
-        const row19 = this.getValue('row_19'); // Avisos y tableros
-        const row20 = this.getValue('row_20'); // Sobretasa
-        const row21 = ICACalculator.calculateTotalTax(row18, row19, row20); // TOTAL IMPUESTO
-        this.setValue('row_21', row21);
+        // Ley 56 de 1981 - Generación de energía
+        const row18_energy_kw = this.getValue('row_18_energy_kw');
+        // TODO: Obtener tarifa por kW de parámetros del municipio
+        const law56Rate = 0; // Por ahora en 0, debería venir de formulaParameters
+        const row19_law56 = ICACalculator.calculateLaw56Tax(row18_energy_kw, law56Rate);
+        this.setValue('row_19_law56', row19_law56);
         
-        // Sección E - Descuentos y Anticipos
-        const row22 = this.getValue('row_22'); // Descuentos tributarios
-        const row23 = this.getValue('row_23'); // Anticipos del período anterior
-        const row24 = this.getValue('row_24'); // Retenciones sufridas
-        const totalCredits = ICACalculator.calculateTotalCredits(row22, row23, row24);
-        this.setValue('total_credits', totalCredits);
+        // ===== SECCIÓN D - LIQUIDACIÓN DEL IMPUESTO =====
+        // Renglón 20: Total impuesto de industria y comercio
+        const row20 = ICACalculator.calculateTotalICATax(row17, row19_law56);
+        this.setValue('row_20', row20);
         
-        // Sección F - Resultado Final (Renglones 25 y 26)
-        const result = ICACalculator.calculateResult(row21, totalCredits);
-        this.setValue('row_25', result.amountToPay);  // Total saldo a pagar
-        this.setValue('row_26', result.balanceInFavor); // Total saldo a favor
+        // Renglones 21-24: Otros impuestos
+        const row21 = this.getValue('row_21'); // Avisos y tableros
+        const row22 = this.getValue('row_22'); // Unidades comerciales financiero
+        const row23 = this.getValue('row_23'); // Sobretasa bomberil
+        const row24 = this.getValue('row_24'); // Sobretasa seguridad
         
-        // Actualizar visualización
-        this.updateResultDisplay(result);
+        // Renglón 25: Total impuesto a cargo
+        const row25 = ICACalculator.calculateTotalTaxPayable(row20, row21, row22, row23, row24);
+        this.setValue('row_25', row25);
+        
+        // Renglones 26-32: Deducciones y ajustes
+        const row26 = this.getValue('row_26'); // Exenciones
+        const row27 = this.getValue('row_27'); // Retenciones municipio
+        const row28 = this.getValue('row_28'); // Autorretenciones
+        const row29 = this.getValue('row_29'); // Anticipo año anterior
+        const row30 = this.getValue('row_30'); // Anticipo año siguiente
+        const row31 = this.getValue('row_31'); // Sanciones
+        const row32 = this.getValue('row_32'); // Saldo favor anterior
+        
+        // Renglones 33 y 34: Saldo a cargo / saldo a favor
+        const finalBalance = ICACalculator.calculateFinalBalance(row25, row26, row27, row28, row29, row30, row31, row32);
+        this.setValue('row_33', finalBalance.saldoCargo);
+        this.setValue('row_34', finalBalance.saldoFavor);
+        
+        // ===== SECCIÓN E - PAGO =====
+        const row35 = this.getValue('row_35'); // Valor a pagar
+        const row36 = this.getValue('row_36'); // Descuento pronto pago
+        const row37 = this.getValue('row_37'); // Intereses mora
+        
+        // Renglón 38: Total a pagar
+        const row38 = ICACalculator.calculateTotalToPay(row35, row36, row37);
+        this.setValue('row_38', row38);
+        
+        // Renglón 39: Pago voluntario
+        const row39 = this.getValue('row_39');
+        
+        // Renglón 40: Total a pagar con pago voluntario
+        const row40 = ICACalculator.calculateTotalWithVoluntary(row38, row39);
+        this.setValue('row_40', row40);
+        
+        // Actualizar visualización de resultado
+        this.updateResultDisplay({ saldoCargo: finalBalance.saldoCargo, saldoFavor: finalBalance.saldoFavor });
     }
     
     getValue(fieldId) {
@@ -291,14 +413,29 @@ class ICAFormController {
     }
     
     updateResultDisplay(result) {
+        // Resaltar el campo que tiene valor (saldo a cargo o saldo a favor)
+        const row33Input = document.getElementById('row_33');
+        const row34Input = document.getElementById('row_34');
+        
+        if (row33Input && row34Input) {
+            if (result.saldoCargo > 0) {
+                row33Input.parentElement.parentElement.classList.add('highlight');
+                row34Input.parentElement.parentElement.classList.remove('highlight');
+            } else if (result.saldoFavor > 0) {
+                row33Input.parentElement.parentElement.classList.remove('highlight');
+                row34Input.parentElement.parentElement.classList.add('highlight');
+            }
+        }
+        
+        // Legacy support para contenedores antiguos
         const payContainer = document.getElementById('amount_to_pay_container');
         const favorContainer = document.getElementById('balance_in_favor_container');
         
         if (payContainer && favorContainer) {
-            if (result.amountToPay > 0) {
+            if (result.saldoCargo > 0 || result.amountToPay > 0) {
                 payContainer.classList.add('highlight');
                 favorContainer.classList.remove('highlight');
-            } else if (result.balanceInFavor > 0) {
+            } else if (result.saldoFavor > 0 || result.balanceInFavor > 0) {
                 payContainer.classList.remove('highlight');
                 favorContainer.classList.add('highlight');
             }
@@ -310,10 +447,12 @@ class ICAFormController {
      */
     addActivity() {
         const activityData = {
+            activity_type: 'principal',
             ciiu_code: '',
             description: '',
             income: 0,
             tax_rate: 0,
+            special_rate: null,
             generated_tax: 0
         };
         
@@ -336,6 +475,14 @@ class ICAFormController {
         this.activities.forEach((activity, index) => {
             const row = document.createElement('tr');
             row.innerHTML = `
+                <td>
+                    <select class="form-control" 
+                            id="activity_type_${index}" 
+                            ${this.isSigned ? 'disabled' : ''}>
+                        <option value="principal" ${activity.activity_type === 'principal' ? 'selected' : ''}>Principal</option>
+                        <option value="secundaria" ${activity.activity_type === 'secundaria' ? 'selected' : ''}>Secundaria</option>
+                    </select>
+                </td>
                 <td>
                     <input type="text" class="form-control" 
                            id="activity_ciiu_${index}" 
@@ -368,10 +515,19 @@ class ICAFormController {
                     ${this.formatMoney(activity.generated_tax)}
                 </td>
                 <td>
+                    <input type="number" class="form-control" 
+                           id="activity_special_rate_${index}" 
+                           value="${activity.special_rate || ''}"
+                           min="0" max="100" step="0.01"
+                           placeholder="Esp."
+                           title="Tarifa especial (si aplica)"
+                           ${this.isSigned ? 'disabled' : ''}>
+                </td>
+                <td>
                     ${!this.isSigned ? `
                         <button type="button" class="btn btn-danger btn-sm" 
                                 onclick="formController.removeActivity(${index})">
-                            Eliminar
+                            ✕
                         </button>
                     ` : ''}
                 </td>
@@ -381,6 +537,7 @@ class ICAFormController {
             // Eventos para recalcular
             const incomeInput = document.getElementById(`activity_income_${index}`);
             const rateInput = document.getElementById(`activity_rate_${index}`);
+            const specialRateInput = document.getElementById(`activity_special_rate_${index}`);
             
             if (incomeInput) {
                 incomeInput.addEventListener('input', (e) => {
@@ -396,9 +553,24 @@ class ICAFormController {
                 });
             }
             
-            // Eventos para actualizar descripción y código
+            if (specialRateInput) {
+                specialRateInput.addEventListener('input', (e) => {
+                    const val = e.target.value.trim();
+                    this.activities[index].special_rate = val !== '' ? parseFloat(val) : null;
+                    this.recalculate();
+                });
+            }
+            
+            // Eventos para actualizar tipo, descripción y código
+            const typeInput = document.getElementById(`activity_type_${index}`);
             const ciiuInput = document.getElementById(`activity_ciiu_${index}`);
             const descInput = document.getElementById(`activity_desc_${index}`);
+            
+            if (typeInput) {
+                typeInput.addEventListener('change', (e) => {
+                    this.activities[index].activity_type = e.target.value;
+                });
+            }
             
             if (ciiuInput) {
                 ciiuInput.addEventListener('input', (e) => {

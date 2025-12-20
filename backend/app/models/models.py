@@ -111,6 +111,7 @@ class Municipality(Base):
     config = relationship("WhiteLabelConfig", back_populates="municipality")
     declarations = relationship("ICADeclaration", back_populates="municipality")
     activities = relationship("TaxActivity", back_populates="municipality")
+    formula_parameters = relationship("FormulaParameters", back_populates="municipality", uselist=False)
 
 
 class WhiteLabelConfig(Base):
@@ -147,28 +148,74 @@ class WhiteLabelConfig(Base):
     municipality = relationship("Municipality", back_populates="config", uselist=False)
 
 
+class FormulaParameters(Base):
+    """
+    Parámetros configurables de fórmulas por municipio.
+    Permite edición en caliente de valores numéricos de las fórmulas
+    en caso de cambios en legislación.
+    Basado en: Documents/formulario-ICA.md - Sección D y E
+    """
+    __tablename__ = "formula_parameters"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    municipality_id = Column(Integer, ForeignKey("municipalities.id"), nullable=False, unique=True)
+    
+    # Parámetros de Avisos y Tableros (Sección D - Renglón 21)
+    avisos_tableros_porcentaje = Column(Float, default=15.0)  # % sobre impuesto ICA (típicamente 15%)
+    
+    # Parámetros de Sobretasa Bomberil (Sección D - Renglón 23)
+    sobretasa_bomberil_porcentaje = Column(Float, default=0.0)  # % sobre impuesto ICA
+    
+    # Parámetros de Sobretasa Seguridad (Sección D - Renglón 24)
+    sobretasa_seguridad_porcentaje = Column(Float, default=0.0)  # % sobre impuesto ICA
+    
+    # Parámetros Ley 56 de 1981 - Generación de energía (Sección D - Renglón 19)
+    ley_56_tarifa_por_kw = Column(Float, default=0.0)  # Tarifa por kW instalado
+    
+    # Parámetros de Anticipo (Sección D - Renglón 30)
+    anticipo_ano_siguiente_porcentaje = Column(Float, default=40.0)  # % típico de anticipo
+    
+    # Parámetros de Descuento por Pronto Pago (Sección E - Renglón 36)
+    descuento_pronto_pago_porcentaje = Column(Float, default=10.0)  # % descuento
+    descuento_pronto_pago_dias = Column(Integer, default=30)  # Días para aplicar descuento
+    
+    # Parámetros de Intereses de Mora (Sección E - Renglón 37)
+    interes_mora_mensual = Column(Float, default=1.0)  # % mensual de mora
+    
+    # Parámetros de Unidades Comerciales Adicionales Sector Financiero (Sección D - Renglón 22)
+    unidades_adicionales_financiero_valor = Column(Float, default=0.0)
+    
+    # Metadatos
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    updated_by = Column(Integer, ForeignKey("users.id"))
+    
+    # Relación
+    municipality = relationship("Municipality", back_populates="formula_parameters")
+
+
 # ===================== MODELOS DEL FORMULARIO ICA =====================
 
 class ICADeclaration(Base):
     """
     Declaración ICA principal.
-    Basado en: Documents/formulario-ICA.md - Metadatos Generales
+    Basado en: Documents/formulario-ICA.md - Metadatos del Formulario (Sistema)
     """
     __tablename__ = "ica_declarations"
     
     id = Column(Integer, primary_key=True, index=True)
     
-    # Metadatos Generales (Sección 1)
-    tax_year = Column(Integer, nullable=False)  # Año gravable
-    declaration_type = Column(Enum(DeclarationType), default=DeclarationType.INICIAL)
-    status = Column(Enum(FormStatus), default=FormStatus.BORRADOR)
+    # Sección 0 - Metadatos del Formulario (Sistema)
+    tax_year = Column(Integer, nullable=False)  # Periodo gravable (YYYY)
+    filing_date = Column(DateTime(timezone=True))  # Fecha de presentación (ISO-8601)
+    declaration_type = Column(Enum(DeclarationType), default=DeclarationType.INICIAL)  # Tipo de declaración
+    form_number = Column(String(50), unique=True, index=True)  # Consecutivo del formulario (único)
+    filing_number = Column(String(50), unique=True, index=True)  # Número de radicado (único, posterior a firma)
+    status = Column(Enum(FormStatus), default=FormStatus.BORRADOR)  # Estado de la declaración
     
     # Usuario y alcaldía
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     municipality_id = Column(Integer, ForeignKey("municipalities.id"), nullable=False)
-    
-    # Número de formulario
-    form_number = Column(String(50), unique=True, index=True)
     
     # Corrección (si aplica)
     correction_of_id = Column(Integer, ForeignKey("ica_declarations.id"))
@@ -194,7 +241,9 @@ class ICADeclaration(Base):
     taxpayer = relationship("Taxpayer", back_populates="declaration", uselist=False)
     income_base = relationship("IncomeBase", back_populates="declaration", uselist=False)
     activities = relationship("TaxableActivity", back_populates="declaration")
+    energy_generation = relationship("EnergyGeneration", back_populates="declaration", uselist=False)
     settlement = relationship("TaxSettlement", back_populates="declaration", uselist=False)
+    payment_section = relationship("PaymentSection", back_populates="declaration", uselist=False)
     discounts = relationship("DiscountsCredits", back_populates="declaration", uselist=False)
     result = relationship("DeclarationResult", back_populates="declaration", uselist=False)
     audit_logs = relationship("AuditLog", back_populates="declaration")
@@ -203,25 +252,44 @@ class ICADeclaration(Base):
 class Taxpayer(Base):
     """
     Información del Contribuyente - Sección A del formulario ICA.
-    Secciones 3.1 (Identificación) y 3.2 (Ubicación)
+    Basado en: Documents/formulario-ICA.md - Sección A
     """
     __tablename__ = "taxpayers"
     
     id = Column(Integer, primary_key=True, index=True)
     declaration_id = Column(Integer, ForeignKey("ica_declarations.id"), nullable=False)
     
-    # 3.1 Identificación
+    # Renglón 1: Identificación
+    legal_name = Column(String(255), nullable=False)  # Apellidos y nombres / Razón social
+    
+    # Tipo de entidad (según formulario-ICA.md)
+    entity_type = Column(String(20), default="privada")  # privada | publica
+    
+    # Renglón 2: Cédula o NIT
     document_type = Column(String(20), nullable=False)
     document_number = Column(String(50), nullable=False)
-    verification_digit = Column(String(1))  # Dígito de verificación
-    legal_name = Column(String(255), nullable=False)  # Razón social / Nombre completo
+    verification_digit = Column(String(1))  # Dígito de verificación (DV)
     
-    # 3.2 Ubicación
+    # Renglón 3: Dirección de notificación
     address = Column(String(500))
-    municipality = Column(String(255))
-    department = Column(String(255))
+    notification_department = Column(String(255))  # Departamento de notificación
+    notification_municipality = Column(String(255))  # Municipio de notificación
+    
+    # Renglón 4: Teléfono
     phone = Column(String(50))
+    
+    # Renglón 5: Correo electrónico
     email = Column(String(255))
+    
+    # Renglón 6: Número de establecimientos en el municipio
+    num_establishments = Column(Integer, default=1)
+    
+    # Renglón 7: Clasificación del contribuyente (según formulario-ICA.md)
+    taxpayer_classification = Column(String(30), default="comun")  # comun | simplificado
+    
+    # Campos legacy para compatibilidad
+    municipality = Column(String(255))  # Alias de notification_municipality
+    department = Column(String(255))  # Alias de notification_department
     
     # Relación
     declaration = relationship("ICADeclaration", back_populates="taxpayer")
@@ -230,45 +298,75 @@ class Taxpayer(Base):
 class IncomeBase(Base):
     """
     Base Gravable - Sección B del formulario ICA.
-    Contiene renglones 8-16 según Documents/formulario-ICA.md
+    Contiene renglones 8-15 según Documents/formulario-ICA.md
     """
     __tablename__ = "income_bases"
     
     id = Column(Integer, primary_key=True, index=True)
     declaration_id = Column(Integer, ForeignKey("ica_declarations.id"), nullable=False)
     
-    # Renglones Base (editables)
-    row_8_ordinary_income = Column(Float, default=0)  # Total ingresos ordinarios
-    row_9_extraordinary_income = Column(Float, default=0)  # Ingresos extraordinarios
-    row_11_returns = Column(Float, default=0)  # Devoluciones
-    row_12_exports = Column(Float, default=0)  # Exportaciones
-    row_13_fixed_assets_sales = Column(Float, default=0)  # Ventas de activos fijos
-    row_14_excluded_income = Column(Float, default=0)  # Ingresos excluidos
-    row_15_non_taxable_income = Column(Float, default=0)  # Ingresos no gravados
+    # Sección B - Base Gravable (según formulario-ICA.md)
+    # Renglón 8: Total ingresos ordinarios y extraordinarios del período en todo el país
+    row_8_total_income_country = Column(Float, default=0)
     
-    # Campos calculados (NO editables)
-    # row_10 = row_8 + row_9
-    # row_16 = row_10 - (row_11 + row_12 + row_13 + row_14 + row_15)
+    # Renglón 9: Menos ingresos fuera del municipio
+    row_9_income_outside_municipality = Column(Float, default=0)
+    
+    # Renglón 10: Total ingresos ordinarios y extraordinarios en el municipio (Calculado: R8 - R9)
+    # CAMPO CALCULADO
+    
+    # Renglón 11: Menos ingresos por devoluciones, rebajas y descuentos
+    row_11_returns_rebates_discounts = Column(Float, default=0)
+    
+    # Renglón 12: Menos ingresos por exportaciones y venta de activos fijos
+    row_12_exports_fixed_assets = Column(Float, default=0)
+    
+    # Renglón 13: Menos ingresos por actividades excluidas o no sujetas y otros ingresos no gravados
+    row_13_excluded_non_taxable = Column(Float, default=0)
+    
+    # Renglón 14: Menos ingresos por actividades exentas en el municipio
+    row_14_exempt_income = Column(Float, default=0)
+    
+    # Renglón 15: Total ingresos gravables (Calculado: R10 - (R11 + R12 + R13 + R14))
+    # CAMPO CALCULADO
+    
+    # Campos legacy para compatibilidad hacia atrás
+    row_8_ordinary_income = Column(Float, default=0)
+    row_9_extraordinary_income = Column(Float, default=0)
+    row_11_returns = Column(Float, default=0)
+    row_12_exports = Column(Float, default=0)
+    row_13_fixed_assets_sales = Column(Float, default=0)
+    row_14_excluded_income = Column(Float, default=0)
+    row_15_non_taxable_income = Column(Float, default=0)
+    
+    @property
+    def row_10_total_income_municipality(self) -> float:
+        """Renglón 10: Total ingresos en el municipio = R8 - R9"""
+        return (self.row_8_total_income_country or 0) - (self.row_9_income_outside_municipality or 0)
     
     @property
     def row_10_total_income(self) -> float:
-        """Renglón 10: Total ingresos = R8 + R9"""
-        return self.row_8_ordinary_income + self.row_9_extraordinary_income
+        """Alias para compatibilidad: Renglón 10"""
+        return self.row_10_total_income_municipality
+    
+    @property
+    def row_15_taxable_income(self) -> float:
+        """
+        Renglón 15: Total ingresos gravables.
+        Fórmula: R10 - (R11 + R12 + R13 + R14)
+        """
+        deductions = (
+            (self.row_11_returns_rebates_discounts or 0) +
+            (self.row_12_exports_fixed_assets or 0) +
+            (self.row_13_excluded_non_taxable or 0) +
+            (self.row_14_exempt_income or 0)
+        )
+        return max(0, self.row_10_total_income_municipality - deductions)
     
     @property
     def row_16_taxable_income(self) -> float:
-        """
-        Renglón 16: Total ingresos gravables.
-        Fórmula: R10 - (R11 + R12 + R13 + R14 + R15)
-        """
-        deductions = (
-            self.row_11_returns +
-            self.row_12_exports +
-            self.row_13_fixed_assets_sales +
-            self.row_14_excluded_income +
-            self.row_15_non_taxable_income
-        )
-        return self.row_10_total_income - deductions
+        """Alias para compatibilidad: Renglón 15 (antes era 16)"""
+        return self.row_15_taxable_income
     
     # Relación
     declaration = relationship("ICADeclaration", back_populates="income_base")
@@ -297,59 +395,180 @@ class TaxActivity(Base):
 class TaxableActivity(Base):
     """
     Actividades Gravadas - Sección C del formulario ICA.
-    Por cada actividad del contribuyente.
+    Discriminación de ingresos gravados y actividades.
+    Basado en: Documents/formulario-ICA.md - Sección C
     """
     __tablename__ = "taxable_activities"
     
     id = Column(Integer, primary_key=True, index=True)
     declaration_id = Column(Integer, ForeignKey("ica_declarations.id"), nullable=False)
     
-    # Datos de la actividad
-    ciiu_code = Column(String(10), nullable=False)
+    # Datos de la actividad (según formulario-ICA.md)
+    activity_type = Column(String(20), default="principal")  # principal | secundaria
+    ciiu_code = Column(String(10), nullable=False)  # Código CIIU
     description = Column(String(500))
-    income = Column(Float, default=0)  # Ingresos asociados
-    tax_rate = Column(Float, default=0)  # Tarifa ICA
+    income = Column(Float, default=0)  # Ingresos gravados
+    tax_rate = Column(Float, default=0)  # Tarifa (por mil)
+    special_rate = Column(Float, nullable=True)  # Tarifa especial (si aplica)
     
     @property
     def generated_tax(self) -> float:
-        """Impuesto generado = ingresos * tarifa / 1000"""
-        return self.income * self.tax_rate / 1000
+        """Impuesto ICA = ingresos * tarifa / 1000"""
+        rate = self.special_rate if self.special_rate else self.tax_rate
+        return (self.income or 0) * (rate or 0) / 1000
     
     # Relación
     declaration = relationship("ICADeclaration", back_populates="activities")
 
 
+class EnergyGeneration(Base):
+    """
+    Generación de energía - Ley 56 de 1981.
+    Basado en: Documents/formulario-ICA.md - Sección C, Renglones 18-19
+    """
+    __tablename__ = "energy_generation"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    declaration_id = Column(Integer, ForeignKey("ica_declarations.id"), nullable=False)
+    
+    # Renglón 18: Generación de energía – Capacidad instalada (kW)
+    installed_capacity_kw = Column(Float, default=0)
+    
+    # Renglón 19: Impuesto Ley 56 de 1981 (calculado según parámetros municipio)
+    law_56_tax = Column(Float, default=0)
+    
+    # Relación
+    declaration = relationship("ICADeclaration", back_populates="energy_generation")
+
+
 class TaxSettlement(Base):
     """
     Liquidación del Impuesto - Sección D del formulario ICA.
-    Renglones 30-33.
+    Basado en: Documents/formulario-ICA.md - Sección D, Renglones 20-34
     """
     __tablename__ = "tax_settlements"
     
     id = Column(Integer, primary_key=True, index=True)
     declaration_id = Column(Integer, ForeignKey("ica_declarations.id"), nullable=False)
     
-    # Renglón 30: Impuesto de Industria y Comercio (calculado de actividades)
+    # Renglón 20: Total impuesto de industria y comercio (Calculado: R17 + R19)
+    row_20_total_ica_tax = Column(Float, default=0)
+    
+    # Renglón 21: Impuesto de avisos y tableros
+    row_21_signs_boards = Column(Float, default=0)
+    
+    # Renglón 22: Pago por unidades comerciales adicionales del sector financiero
+    row_22_financial_additional_units = Column(Float, default=0)
+    
+    # Renglón 23: Sobretasa bomberil
+    row_23_bomberil_surcharge = Column(Float, default=0)
+    
+    # Renglón 24: Sobretasa de seguridad
+    row_24_security_surcharge = Column(Float, default=0)
+    
+    # Renglón 25: Total impuesto a cargo (Calculado: R20 + R21 + R22 + R23 + R24)
+    # CAMPO CALCULADO
+    
+    # Renglón 26: Menos exenciones o exoneraciones sobre el impuesto
+    row_26_exemptions = Column(Float, default=0)
+    
+    # Renglón 27: Menos retenciones practicadas en el municipio
+    row_27_withholdings_municipality = Column(Float, default=0)
+    
+    # Renglón 28: Menos autorretenciones practicadas en el municipio
+    row_28_self_withholdings = Column(Float, default=0)
+    
+    # Renglón 29: Menos anticipo liquidado en el año anterior
+    row_29_previous_advance = Column(Float, default=0)
+    
+    # Renglón 30: Anticipo del año siguiente
+    row_30_next_year_advance = Column(Float, default=0)
+    
+    # Renglón 31: Sanciones
+    row_31_penalties = Column(Float, default=0)
+    row_31_penalty_type = Column(String(50))  # extemporaneidad | correccion | inexactitud | otra
+    row_31_penalty_other_description = Column(String(255))
+    
+    # Renglón 32: Menos saldo a favor del período anterior
+    row_32_previous_balance_favor = Column(Float, default=0)
+    
+    # Renglón 33: Total saldo a cargo (Calculado)
+    # CAMPO CALCULADO
+    
+    # Renglón 34: Total saldo a favor (Calculado)
+    # CAMPO CALCULADO
+    
+    # Campos legacy para compatibilidad
     row_30_ica_tax = Column(Float, default=0)
-    
-    # Renglón 31: Avisos y Tableros (editable)
     row_31_signs_boards = Column(Float, default=0)
-    
-    # Renglón 32: Sobretasa (editable)
     row_32_surcharge = Column(Float, default=0)
     
     @property
+    def row_25_total_tax_payable(self) -> float:
+        """Renglón 25: Total impuesto a cargo = R20 + R21 + R22 + R23 + R24"""
+        return (
+            (self.row_20_total_ica_tax or 0) +
+            (self.row_21_signs_boards or 0) +
+            (self.row_22_financial_additional_units or 0) +
+            (self.row_23_bomberil_surcharge or 0) +
+            (self.row_24_security_surcharge or 0)
+        )
+    
+    @property
     def row_33_total_tax(self) -> float:
-        """Renglón 33: Total impuesto = R30 + R31 + R32"""
-        return self.row_30_ica_tax + self.row_31_signs_boards + self.row_32_surcharge
+        """Renglón 33 legacy: Total impuesto = R30 + R31 + R32"""
+        return (self.row_30_ica_tax or 0) + (self.row_31_signs_boards or 0) + (self.row_32_surcharge or 0)
     
     # Relación
     declaration = relationship("ICADeclaration", back_populates="settlement")
 
 
+class PaymentSection(Base):
+    """
+    Sección E - Pago del formulario ICA.
+    Basado en: Documents/formulario-ICA.md - Sección E, Renglones 35-40
+    """
+    __tablename__ = "payment_sections"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    declaration_id = Column(Integer, ForeignKey("ica_declarations.id"), nullable=False)
+    
+    # Renglón 35: Valor a pagar
+    row_35_amount_to_pay = Column(Float, default=0)
+    
+    # Renglón 36: Descuento por pronto pago
+    row_36_early_payment_discount = Column(Float, default=0)
+    
+    # Renglón 37: Intereses de mora
+    row_37_late_interest = Column(Float, default=0)
+    
+    # Renglón 38: Total a pagar (Calculado: R35 - R36 + R37)
+    # CAMPO CALCULADO
+    
+    # Renglón 39: Pago voluntario
+    row_39_voluntary_payment = Column(Float, default=0)
+    row_39_voluntary_destination = Column(String(255))  # Destino del aporte
+    
+    # Renglón 40: Total a pagar con pago voluntario (Calculado: R38 + R39)
+    # CAMPO CALCULADO
+    
+    @property
+    def row_38_total_to_pay(self) -> float:
+        """Renglón 38: Total a pagar = R35 - R36 + R37"""
+        return (self.row_35_amount_to_pay or 0) - (self.row_36_early_payment_discount or 0) + (self.row_37_late_interest or 0)
+    
+    @property
+    def row_40_total_with_voluntary(self) -> float:
+        """Renglón 40: Total a pagar con pago voluntario = R38 + R39"""
+        return self.row_38_total_to_pay + (self.row_39_voluntary_payment or 0)
+    
+    # Relación
+    declaration = relationship("ICADeclaration", back_populates="payment_section")
+
+
 class DiscountsCredits(Base):
     """
-    Descuentos, Créditos y Anticipos - Sección E del formulario ICA.
+    Descuentos, Créditos y Anticipos - Modelo legacy para compatibilidad.
     """
     __tablename__ = "discounts_credits"
     
@@ -364,7 +583,7 @@ class DiscountsCredits(Base):
     @property
     def total_credits(self) -> float:
         """Total de créditos = descuentos + anticipos + retenciones"""
-        return self.tax_discounts + self.advance_payments + self.withholdings
+        return (self.tax_discounts or 0) + (self.advance_payments or 0) + (self.withholdings or 0)
     
     # Relación
     declaration = relationship("ICADeclaration", back_populates="discounts")
@@ -390,29 +609,41 @@ class DeclarationResult(Base):
 
 class SignatureInfo(Base):
     """
-    Firma y Responsabilidad - Sección G del formulario ICA.
-    Campos para firma digital.
+    Sección F - Firmas Digitales del formulario ICA.
+    Basado en: Documents/formulario-ICA.md - Sección F
+    Una vez firmada la declaración, queda bloqueada para edición.
     """
     __tablename__ = "signature_info"
     
     id = Column(Integer, primary_key=True, index=True)
     declaration_id = Column(Integer, ForeignKey("ica_declarations.id"), nullable=False)
     
-    # Datos del declarante
+    # Firma del declarante
     declarant_name = Column(String(255))
+    declarant_document = Column(String(50))
+    declarant_signature_method = Column(String(30))  # manuscrita | clave
+    declarant_signature_image = Column(Text)  # Base64 del canvas si es manuscrita
+    declarant_oath_accepted = Column(Boolean, default=False)  # Checkbox de declaración bajo juramento
     declaration_date = Column(Date)
     
-    # Datos del contador / revisor fiscal
+    # Firma del contador / revisor fiscal
+    requires_fiscal_reviewer = Column(Boolean, default=False)  # Aplica revisor fiscal (Sí / No)
     accountant_name = Column(String(255))
-    professional_card_number = Column(String(50))
+    accountant_document = Column(String(50))
+    accountant_professional_card = Column(String(50))  # Tarjeta profesional
+    accountant_signature_method = Column(String(30))  # manuscrita | clave
+    accountant_signature_image = Column(Text)  # Base64 del canvas si es manuscrita
     
-    # Firma digital (base64 del canvas)
-    signature_image = Column(Text)
+    # Metadatos de firma (NO visibles según formulario-ICA.md)
+    document_hash = Column(String(64))  # Hash del documento (SHA-256)
+    signed_at = Column(DateTime(timezone=True))  # Fecha y hora
+    ip_address = Column(String(50))  # IP
+    user_agent = Column(String(500))  # User-Agent
+    integrity_verified = Column(Boolean, default=False)  # Integridad verificada
     
-    # Metadatos de firma
-    signed_at = Column(DateTime(timezone=True))
-    ip_address = Column(String(50))
-    user_agent = Column(String(500))
+    # Legacy field
+    professional_card_number = Column(String(50))  # Alias para compatibilidad
+    signature_image = Column(Text)  # Alias para compatibilidad
 
 
 # ===================== MODELO DE AUDITORÍA =====================
