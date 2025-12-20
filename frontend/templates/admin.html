@@ -228,6 +228,7 @@
                 <ul class="nav-menu">
                     <li><a href="dashboard.html">Panel Usuario</a></li>
                     <li><a href="admin.html" class="active">Administración</a></li>
+                    <li><a href="superadmin.html" id="superadmin-link" style="display: none;">Super Admin</a></li>
                 </ul>
             </nav>
             
@@ -1070,6 +1071,11 @@
                 if (user.role !== 'admin_alcaldia' && user.role !== 'admin_sistema') {
                     alert('No tiene permisos para acceder a esta página');
                     window.location.href = 'dashboard.html';
+                }
+                
+                // Mostrar link de super admin solo para admin_sistema
+                if (user.role === 'admin_sistema') {
+                    document.getElementById('superadmin-link').style.display = 'inline';
                 }
             } catch (error) {
                 console.error('Error loading user:', error);

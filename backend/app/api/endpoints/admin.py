@@ -15,9 +15,11 @@ from ...schemas.schemas import (
     MunicipalityCreate, MunicipalityResponse,
     WhiteLabelConfigUpdate, WhiteLabelConfigResponse,
     TaxActivityCreate, TaxActivityResponse,
-    FormulaParametersCreate, FormulaParametersUpdate, FormulaParametersResponse
+    FormulaParametersCreate, FormulaParametersUpdate, FormulaParametersResponse,
+    AdminUserCreate, UserStatusUpdate
 )
 from ...core.config import settings
+from ...core.security import get_password_hash
 from .auth import get_current_active_user, require_role
 
 router = APIRouter(prefix="/admin", tags=["Administración"])
@@ -524,6 +526,105 @@ async def assign_user_municipality(
     db.commit()
     
     return {"message": f"Usuario asignado al municipio {municipality.name}"}
+
+
+@router.post("/users", response_model=dict)
+async def create_admin_user(
+    user_data: AdminUserCreate,
+    current_user: User = Depends(require_role([UserRole.ADMIN_SISTEMA])),
+    db: Session = Depends(get_db)
+):
+    """
+    Crea un nuevo usuario administrador de alcaldía.
+    Solo el super administrador (admin_sistema) puede crear estos usuarios.
+    """
+    # Verificar si el email ya existe
+    existing_user = db.query(User).filter(User.email == user_data.email).first()
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El correo electrónico ya está registrado"
+        )
+    
+    # Verificar que el municipio existe si se proporciona
+    if user_data.municipality_id:
+        municipality = db.query(Municipality).filter(
+            Municipality.id == user_data.municipality_id
+        ).first()
+        if not municipality:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Municipio no encontrado"
+            )
+    
+    # Crear usuario con hash Argon2
+    hashed_password = get_password_hash(user_data.password)
+    
+    # Convertir el rol del esquema al enum del modelo
+    role_mapping = {
+        'declarante': UserRole.DECLARANTE,
+        'admin_alcaldia': UserRole.ADMIN_ALCALDIA,
+        'admin_sistema': UserRole.ADMIN_SISTEMA
+    }
+    user_role = role_mapping.get(user_data.role.value, UserRole.ADMIN_ALCALDIA)
+    
+    new_user = User(
+        email=user_data.email,
+        hashed_password=hashed_password,
+        full_name=user_data.full_name,
+        document_type=user_data.document_type,
+        document_number=user_data.document_number,
+        phone=user_data.phone,
+        role=user_role,
+        municipality_id=user_data.municipality_id
+    )
+    
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    
+    return {
+        "id": new_user.id,
+        "email": new_user.email,
+        "full_name": new_user.full_name,
+        "role": new_user.role.value,
+        "municipality_id": new_user.municipality_id,
+        "is_active": new_user.is_active,
+        "message": "Usuario administrador creado exitosamente"
+    }
+
+
+@router.put("/users/{user_id}/status")
+async def toggle_user_status(
+    user_id: int,
+    status_data: UserStatusUpdate,
+    current_user: User = Depends(require_role([UserRole.ADMIN_SISTEMA])),
+    db: Session = Depends(get_db)
+):
+    """
+    Activa o desactiva un usuario.
+    Solo administrador del sistema.
+    """
+    user = db.query(User).filter(User.id == user_id).first()
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuario no encontrado"
+        )
+    
+    # No permitir desactivar al propio usuario
+    if user.id == current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No puede desactivar su propia cuenta"
+        )
+    
+    user.is_active = status_data.is_active
+    db.commit()
+    
+    status_text = "activado" if status_data.is_active else "desactivado"
+    return {"message": f"Usuario {status_text} correctamente"}
 
 
 # ===================== PARÁMETROS DE FÓRMULAS (EDICIÓN EN CALIENTE) =====================
