@@ -103,16 +103,19 @@ async def get_municipality(
     return municipality
 
 
-# ===================== CONFIGURACIÓN MARCA BLANCA =====================
-
-@router.get("/white-label/{municipality_id}", response_model=WhiteLabelConfigResponse)
-async def get_white_label_config(
+@router.put("/municipalities/{municipality_id}", response_model=MunicipalityResponse)
+async def update_municipality(
     municipality_id: int,
-    current_user: User = Depends(get_current_active_user),
+    data: MunicipalityCreate,
+    current_user: User = Depends(require_role([
+        UserRole.ADMIN_ALCALDIA, 
+        UserRole.ADMIN_SISTEMA
+    ])),
     db: Session = Depends(get_db)
 ):
     """
-    Obtiene la configuración marca blanca de un municipio.
+    Actualiza datos de un municipio (código DANE, nombre, departamento).
+    Permite correcciones en caliente si el código DANE es incorrecto.
     """
     municipality = db.query(Municipality).filter(
         Municipality.id == municipality_id
@@ -124,11 +127,61 @@ async def get_white_label_config(
             detail="Municipio no encontrado"
         )
     
-    if not municipality.config:
+    # Verificar que el nuevo código no exista en otro municipio
+    if data.code != municipality.code:
+        existing = db.query(Municipality).filter(
+            Municipality.code == data.code,
+            Municipality.id != municipality_id
+        ).first()
+        
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"El código DANE {data.code} ya está asignado a otro municipio"
+            )
+    
+    municipality.code = data.code
+    municipality.name = data.name
+    municipality.department = data.department
+    
+    db.commit()
+    db.refresh(municipality)
+    
+    return municipality
+
+
+# ===================== CONFIGURACIÓN MARCA BLANCA =====================
+
+@router.get("/white-label/{municipality_id}", response_model=WhiteLabelConfigResponse)
+async def get_white_label_config(
+    municipality_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Obtiene la configuración marca blanca de un municipio.
+    Si no existe, crea una configuración por defecto.
+    """
+    municipality = db.query(Municipality).filter(
+        Municipality.id == municipality_id
+    ).first()
+    
+    if not municipality:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Configuración no encontrada"
+            detail="Municipio no encontrado"
         )
+    
+    # Si no tiene configuración, crearla automáticamente
+    if not municipality.config:
+        config = WhiteLabelConfig()
+        db.add(config)
+        db.commit()
+        db.refresh(config)
+        
+        municipality.config_id = config.id
+        db.commit()
+        db.refresh(municipality)
     
     return municipality.config
 

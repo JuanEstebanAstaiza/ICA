@@ -140,6 +140,17 @@ class WhiteLabelConfig(Base):
     # Configuración del formulario
     form_title = Column(String(500), default="Formulario Único Nacional de Declaración y Pago ICA")
     
+    # Configuración de Numeración (Consecutivo y Radicado)
+    # Consecutivo: número secuencial del formulario dentro del municipio
+    consecutivo_prefijo = Column(String(10), default="")  # Prefijo opcional
+    consecutivo_actual = Column(Integer, default=1)  # Número actual
+    consecutivo_digitos = Column(Integer, default=12)  # Cantidad de dígitos (relleno con ceros)
+    
+    # Radicado: número de radicación oficial después de firma
+    radicado_prefijo = Column(String(10), default="")  # Prefijo opcional
+    radicado_actual = Column(Integer, default=1)  # Número actual
+    radicado_digitos = Column(Integer, default=16)  # Cantidad de dígitos (relleno con ceros)
+    
     # Metadatos
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     updated_by = Column(Integer, ForeignKey("users.id"))

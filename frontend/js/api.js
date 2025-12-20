@@ -281,6 +281,18 @@ const AdminAPI = {
     },
     
     /**
+     * Actualizar municipio (para corregir código DANE)
+     */
+    async updateMunicipality(municipalityId, data) {
+        const response = await fetch(`${API_BASE_URL}/admin/municipalities/${municipalityId}`, {
+            method: 'PUT',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+        return handleResponse(response);
+    },
+    
+    /**
      * Obtener configuración marca blanca
      */
     async getWhiteLabelConfig(municipalityId) {

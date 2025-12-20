@@ -123,6 +123,14 @@ class WhiteLabelConfigBase(BaseModel):
         default="Formulario Único Nacional de Declaración y Pago ICA",
         max_length=500
     )
+    
+    # Configuración de Numeración (Consecutivo y Radicado)
+    consecutivo_prefijo: Optional[str] = Field(default="", max_length=10)
+    consecutivo_actual: int = Field(default=1, ge=1)
+    consecutivo_digitos: int = Field(default=12, ge=6, le=20)
+    radicado_prefijo: Optional[str] = Field(default="", max_length=10)
+    radicado_actual: int = Field(default=1, ge=1)
+    radicado_digitos: int = Field(default=16, ge=6, le=20)
 
 
 class WhiteLabelConfigUpdate(WhiteLabelConfigBase):

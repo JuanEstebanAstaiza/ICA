@@ -6,6 +6,213 @@
     <meta name="description" content="Panel de Administración - Sistema ICA">
     <title>Administración - Sistema ICA</title>
     <link rel="stylesheet" href="../css/styles.css">
+    <style>
+        /* Estilos para autocompletado de municipios */
+        .municipality-search-container {
+            position: relative;
+        }
+        .municipality-search-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            font-size: 1rem;
+        }
+        .municipality-search-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(0, 51, 102, 0.1);
+        }
+        .municipality-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            max-height: 250px;
+            overflow-y: auto;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-top: none;
+            border-radius: 0 0 var(--radius) var(--radius);
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .municipality-dropdown.active {
+            display: block;
+        }
+        .municipality-option {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+        .municipality-option:hover,
+        .municipality-option.highlighted {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        .municipality-option .dept {
+            font-size: 0.85rem;
+            opacity: 0.8;
+        }
+        .municipality-selected {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius);
+            margin-top: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .municipality-selected .clear-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .municipality-selected .clear-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        /* Paginación */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+        .pagination button {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border-color);
+            background: white;
+            cursor: pointer;
+            border-radius: var(--radius);
+            transition: all 0.2s;
+        }
+        .pagination button:hover:not(:disabled) {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .pagination button.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        .pagination-info {
+            margin: 0 1rem;
+            color: var(--text-muted);
+        }
+        
+        /* Filtro de búsqueda para tabla */
+        .table-filter {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+        .table-filter input,
+        .table-filter select {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        /* Configuración de consecutivo */
+        .serial-config-card {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border: 2px dashed var(--primary-color);
+            padding: 1.5rem;
+            border-radius: var(--radius);
+            margin-top: 1rem;
+        }
+        .serial-preview {
+            font-family: 'Courier New', monospace;
+            font-size: 1.25rem;
+            background: #2d3748;
+            color: #68d391;
+            padding: 1rem;
+            border-radius: var(--radius);
+            margin-top: 0.5rem;
+        }
+        
+        /* Modal de edición */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        .modal-content {
+            background: white;
+            border-radius: var(--radius);
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border-radius: var(--radius) var(--radius) 0 0;
+        }
+        .modal-header h3 {
+            margin: 0;
+        }
+        .modal-header .close-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0 0.5rem;
+            border-radius: 4px;
+            line-height: 1;
+        }
+        .modal-header .close-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        .modal-body {
+            padding: 1.5rem;
+        }
+        .modal-footer {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+        }
+        
+        /* Filas editables */
+        #municipalities-table tbody tr {
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        #municipalities-table tbody tr:hover {
+            background: #f0f4f8;
+        }
+    </style>
 </head>
 <body>
     <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
@@ -49,13 +256,98 @@
                         <div class="card-body">
                             <form id="white-label-form">
                                 <div class="form-group">
-                                    <label for="wl-municipality" class="form-label">Municipio</label>
-                                    <select id="wl-municipality" class="form-control">
-                                        <option value="">Seleccione municipio...</option>
-                                    </select>
+                                    <label class="form-label">Municipio</label>
+                                    <div class="municipality-search-container">
+                                        <input type="text" 
+                                               id="wl-municipality-search" 
+                                               class="municipality-search-input" 
+                                               placeholder="Buscar municipio por nombre..."
+                                               autocomplete="off">
+                                        <input type="hidden" id="wl-municipality" value="">
+                                        <div id="wl-municipality-dropdown" class="municipality-dropdown"></div>
+                                    </div>
+                                    <div id="wl-municipality-selected" class="municipality-selected" style="display: none;">
+                                        <span id="wl-municipality-name"></span>
+                                        <button type="button" class="clear-btn" onclick="clearMunicipalitySelection('wl')">✕</button>
+                                    </div>
                                 </div>
                                 
-                                <div class="form-group">
+                                <!-- Configuración de Consecutivo y Radicado -->
+                                <div class="serial-config-card">
+                                    <h4 style="margin-bottom: 1rem;">📋 Configuración de Numeración</h4>
+                                    <div class="alert alert-info" style="margin-bottom: 1rem;">
+                                        <strong>💡 Instrucciones:</strong> Configure el prefijo y el número inicial para consecutivos y radicados.
+                                        El sistema generará automáticamente números secuenciales.
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <div class="form-group">
+                                                <label for="wl-consecutivo-prefijo" class="form-label">Prefijo Consecutivo</label>
+                                                <input type="text" id="wl-consecutivo-prefijo" class="form-control" 
+                                                       placeholder="" maxlength="10">
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="form-group">
+                                                <label for="wl-consecutivo-inicio" class="form-label">Número Inicial</label>
+                                                <input type="number" id="wl-consecutivo-inicio" class="form-control" 
+                                                       value="1" min="1">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <div class="form-group">
+                                                <label for="wl-consecutivo-digitos" class="form-label">Dígitos (relleno con ceros)</label>
+                                                <input type="number" id="wl-consecutivo-digitos" class="form-control" 
+                                                       value="12" min="6" max="20">
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="form-group">
+                                                <label class="form-label">Vista Previa Consecutivo</label>
+                                                <div class="serial-preview" id="consecutivo-preview">000000000001</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <hr style="margin: 1rem 0;">
+                                    
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <div class="form-group">
+                                                <label for="wl-radicado-prefijo" class="form-label">Prefijo Radicado</label>
+                                                <input type="text" id="wl-radicado-prefijo" class="form-control" 
+                                                       placeholder="" maxlength="10">
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="form-group">
+                                                <label for="wl-radicado-inicio" class="form-label">Número Inicial</label>
+                                                <input type="number" id="wl-radicado-inicio" class="form-control" 
+                                                       value="1" min="1">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <div class="form-group">
+                                                <label for="wl-radicado-digitos" class="form-label">Dígitos (relleno con ceros)</label>
+                                                <input type="number" id="wl-radicado-digitos" class="form-control" 
+                                                       value="16" min="6" max="20">
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="form-group">
+                                                <label class="form-label">Vista Previa Radicado</label>
+                                                <div class="serial-preview" id="radicado-preview">0000000000000001</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group" style="margin-top: 1.5rem;">
                                     <label for="wl-form-title" class="form-label">Título del Formulario</label>
                                     <input type="text" id="wl-form-title" class="form-control" 
                                            value="Formulario Único Nacional de Declaración y Pago ICA">
@@ -133,10 +425,20 @@
                         <div class="card-body">
                             <form id="activity-form">
                                 <div class="form-group">
-                                    <label for="act-municipality" class="form-label">Municipio</label>
-                                    <select id="act-municipality" class="form-control">
-                                        <option value="">Seleccione municipio...</option>
-                                    </select>
+                                    <label class="form-label">Municipio</label>
+                                    <div class="municipality-search-container">
+                                        <input type="text" 
+                                               id="act-municipality-search" 
+                                               class="municipality-search-input" 
+                                               placeholder="Buscar municipio por nombre..."
+                                               autocomplete="off">
+                                        <input type="hidden" id="act-municipality" value="">
+                                        <div id="act-municipality-dropdown" class="municipality-dropdown"></div>
+                                    </div>
+                                    <div id="act-municipality-selected" class="municipality-selected" style="display: none;">
+                                        <span id="act-municipality-name"></span>
+                                        <button type="button" class="clear-btn" onclick="clearMunicipalitySelection('act')">✕</button>
+                                    </div>
                                 </div>
                                 
                                 <div class="row">
@@ -207,10 +509,20 @@
                             
                             <form id="formula-params-form">
                                 <div class="form-group">
-                                    <label for="fp-municipality" class="form-label">Municipio</label>
-                                    <select id="fp-municipality" class="form-control">
-                                        <option value="">Seleccione municipio...</option>
-                                    </select>
+                                    <label class="form-label">Municipio</label>
+                                    <div class="municipality-search-container">
+                                        <input type="text" 
+                                               id="fp-municipality-search" 
+                                               class="municipality-search-input" 
+                                               placeholder="Buscar municipio por nombre..."
+                                               autocomplete="off">
+                                        <input type="hidden" id="fp-municipality" value="">
+                                        <div id="fp-municipality-dropdown" class="municipality-dropdown"></div>
+                                    </div>
+                                    <div id="fp-municipality-selected" class="municipality-selected" style="display: none;">
+                                        <span id="fp-municipality-name"></span>
+                                        <button type="button" class="clear-btn" onclick="clearMunicipalitySelection('fp')">✕</button>
+                                    </div>
                                 </div>
                                 
                                 <div class="section-title" style="margin-top: 1.5rem;">Sección D - Liquidación del Impuesto</div>
@@ -325,7 +637,7 @@
                 </div>
             </div>
             
-            <!-- Gestión de Municipios -->
+            <!-- Gestión de Municipios con Paginación -->
             <div class="row" style="margin-top: 2rem;">
                 <div class="col-12">
                     <div class="card">
@@ -333,30 +645,23 @@
                             🏛️ Gestión de Municipios
                         </div>
                         <div class="card-body">
-                            <form id="municipality-form" style="display: flex; gap: 1rem; align-items: flex-end;">
-                                <div class="form-group" style="flex: 0 0 150px;">
-                                    <label for="muni-code" class="form-label">Código DANE</label>
-                                    <input type="text" id="muni-code" class="form-control" placeholder="05001">
-                                </div>
-                                <div class="form-group" style="flex: 1;">
-                                    <label for="muni-name" class="form-label">Nombre del Municipio</label>
-                                    <input type="text" id="muni-name" class="form-control" placeholder="Medellín">
-                                </div>
-                                <div class="form-group" style="flex: 1;">
-                                    <label for="muni-department" class="form-label">Departamento</label>
-                                    <input type="text" id="muni-department" class="form-control" placeholder="Antioquia">
-                                </div>
-                                <button type="submit" class="btn btn-primary">
-                                    ➕ Crear Municipio
-                                </button>
-                            </form>
+                            <div class="alert alert-info mb-3">
+                                <strong>📌 Nota:</strong> Haga doble clic sobre cualquier municipio para editar su código DANE 
+                                en caso de que no coincida con el código oficial publicado por el DANE.
+                            </div>
                             
-                            <hr>
+                            <!-- Filtros de búsqueda -->
+                            <div class="table-filter">
+                                <input type="text" id="muni-filter-search" placeholder="🔍 Buscar por nombre o código...">
+                                <select id="muni-filter-dept">
+                                    <option value="">Todos los departamentos</option>
+                                </select>
+                            </div>
                             
                             <table class="table" id="municipalities-table">
                                 <thead>
                                     <tr>
-                                        <th>Código</th>
+                                        <th>Código DANE</th>
                                         <th>Municipio</th>
                                         <th>Departamento</th>
                                         <th>Estado</th>
@@ -370,7 +675,46 @@
                                     </tr>
                                 </tbody>
                             </table>
+                            
+                            <!-- Paginación -->
+                            <div class="pagination" id="municipalities-pagination">
+                                <button id="muni-prev" disabled>← Anterior</button>
+                                <span class="pagination-info" id="muni-page-info">Página 1 de 1</span>
+                                <button id="muni-next" disabled>Siguiente →</button>
+                            </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Modal de Edición de Municipio -->
+            <div id="edit-municipality-modal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>✏️ Editar Municipio</h3>
+                        <button type="button" class="close-btn" onclick="closeEditMunicipalityModal()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="edit-municipality-form">
+                            <input type="hidden" id="edit-muni-id">
+                            <div class="form-group">
+                                <label for="edit-muni-code" class="form-label">Código DANE</label>
+                                <input type="text" id="edit-muni-code" class="form-control" required>
+                                <small class="text-muted">Modifique este código solo si no coincide con el oficial del DANE</small>
+                            </div>
+                            <div class="form-group" style="margin-top: 1rem;">
+                                <label for="edit-muni-name" class="form-label">Nombre del Municipio</label>
+                                <input type="text" id="edit-muni-name" class="form-control" readonly>
+                            </div>
+                            <div class="form-group" style="margin-top: 1rem;">
+                                <label for="edit-muni-dept" class="form-label">Departamento</label>
+                                <input type="text" id="edit-muni-dept" class="form-control" readonly>
+                            </div>
+                            <div class="modal-footer" style="margin-top: 1.5rem;">
+                                <button type="button" class="btn btn-secondary" onclick="closeEditMunicipalityModal()">Cancelar</button>
+                                <button type="submit" class="btn btn-primary">💾 Guardar Cambios</button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -391,18 +735,338 @@
     
     <script src="../js/api.js"></script>
     <script>
-        // Verificar autenticación
+        // ==================== VARIABLES GLOBALES ====================
+        let allMunicipalities = [];
+        let filteredMunicipalities = [];
+        const ITEMS_PER_PAGE = 10;
+        let currentPage = 1;
+        
+        // Municipio seleccionado guardado en localStorage
+        let selectedMunicipality = JSON.parse(localStorage.getItem('selectedMunicipality') || 'null');
+        
+        // ==================== VERIFICAR AUTENTICACIÓN ====================
         if (!AuthAPI.isAuthenticated()) {
             window.location.href = 'login.html';
         }
         
-        // Cargar datos del usuario
+        // ==================== FUNCIONES DE MUNICIPIOS ====================
+        
+        // Cargar todos los municipios
+        async function loadMunicipalities() {
+            try {
+                allMunicipalities = await AdminAPI.listMunicipalities();
+                filteredMunicipalities = [...allMunicipalities];
+                
+                // Llenar filtro de departamentos
+                fillDepartmentFilter();
+                
+                // Renderizar tabla paginada
+                renderMunicipalitiesTable();
+                
+                // Inicializar buscadores de municipios
+                initMunicipalitySearchers();
+                
+                // Restaurar municipio seleccionado si existe
+                if (selectedMunicipality) {
+                    restoreSelectedMunicipality();
+                }
+            } catch (error) {
+                console.error('Error loading municipalities:', error);
+            }
+        }
+        
+        // Llenar filtro de departamentos
+        function fillDepartmentFilter() {
+            const departments = [...new Set(allMunicipalities.map(m => m.department))].sort();
+            const select = document.getElementById('muni-filter-dept');
+            select.innerHTML = '<option value="">Todos los departamentos</option>';
+            departments.forEach(dept => {
+                const option = document.createElement('option');
+                option.value = dept;
+                option.textContent = dept;
+                select.appendChild(option);
+            });
+        }
+        
+        // Filtrar municipios
+        function filterMunicipalities() {
+            const searchTerm = document.getElementById('muni-filter-search').value.toLowerCase();
+            const deptFilter = document.getElementById('muni-filter-dept').value;
+            
+            filteredMunicipalities = allMunicipalities.filter(m => {
+                const matchesSearch = !searchTerm || 
+                    m.name.toLowerCase().includes(searchTerm) || 
+                    m.code.includes(searchTerm);
+                const matchesDept = !deptFilter || m.department === deptFilter;
+                return matchesSearch && matchesDept;
+            });
+            
+            currentPage = 1;
+            renderMunicipalitiesTable();
+        }
+        
+        // Renderizar tabla de municipios con paginación
+        function renderMunicipalitiesTable() {
+            const tbody = document.getElementById('municipalities-body');
+            const totalPages = Math.ceil(filteredMunicipalities.length / ITEMS_PER_PAGE);
+            const start = (currentPage - 1) * ITEMS_PER_PAGE;
+            const end = start + ITEMS_PER_PAGE;
+            const pageData = filteredMunicipalities.slice(start, end);
+            
+            if (filteredMunicipalities.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No se encontraron municipios</td></tr>';
+            } else {
+                tbody.innerHTML = pageData.map(m => `
+                    <tr ondblclick="openEditMunicipalityModal(${m.id}, '${m.code}', '${m.name.replace(/'/g, "\\'")}', '${m.department.replace(/'/g, "\\'")}')">
+                        <td><strong>${m.code}</strong></td>
+                        <td>${m.name}</td>
+                        <td>${m.department}</td>
+                        <td>
+                            <span class="badge ${m.is_active ? 'badge-firmado' : 'badge-anulado'}">
+                                ${m.is_active ? 'ACTIVO' : 'INACTIVO'}
+                            </span>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+            
+            // Actualizar paginación
+            document.getElementById('muni-page-info').textContent = 
+                `Página ${currentPage} de ${totalPages || 1} (${filteredMunicipalities.length} municipios)`;
+            document.getElementById('muni-prev').disabled = currentPage <= 1;
+            document.getElementById('muni-next').disabled = currentPage >= totalPages;
+        }
+        
+        // ==================== MODAL DE EDICIÓN DE MUNICIPIO ====================
+        
+        function openEditMunicipalityModal(id, code, name, department) {
+            document.getElementById('edit-muni-id').value = id;
+            document.getElementById('edit-muni-code').value = code;
+            document.getElementById('edit-muni-name').value = name;
+            document.getElementById('edit-muni-dept').value = department;
+            document.getElementById('edit-municipality-modal').style.display = 'flex';
+        }
+        
+        function closeEditMunicipalityModal() {
+            document.getElementById('edit-municipality-modal').style.display = 'none';
+        }
+        
+        // Cerrar modal al hacer clic fuera
+        document.getElementById('edit-municipality-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeEditMunicipalityModal();
+            }
+        });
+        
+        // Formulario de edición de municipio
+        document.getElementById('edit-municipality-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const id = document.getElementById('edit-muni-id').value;
+            const code = document.getElementById('edit-muni-code').value;
+            const name = document.getElementById('edit-muni-name').value;
+            const department = document.getElementById('edit-muni-dept').value;
+            
+            try {
+                showLoading();
+                
+                await AdminAPI.updateMunicipality(id, {
+                    code: code,
+                    name: name,
+                    department: department
+                });
+                
+                closeEditMunicipalityModal();
+                await loadMunicipalities();
+                
+                hideLoading();
+                alert('✅ Código DANE actualizado correctamente');
+            } catch (error) {
+                hideLoading();
+                alert('Error: ' + error.message);
+            }
+        });
+        
+        // ==================== BUSCADOR DE MUNICIPIOS (AUTOCOMPLETE) ====================
+        
+        function initMunicipalitySearchers() {
+            const searchConfigs = [
+                { prefix: 'wl', onSelect: loadWhiteLabelConfig },
+                { prefix: 'act', onSelect: loadActivities },
+                { prefix: 'fp', onSelect: loadFormulaParameters }
+            ];
+            
+            searchConfigs.forEach(config => {
+                const input = document.getElementById(`${config.prefix}-municipality-search`);
+                const dropdown = document.getElementById(`${config.prefix}-municipality-dropdown`);
+                const hiddenInput = document.getElementById(`${config.prefix}-municipality`);
+                
+                if (!input || !dropdown) return;
+                
+                // Evento de escritura
+                input.addEventListener('input', (e) => {
+                    const searchTerm = e.target.value.toLowerCase();
+                    
+                    if (searchTerm.length < 1) {
+                        dropdown.classList.remove('active');
+                        return;
+                    }
+                    
+                    const matches = allMunicipalities.filter(m => 
+                        m.name.toLowerCase().includes(searchTerm) || 
+                        m.department.toLowerCase().includes(searchTerm) ||
+                        m.code.includes(searchTerm)
+                    ).slice(0, 10);
+                    
+                    if (matches.length > 0) {
+                        dropdown.innerHTML = matches.map(m => `
+                            <div class="municipality-option" data-id="${m.id}" data-name="${m.name}" data-dept="${m.department}">
+                                <strong>${m.name}</strong>
+                                <span class="dept">(${m.department} - ${m.code})</span>
+                            </div>
+                        `).join('');
+                        dropdown.classList.add('active');
+                        
+                        // Eventos de click en opciones
+                        dropdown.querySelectorAll('.municipality-option').forEach(opt => {
+                            opt.addEventListener('click', () => {
+                                const id = opt.dataset.id;
+                                const name = opt.dataset.name;
+                                const dept = opt.dataset.dept;
+                                
+                                selectMunicipality(config.prefix, id, name, dept);
+                                dropdown.classList.remove('active');
+                                input.value = '';
+                                
+                                // Ejecutar callback
+                                if (config.onSelect) {
+                                    config.onSelect(id);
+                                }
+                            });
+                        });
+                    } else {
+                        dropdown.innerHTML = '<div class="municipality-option">No se encontraron resultados</div>';
+                        dropdown.classList.add('active');
+                    }
+                });
+                
+                // Cerrar dropdown al hacer clic fuera
+                document.addEventListener('click', (e) => {
+                    if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                        dropdown.classList.remove('active');
+                    }
+                });
+                
+                // Navegación con teclado
+                input.addEventListener('keydown', (e) => {
+                    const options = dropdown.querySelectorAll('.municipality-option');
+                    const highlighted = dropdown.querySelector('.municipality-option.highlighted');
+                    
+                    if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        if (highlighted) {
+                            highlighted.classList.remove('highlighted');
+                            const next = highlighted.nextElementSibling;
+                            if (next) next.classList.add('highlighted');
+                            else options[0]?.classList.add('highlighted');
+                        } else {
+                            options[0]?.classList.add('highlighted');
+                        }
+                    } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        if (highlighted) {
+                            highlighted.classList.remove('highlighted');
+                            const prev = highlighted.previousElementSibling;
+                            if (prev) prev.classList.add('highlighted');
+                            else options[options.length - 1]?.classList.add('highlighted');
+                        }
+                    } else if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (highlighted) {
+                            highlighted.click();
+                        }
+                    }
+                });
+            });
+        }
+        
+        function selectMunicipality(prefix, id, name, dept) {
+            document.getElementById(`${prefix}-municipality`).value = id;
+            document.getElementById(`${prefix}-municipality-name`).textContent = `${name} - ${dept}`;
+            document.getElementById(`${prefix}-municipality-selected`).style.display = 'flex';
+            
+            // Guardar selección en localStorage
+            selectedMunicipality = { id, name, dept };
+            localStorage.setItem('selectedMunicipality', JSON.stringify(selectedMunicipality));
+            
+            // Sincronizar todos los selectores
+            syncMunicipalitySelectors(prefix);
+        }
+        
+        function clearMunicipalitySelection(prefix) {
+            document.getElementById(`${prefix}-municipality`).value = '';
+            document.getElementById(`${prefix}-municipality-selected`).style.display = 'none';
+            document.getElementById(`${prefix}-municipality-search`).value = '';
+        }
+        
+        function syncMunicipalitySelectors(sourcePrefix) {
+            const prefixes = ['wl', 'act', 'fp'];
+            prefixes.forEach(prefix => {
+                if (prefix !== sourcePrefix && selectedMunicipality) {
+                    document.getElementById(`${prefix}-municipality`).value = selectedMunicipality.id;
+                    document.getElementById(`${prefix}-municipality-name`).textContent = 
+                        `${selectedMunicipality.name} - ${selectedMunicipality.dept}`;
+                    document.getElementById(`${prefix}-municipality-selected`).style.display = 'flex';
+                }
+            });
+        }
+        
+        function restoreSelectedMunicipality() {
+            const prefixes = ['wl', 'act', 'fp'];
+            prefixes.forEach(prefix => {
+                document.getElementById(`${prefix}-municipality`).value = selectedMunicipality.id;
+                document.getElementById(`${prefix}-municipality-name`).textContent = 
+                    `${selectedMunicipality.name} - ${selectedMunicipality.dept}`;
+                document.getElementById(`${prefix}-municipality-selected`).style.display = 'flex';
+            });
+            
+            // Cargar datos del municipio seleccionado
+            loadWhiteLabelConfig(selectedMunicipality.id);
+            loadActivities(selectedMunicipality.id);
+            loadFormulaParameters(selectedMunicipality.id);
+        }
+        
+        // ==================== VISTA PREVIA DE CONSECUTIVO/RADICADO ====================
+        
+        function updateSerialPreview() {
+            const consecutivoPrefijo = document.getElementById('wl-consecutivo-prefijo').value;
+            const consecutivoInicio = parseInt(document.getElementById('wl-consecutivo-inicio').value) || 1;
+            const consecutivoDigitos = parseInt(document.getElementById('wl-consecutivo-digitos').value) || 12;
+            
+            const radicadoPrefijo = document.getElementById('wl-radicado-prefijo').value;
+            const radicadoInicio = parseInt(document.getElementById('wl-radicado-inicio').value) || 1;
+            const radicadoDigitos = parseInt(document.getElementById('wl-radicado-digitos').value) || 16;
+            
+            const consecutivoNum = consecutivoInicio.toString().padStart(consecutivoDigitos, '0');
+            const radicadoNum = radicadoInicio.toString().padStart(radicadoDigitos, '0');
+            
+            document.getElementById('consecutivo-preview').textContent = consecutivoPrefijo + consecutivoNum;
+            document.getElementById('radicado-preview').textContent = radicadoPrefijo + radicadoNum;
+        }
+        
+        // Event listeners para vista previa
+        ['wl-consecutivo-prefijo', 'wl-consecutivo-inicio', 'wl-consecutivo-digitos',
+         'wl-radicado-prefijo', 'wl-radicado-inicio', 'wl-radicado-digitos'].forEach(id => {
+            document.getElementById(id)?.addEventListener('input', updateSerialPreview);
+        });
+        
+        // ==================== FUNCIONES DE CARGA DE DATOS ====================
+        
         async function loadUserData() {
             try {
                 const user = await AuthAPI.getCurrentUser();
                 document.getElementById('user-name').textContent = user.full_name;
                 
-                // Verificar permisos de admin
                 if (user.role !== 'admin_alcaldia' && user.role !== 'admin_sistema') {
                     alert('No tiene permisos para acceder a esta página');
                     window.location.href = 'dashboard.html';
@@ -412,50 +1076,6 @@
             }
         }
         
-        // Cargar municipios
-        async function loadMunicipalities() {
-            try {
-                const municipalities = await AdminAPI.listMunicipalities();
-                
-                // Llenar selects (incluyendo el de parámetros de fórmulas)
-                const selects = ['wl-municipality', 'act-municipality', 'fp-municipality'];
-                selects.forEach(selectId => {
-                    const select = document.getElementById(selectId);
-                    if (select) {
-                        select.innerHTML = '<option value="">Seleccione municipio...</option>';
-                        municipalities.forEach(m => {
-                            const option = document.createElement('option');
-                            option.value = m.id;
-                            option.textContent = `${m.name} - ${m.department}`;
-                            select.appendChild(option);
-                        });
-                    }
-                });
-                
-                // Llenar tabla de municipios
-                const tbody = document.getElementById('municipalities-body');
-                if (municipalities.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No hay municipios registrados</td></tr>';
-                } else {
-                    tbody.innerHTML = municipalities.map(m => `
-                        <tr>
-                            <td>${m.code}</td>
-                            <td>${m.name}</td>
-                            <td>${m.department}</td>
-                            <td>
-                                <span class="badge ${m.is_active ? 'badge-firmado' : 'badge-anulado'}">
-                                    ${m.is_active ? 'Activo' : 'Inactivo'}
-                                </span>
-                            </td>
-                        </tr>
-                    `).join('');
-                }
-            } catch (error) {
-                console.error('Error loading municipalities:', error);
-            }
-        }
-        
-        // Cargar configuración marca blanca
         async function loadWhiteLabelConfig(municipalityId) {
             if (!municipalityId) return;
             
@@ -470,12 +1090,21 @@
                 document.getElementById('wl-header').value = config.header_text || '';
                 document.getElementById('wl-legal').value = config.legal_notes || '';
                 document.getElementById('wl-footer').value = config.footer_text || '';
+                
+                // Cargar configuración de consecutivo y radicado
+                document.getElementById('wl-consecutivo-prefijo').value = config.consecutivo_prefijo || '';
+                document.getElementById('wl-consecutivo-inicio').value = config.consecutivo_actual || 1;
+                document.getElementById('wl-consecutivo-digitos').value = config.consecutivo_digitos || 12;
+                document.getElementById('wl-radicado-prefijo').value = config.radicado_prefijo || '';
+                document.getElementById('wl-radicado-inicio').value = config.radicado_actual || 1;
+                document.getElementById('wl-radicado-digitos').value = config.radicado_digitos || 16;
+                
+                updateSerialPreview();
             } catch (error) {
                 console.error('Error loading config:', error);
             }
         }
         
-        // Cargar actividades
         async function loadActivities(municipalityId) {
             if (!municipalityId) {
                 document.getElementById('activities-body').innerHTML = 
@@ -508,7 +1137,6 @@
             }
         }
         
-        // Cargar parámetros de fórmulas
         async function loadFormulaParameters(municipalityId) {
             if (!municipalityId) return;
             
@@ -526,25 +1154,32 @@
                 document.getElementById('fp-interes-mora').value = params.interes_mora_mensual || 1;
             } catch (error) {
                 console.error('Error loading formula parameters:', error);
-                // Si no existen, usar valores por defecto (ya establecidos en los inputs)
             }
         }
         
-        // Event listeners
-        document.getElementById('wl-municipality').addEventListener('change', (e) => {
-            loadWhiteLabelConfig(e.target.value);
+        // ==================== EVENT LISTENERS ====================
+        
+        // Filtros de tabla
+        document.getElementById('muni-filter-search').addEventListener('input', filterMunicipalities);
+        document.getElementById('muni-filter-dept').addEventListener('change', filterMunicipalities);
+        
+        // Paginación
+        document.getElementById('muni-prev').addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                renderMunicipalitiesTable();
+            }
         });
         
-        document.getElementById('act-municipality').addEventListener('change', (e) => {
-            loadActivities(e.target.value);
+        document.getElementById('muni-next').addEventListener('click', () => {
+            const totalPages = Math.ceil(filteredMunicipalities.length / ITEMS_PER_PAGE);
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderMunicipalitiesTable();
+            }
         });
         
-        // Event listener para parámetros de fórmulas
-        document.getElementById('fp-municipality').addEventListener('change', (e) => {
-            loadFormulaParameters(e.target.value);
-        });
-        
-        // Formulario de parámetros de fórmulas (edición en caliente)
+        // Formulario de parámetros de fórmulas
         document.getElementById('formula-params-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -600,7 +1235,14 @@
                     font_family: document.getElementById('wl-font').value,
                     header_text: document.getElementById('wl-header').value,
                     legal_notes: document.getElementById('wl-legal').value,
-                    footer_text: document.getElementById('wl-footer').value
+                    footer_text: document.getElementById('wl-footer').value,
+                    // Configuración de numeración
+                    consecutivo_prefijo: document.getElementById('wl-consecutivo-prefijo').value,
+                    consecutivo_actual: parseInt(document.getElementById('wl-consecutivo-inicio').value) || 1,
+                    consecutivo_digitos: parseInt(document.getElementById('wl-consecutivo-digitos').value) || 12,
+                    radicado_prefijo: document.getElementById('wl-radicado-prefijo').value,
+                    radicado_actual: parseInt(document.getElementById('wl-radicado-inicio').value) || 1,
+                    radicado_digitos: parseInt(document.getElementById('wl-radicado-digitos').value) || 16
                 };
                 
                 await AdminAPI.updateWhiteLabelConfig(municipalityId, config);
@@ -612,7 +1254,7 @@
                 }
                 
                 hideLoading();
-                alert('Configuración guardada correctamente');
+                alert('✅ Configuración guardada correctamente');
             } catch (error) {
                 hideLoading();
                 alert('Error: ' + error.message);
@@ -639,50 +1281,23 @@
                     tax_rate: parseFloat(document.getElementById('act-rate').value)
                 });
                 
-                // Limpiar formulario
                 document.getElementById('act-ciiu').value = '';
                 document.getElementById('act-description').value = '';
                 document.getElementById('act-rate').value = '4.14';
                 
-                // Recargar actividades
                 loadActivities(municipalityId);
                 
                 hideLoading();
-                alert('Actividad creada correctamente');
+                alert('✅ Actividad creada correctamente');
             } catch (error) {
                 hideLoading();
                 alert('Error: ' + error.message);
             }
         });
         
-        // Formulario de municipios
-        document.getElementById('municipality-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            try {
-                showLoading();
-                
-                await AdminAPI.createMunicipality({
-                    code: document.getElementById('muni-code').value,
-                    name: document.getElementById('muni-name').value,
-                    department: document.getElementById('muni-department').value
-                });
-                
-                // Limpiar formulario
-                document.getElementById('muni-code').value = '';
-                document.getElementById('muni-name').value = '';
-                document.getElementById('muni-department').value = '';
-                
-                // Recargar municipios
-                loadMunicipalities();
-                
-                hideLoading();
-                alert('Municipio creado correctamente');
-            } catch (error) {
-                hideLoading();
-                alert('Error: ' + error.message);
-            }
-        });
+        // (Formulario de creación de municipios eliminado - todos los municipios ya están precargados)
+        
+        // ==================== FUNCIONES AUXILIARES ====================
         
         function showLoading() {
             document.getElementById('loading-overlay').classList.add('active');
@@ -692,7 +1307,6 @@
             document.getElementById('loading-overlay').classList.remove('active');
         }
         
-        // Eliminar actividad económica
         async function deleteActivity(activityId) {
             if (!confirm('¿Está seguro de eliminar esta actividad?')) {
                 return;
@@ -702,14 +1316,13 @@
                 showLoading();
                 await AdminAPI.deleteActivity(activityId);
                 
-                // Recargar actividades del municipio seleccionado
                 const municipalityId = document.getElementById('act-municipality').value;
                 if (municipalityId) {
                     loadActivities(municipalityId);
                 }
                 
                 hideLoading();
-                alert('Actividad eliminada correctamente');
+                alert('✅ Actividad eliminada correctamente');
             } catch (error) {
                 hideLoading();
                 alert('Error: ' + error.message);
@@ -719,12 +1332,14 @@
         // Logout
         document.getElementById('btn-logout').addEventListener('click', async () => {
             await AuthAPI.logout();
+            localStorage.removeItem('selectedMunicipality');
             window.location.href = 'login.html';
         });
         
-        // Inicializar
+        // ==================== INICIALIZACIÓN ====================
         loadUserData();
         loadMunicipalities();
+        updateSerialPreview();
     </script>
 </body>
 </html>
