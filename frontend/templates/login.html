@@ -12,16 +12,36 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 50%, #0f3460 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .login-container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(233, 69, 96, 0.1) 0%, transparent 50%);
+            animation: pulse 15s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(10%, 10%); }
         }
         
         .login-card {
             background: white;
-            border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            border-radius: var(--border-radius-xl);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
             width: 100%;
-            max-width: 450px;
-            padding: 2rem;
+            max-width: 420px;
+            padding: 2.5rem;
+            position: relative;
+            z-index: 1;
         }
         
         .login-header {
@@ -29,29 +49,33 @@
             margin-bottom: 2rem;
         }
         
-        .login-header img {
-            height: 80px;
+        .login-header .logo-icon {
+            font-size: 3.5rem;
             margin-bottom: 1rem;
+            display: block;
         }
         
         .login-header h1 {
             color: var(--primary-color);
             font-size: 1.5rem;
+            font-weight: 700;
             margin-bottom: 0.5rem;
         }
         
         .login-header p {
             color: var(--text-muted);
-            font-size: 0.9rem;
+            font-size: 0.875rem;
+            line-height: 1.5;
         }
         
         .login-form .form-group {
-            margin-bottom: 1.5rem;
+            margin-bottom: 1.25rem;
         }
         
         .login-form .btn {
             width: 100%;
             padding: 1rem;
+            font-size: 1rem;
         }
         
         .login-footer {
@@ -62,12 +86,34 @@
         }
         
         .login-footer a {
-            color: var(--primary-color);
+            color: var(--accent-color);
             text-decoration: none;
+            font-weight: 600;
+            transition: color var(--transition-fast);
         }
         
         .login-footer a:hover {
-            text-decoration: underline;
+            color: #d63850;
+        }
+        
+        .divider-text {
+            display: flex;
+            align-items: center;
+            margin: 1.5rem 0;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+        
+        .divider-text::before,
+        .divider-text::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border-color);
+        }
+        
+        .divider-text span {
+            padding: 0 1rem;
         }
     </style>
 </head>
@@ -77,8 +123,9 @@
     <div class="login-container">
         <div class="login-card">
             <div class="login-header">
+                <span class="logo-icon">🏛️</span>
                 <h1>Sistema ICA</h1>
-                <p>Formulario Único Nacional de Declaración y Pago<br>del Impuesto de Industria y Comercio</p>
+                <p>Formulario Único Nacional de Declaración y Pago del Impuesto de Industria y Comercio</p>
             </div>
             
             <div id="alert-container"></div>
@@ -101,14 +148,14 @@
                            id="password" 
                            name="password" 
                            class="form-control" 
-                           placeholder="Ingrese su contraseña"
+                           placeholder="••••••••"
                            required 
                            autocomplete="current-password"
                            minlength="8">
                 </div>
                 
                 <button type="submit" class="btn btn-primary btn-lg">
-                    Iniciar Sesión
+                    🔐 Iniciar Sesión
                 </button>
             </form>
             
@@ -132,7 +179,7 @@
             const password = document.getElementById('password').value;
             
             if (!email || !password) {
-                showLocalAlert('Por favor complete todos los campos', 'warning');
+                showLocalAlert('⚠️ Por favor complete todos los campos', 'warning');
                 return;
             }
             
@@ -145,7 +192,7 @@
                 window.location.href = 'dashboard.html';
             } catch (error) {
                 hideLoading();
-                showLocalAlert('Error: ' + error.message, 'danger');
+                showLocalAlert('❌ Error: ' + error.message, 'danger');
             }
         });
         

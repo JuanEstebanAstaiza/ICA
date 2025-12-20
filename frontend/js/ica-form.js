@@ -2,32 +2,53 @@
  * Módulo de Formulario ICA
  * Maneja la lógica del formulario de declaración
  * Basado en: Documents/formulario-ICA.md
+ * Actualizado: Diciembre 2024 - Reorganización de renglones según formulario oficial
  */
 
 /**
  * Motor de cálculo del formulario ICA (cliente)
  * Replica las fórmulas del backend para validación doble
+ * 
+ * ESTRUCTURA DE RENGLONES (según formulario-ICA.md):
+ * - Renglón 9: Total ingresos ordinarios
+ * - Renglón 10: Total ingresos extraordinarios
+ * - Renglón 11: TOTAL INGRESOS (calculado: R9 + R10)
+ * - Renglón 12: Devoluciones
+ * - Renglón 13: Exportaciones
+ * - Renglón 14: Ventas de activos fijos
+ * - Renglón 15: Ingresos excluidos
+ * - Renglón 16: Ingresos no gravados
+ * - Renglón 17: TOTAL INGRESOS GRAVABLES (calculado: R11 - (R12+R13+R14+R15+R16))
+ * - Renglón 18: Impuesto de Industria y Comercio
+ * - Renglón 19: Avisos y tableros
+ * - Renglón 20: Sobretasa
+ * - Renglón 21: Total impuesto (calculado: R18 + R19 + R20)
+ * - Renglón 22: Descuentos tributarios
+ * - Renglón 23: Anticipos del período anterior
+ * - Renglón 24: Retenciones sufridas
+ * - Renglón 25: Total saldo a pagar
+ * - Renglón 26: Total saldo a favor
  */
 const ICACalculator = {
     /**
-     * Renglón 10: Total ingresos = R8 + R9
+     * Renglón 11: Total ingresos = R9 + R10
      */
-    calculateTotalIncome(row8, row9) {
-        return (parseFloat(row8) || 0) + (parseFloat(row9) || 0);
+    calculateTotalIncome(row9, row10) {
+        return (parseFloat(row9) || 0) + (parseFloat(row10) || 0);
     },
     
     /**
-     * Renglón 16: Total ingresos gravables
-     * Fórmula: R10 - (R11 + R12 + R13 + R14 + R15)
+     * Renglón 17: Total ingresos gravables
+     * Fórmula: R11 - (R12 + R13 + R14 + R15 + R16)
      */
-    calculateTaxableIncome(row10, row11, row12, row13, row14, row15) {
+    calculateTaxableIncome(row11, row12, row13, row14, row15, row16) {
         const deductions = 
-            (parseFloat(row11) || 0) +
             (parseFloat(row12) || 0) +
             (parseFloat(row13) || 0) +
             (parseFloat(row14) || 0) +
-            (parseFloat(row15) || 0);
-        return Math.max(0, row10 - deductions);
+            (parseFloat(row15) || 0) +
+            (parseFloat(row16) || 0);
+        return Math.max(0, row11 - deductions);
     },
     
     /**
@@ -38,25 +59,27 @@ const ICACalculator = {
     },
     
     /**
-     * Renglón 33: Total impuesto = R30 + R31 + R32
+     * Renglón 21: Total impuesto = R18 + R19 + R20
      */
-    calculateTotalTax(row30, row31, row32) {
-        return (parseFloat(row30) || 0) + 
-               (parseFloat(row31) || 0) + 
-               (parseFloat(row32) || 0);
+    calculateTotalTax(row18, row19, row20) {
+        return (parseFloat(row18) || 0) + 
+               (parseFloat(row19) || 0) + 
+               (parseFloat(row20) || 0);
     },
     
     /**
-     * Total créditos
+     * Total créditos = R22 + R23 + R24
      */
-    calculateTotalCredits(discounts, advances, withholdings) {
-        return (parseFloat(discounts) || 0) +
-               (parseFloat(advances) || 0) +
-               (parseFloat(withholdings) || 0);
+    calculateTotalCredits(row22, row23, row24) {
+        return (parseFloat(row22) || 0) +
+               (parseFloat(row23) || 0) +
+               (parseFloat(row24) || 0);
     },
     
     /**
-     * Resultado final
+     * Resultado final (Renglones 25 y 26)
+     * - Renglón 25: Total saldo a pagar
+     * - Renglón 26: Total saldo a favor
      */
     calculateResult(totalTax, totalCredits) {
         const result = totalTax - totalCredits;
@@ -92,10 +115,11 @@ class ICAFormController {
     
     bindEvents() {
         // Eventos de cálculo automático en campos editables
+        // Actualizado según nueva estructura de renglones (formulario-ICA.md)
         const calculableInputs = [
-            'row_8', 'row_9', 'row_11', 'row_12', 'row_13', 'row_14', 'row_15',
-            'row_31', 'row_32',
-            'tax_discounts', 'advance_payments', 'withholdings'
+            'row_9', 'row_10', 'row_12', 'row_13', 'row_14', 'row_15', 'row_16',
+            'row_19', 'row_20',
+            'row_22', 'row_23', 'row_24'
         ];
         
         calculableInputs.forEach(inputId => {
@@ -186,23 +210,24 @@ class ICAFormController {
     
     /**
      * Recalcular todos los campos calculados
+     * Actualizado según estructura de renglones del formulario-ICA.md
      */
     recalculate() {
-        // Sección B - Base Gravable
-        const row8 = this.getValue('row_8');
-        const row9 = this.getValue('row_9');
-        const row10 = ICACalculator.calculateTotalIncome(row8, row9);
-        this.setValue('row_10', row10);
+        // Sección C - Ingresos y Base Gravable
+        const row9 = this.getValue('row_9');   // Total ingresos ordinarios
+        const row10 = this.getValue('row_10'); // Total ingresos extraordinarios
+        const row11 = ICACalculator.calculateTotalIncome(row9, row10); // TOTAL INGRESOS
+        this.setValue('row_11', row11);
         
-        const row11 = this.getValue('row_11');
-        const row12 = this.getValue('row_12');
-        const row13 = this.getValue('row_13');
-        const row14 = this.getValue('row_14');
-        const row15 = this.getValue('row_15');
-        const row16 = ICACalculator.calculateTaxableIncome(row10, row11, row12, row13, row14, row15);
-        this.setValue('row_16', row16);
+        const row12 = this.getValue('row_12'); // Devoluciones
+        const row13 = this.getValue('row_13'); // Exportaciones
+        const row14 = this.getValue('row_14'); // Ventas de activos fijos
+        const row15 = this.getValue('row_15'); // Ingresos excluidos
+        const row16 = this.getValue('row_16'); // Ingresos no gravados
+        const row17 = ICACalculator.calculateTaxableIncome(row11, row12, row13, row14, row15, row16);
+        this.setValue('row_17', row17);
         
-        // Sección C - Actividades (recalcular impuestos)
+        // Sección B - Actividades Gravadas (recalcular impuestos)
         let totalActivitiesTax = 0;
         this.activities.forEach((activity, index) => {
             const tax = ICACalculator.calculateActivityTax(activity.income, activity.tax_rate);
@@ -215,26 +240,32 @@ class ICAFormController {
             }
         });
         
-        // Sección D - Liquidación
-        const row30 = totalActivitiesTax;
-        this.setValue('row_30', row30);
+        // Actualizar total de actividades en el footer de la tabla
+        const totalActivitiesTaxElement = document.getElementById('total-activities-tax');
+        if (totalActivitiesTaxElement) {
+            totalActivitiesTaxElement.textContent = this.formatMoney(totalActivitiesTax);
+        }
         
-        const row31 = this.getValue('row_31');
-        const row32 = this.getValue('row_32');
-        const row33 = ICACalculator.calculateTotalTax(row30, row31, row32);
-        this.setValue('row_33', row33);
+        // Sección D - Liquidación del Impuesto
+        const row18 = totalActivitiesTax; // Impuesto de Industria y Comercio
+        this.setValue('row_18', row18);
         
-        // Sección E - Créditos
-        const discounts = this.getValue('tax_discounts');
-        const advances = this.getValue('advance_payments');
-        const withholdings = this.getValue('withholdings');
-        const totalCredits = ICACalculator.calculateTotalCredits(discounts, advances, withholdings);
+        const row19 = this.getValue('row_19'); // Avisos y tableros
+        const row20 = this.getValue('row_20'); // Sobretasa
+        const row21 = ICACalculator.calculateTotalTax(row18, row19, row20); // TOTAL IMPUESTO
+        this.setValue('row_21', row21);
+        
+        // Sección E - Descuentos y Anticipos
+        const row22 = this.getValue('row_22'); // Descuentos tributarios
+        const row23 = this.getValue('row_23'); // Anticipos del período anterior
+        const row24 = this.getValue('row_24'); // Retenciones sufridas
+        const totalCredits = ICACalculator.calculateTotalCredits(row22, row23, row24);
         this.setValue('total_credits', totalCredits);
         
-        // Sección F - Resultado
-        const result = ICACalculator.calculateResult(row33, totalCredits);
-        this.setValue('amount_to_pay', result.amountToPay);
-        this.setValue('balance_in_favor', result.balanceInFavor);
+        // Sección F - Resultado Final (Renglones 25 y 26)
+        const result = ICACalculator.calculateResult(row21, totalCredits);
+        this.setValue('row_25', result.amountToPay);  // Total saldo a pagar
+        this.setValue('row_26', result.balanceInFavor); // Total saldo a favor
         
         // Actualizar visualización
         this.updateResultDisplay(result);
@@ -423,21 +454,25 @@ class ICAFormController {
             this.setFieldValue('taxpayer_department', t.department);
             this.setFieldValue('phone', t.phone);
             this.setFieldValue('email', t.email);
+            this.setFieldValue('num_establishments', t.num_establishments);
+            this.setFieldValue('taxpayer_classification', t.classification);
+            this.setFieldValue('is_consortium', t.is_consortium);
+            this.setFieldValue('autonomous_patrimony', t.autonomous_patrimony);
         }
         
-        // Sección B - Base Gravable
+        // Sección C - Ingresos y Base Gravable (renglones actualizados)
         if (declaration.income_base) {
             const i = declaration.income_base;
-            this.setFieldValue('row_8', i.row_8_ordinary_income);
-            this.setFieldValue('row_9', i.row_9_extraordinary_income);
-            this.setFieldValue('row_11', i.row_11_returns);
-            this.setFieldValue('row_12', i.row_12_exports);
-            this.setFieldValue('row_13', i.row_13_fixed_assets_sales);
-            this.setFieldValue('row_14', i.row_14_excluded_income);
-            this.setFieldValue('row_15', i.row_15_non_taxable_income);
+            this.setFieldValue('row_9', i.row_9_ordinary_income);
+            this.setFieldValue('row_10', i.row_10_extraordinary_income);
+            this.setFieldValue('row_12', i.row_12_returns);
+            this.setFieldValue('row_13', i.row_13_exports);
+            this.setFieldValue('row_14', i.row_14_fixed_assets_sales);
+            this.setFieldValue('row_15', i.row_15_excluded_income);
+            this.setFieldValue('row_16', i.row_16_non_taxable_income);
         }
         
-        // Sección C - Actividades
+        // Sección B - Actividades
         if (declaration.activities && declaration.activities.length > 0) {
             this.activities = declaration.activities.map(a => ({
                 ciiu_code: a.ciiu_code,
@@ -449,19 +484,19 @@ class ICAFormController {
             this.renderActivities();
         }
         
-        // Sección D - Liquidación
+        // Sección D - Liquidación (renglones actualizados)
         if (declaration.settlement) {
             const s = declaration.settlement;
-            this.setFieldValue('row_31', s.row_31_signs_boards);
-            this.setFieldValue('row_32', s.row_32_surcharge);
+            this.setFieldValue('row_19', s.row_19_signs_boards);
+            this.setFieldValue('row_20', s.row_20_surcharge);
         }
         
-        // Sección E - Descuentos
+        // Sección E - Descuentos (renglones actualizados)
         if (declaration.discounts) {
             const d = declaration.discounts;
-            this.setFieldValue('tax_discounts', d.tax_discounts);
-            this.setFieldValue('advance_payments', d.advance_payments);
-            this.setFieldValue('withholdings', d.withholdings);
+            this.setFieldValue('row_22', d.row_22_tax_discounts);
+            this.setFieldValue('row_23', d.row_23_advance_payments);
+            this.setFieldValue('row_24', d.row_24_withholdings);
         }
         
         // Recalcular todos los valores
@@ -550,6 +585,10 @@ class ICAFormController {
         return {
             tax_year: this.getValue('tax_year') || new Date().getFullYear(),
             declaration_type: document.getElementById('declaration_type')?.value || 'inicial',
+            department: document.getElementById('department')?.value || '',
+            bogota_period: document.getElementById('bogota_period')?.value || '',
+            corrected_form_number: document.getElementById('corrected_form_number')?.value || '',
+            correction_date: document.getElementById('correction_date')?.value || '',
             taxpayer: {
                 document_type: document.getElementById('document_type')?.value || '',
                 document_number: document.getElementById('document_number')?.value || '',
@@ -559,27 +598,31 @@ class ICAFormController {
                 municipality: document.getElementById('taxpayer_municipality')?.value || '',
                 department: document.getElementById('taxpayer_department')?.value || '',
                 phone: document.getElementById('phone')?.value || '',
-                email: document.getElementById('email')?.value || ''
+                email: document.getElementById('email')?.value || '',
+                num_establishments: parseInt(document.getElementById('num_establishments')?.value) || 1,
+                classification: document.getElementById('taxpayer_classification')?.value || '',
+                is_consortium: document.getElementById('is_consortium')?.value || 'no',
+                autonomous_patrimony: document.getElementById('autonomous_patrimony')?.value || 'no'
             },
             income_base: {
-                row_8_ordinary_income: this.getValue('row_8'),
-                row_9_extraordinary_income: this.getValue('row_9'),
-                row_11_returns: this.getValue('row_11'),
-                row_12_exports: this.getValue('row_12'),
-                row_13_fixed_assets_sales: this.getValue('row_13'),
-                row_14_excluded_income: this.getValue('row_14'),
-                row_15_non_taxable_income: this.getValue('row_15')
+                row_9_ordinary_income: this.getValue('row_9'),
+                row_10_extraordinary_income: this.getValue('row_10'),
+                row_12_returns: this.getValue('row_12'),
+                row_13_exports: this.getValue('row_13'),
+                row_14_fixed_assets_sales: this.getValue('row_14'),
+                row_15_excluded_income: this.getValue('row_15'),
+                row_16_non_taxable_income: this.getValue('row_16')
             },
             activities: this.activities,
             settlement: {
-                row_30_ica_tax: this.getValue('row_30'),
-                row_31_signs_boards: this.getValue('row_31'),
-                row_32_surcharge: this.getValue('row_32')
+                row_18_ica_tax: this.getValue('row_18'),
+                row_19_signs_boards: this.getValue('row_19'),
+                row_20_surcharge: this.getValue('row_20')
             },
             discounts: {
-                tax_discounts: this.getValue('tax_discounts'),
-                advance_payments: this.getValue('advance_payments'),
-                withholdings: this.getValue('withholdings')
+                row_22_tax_discounts: this.getValue('row_22'),
+                row_23_advance_payments: this.getValue('row_23'),
+                row_24_withholdings: this.getValue('row_24')
             }
         };
     }
