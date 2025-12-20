@@ -152,6 +152,9 @@ class WhiteLabelConfigBase(BaseModel):
         max_length=500
     )
     
+    # Marca de agua para PDF (prevención de fraudes)
+    watermark_text: Optional[str] = Field(default="", max_length=255)
+    
     # Configuración de Numeración (Consecutivo y Radicado)
     consecutivo_prefijo: Optional[str] = Field(default="", max_length=10)
     consecutivo_actual: int = Field(default=1, ge=1)

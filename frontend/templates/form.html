@@ -861,23 +861,35 @@
         // Obtener ID de declaración de la URL
         const urlParams = new URLSearchParams(window.location.search);
         const declarationId = urlParams.get('id');
+        const previewMode = urlParams.get('preview') === 'true';
+        
+        // Variable global para guardar el municipio del usuario
+        let userMunicipalityId = null;
         
         // Toggle campos de contador/revisor fiscal
         document.getElementById('requires_fiscal_reviewer').addEventListener('change', function() {
             document.getElementById('accountant-fields').style.display = this.checked ? 'block' : 'none';
         });
         
-        // Cargar datos del usuario
+        // Cargar datos del usuario y obtener su municipio asignado
         async function loadUserData() {
             try {
                 const user = await AuthAPI.getCurrentUser();
                 document.getElementById('user-name').textContent = user.full_name;
+                
+                // Guardar el municipio del usuario para auto-selección
+                if (user.municipality_id) {
+                    userMunicipalityId = user.municipality_id;
+                }
+                
+                return user;
             } catch (error) {
                 console.error('Error loading user:', error);
+                return null;
             }
         }
         
-        // Cargar municipios
+        // Cargar municipios y auto-seleccionar el municipio del usuario
         async function loadMunicipalities() {
             try {
                 const municipalities = await AdminAPI.listMunicipalities();
@@ -889,6 +901,21 @@
                     option.textContent = `${m.name} - ${m.department}`;
                     select.appendChild(option);
                 });
+                
+                // Auto-seleccionar el municipio del usuario si está asignado
+                if (userMunicipalityId) {
+                    select.value = userMunicipalityId;
+                    
+                    // También auto-seleccionar el departamento correspondiente
+                    const selectedMunicipality = municipalities.find(m => m.id === userMunicipalityId);
+                    if (selectedMunicipality) {
+                        const deptSelect = document.getElementById('department');
+                        deptSelect.value = selectedMunicipality.department;
+                        
+                        // Disparar el evento change para actualizar la sección de Bogotá si aplica
+                        deptSelect.dispatchEvent(new Event('change'));
+                    }
+                }
             } catch (error) {
                 console.error('Error loading municipalities:', error);
             }
@@ -918,6 +945,62 @@
             }
         });
         
+        // Habilitar modo vista previa
+        function enablePreviewMode() {
+            // Mostrar banner de vista previa
+            const alertContainer = document.getElementById('alert-container');
+            alertContainer.innerHTML = `
+                <div class="alert alert-info" style="background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%); border-left: 4px solid #0284c7;">
+                    <strong>👁️ MODO VISTA PREVIA</strong> - Este es un formulario de ejemplo para verificar la estructura de campos.
+                    <button type="button" class="btn btn-primary" style="margin-left: 1rem;" onclick="window.location.href='form.html'">
+                        ✏️ Crear Nueva Declaración
+                    </button>
+                </div>
+            `;
+            
+            // Deshabilitar todos los campos
+            const formInputs = document.querySelectorAll('#ica-form input, #ica-form select, #ica-form textarea');
+            formInputs.forEach(input => {
+                input.disabled = true;
+            });
+            
+            // Ocultar botones de acción
+            const actionButtons = document.querySelectorAll('#ica-form button[type="submit"], #btn-open-signature, #btn-generate-pdf');
+            actionButtons.forEach(btn => {
+                btn.style.display = 'none';
+            });
+            
+            // Renombrar botón recalcular
+            const calcBtn = document.getElementById('btn-calculate');
+            if (calcBtn) {
+                calcBtn.style.display = 'none';
+            }
+            
+            // Agregar valores de ejemplo para vista previa
+            fillPreviewData();
+        }
+        
+        // Llenar datos de ejemplo para vista previa
+        function fillPreviewData() {
+            // Datos de ejemplo para vista previa
+            document.getElementById('legal_name').value = 'Empresa Ejemplo S.A.S.';
+            document.getElementById('document_type').value = 'NIT';
+            document.getElementById('document_number').value = '900123456';
+            document.getElementById('verification_digit').value = '7';
+            document.getElementById('address').value = 'Calle 123 # 45-67, Centro';
+            document.getElementById('phone').value = '3001234567';
+            document.getElementById('email').value = 'ejemplo@empresa.com';
+            document.getElementById('num_establishments').value = '1';
+            
+            // Valores numéricos de ejemplo
+            document.getElementById('row_8').value = '100000000';
+            document.getElementById('row_9').value = '10000000';
+            document.getElementById('row_11').value = '5000000';
+            document.getElementById('row_12').value = '2000000';
+            document.getElementById('row_13').value = '1000000';
+            document.getElementById('row_14').value = '500000';
+        }
+        
         // Inicializar formulario
         function initializeForm() {
             // Establecer año actual por defecto
@@ -938,6 +1021,11 @@
                     console.log('Declaración firmada:', data);
                 }
             });
+            
+            // Activar modo vista previa si se solicita
+            if (previewMode) {
+                enablePreviewMode();
+            }
         }
         
         // Botón recalcular
@@ -972,10 +1060,14 @@
             window.location.href = 'login.html';
         });
         
-        // Inicializar
-        loadUserData();
-        loadMunicipalities();
-        initializeForm();
+        // Inicializar - primero cargar usuario, luego municipios
+        async function init() {
+            await loadUserData();
+            await loadMunicipalities();
+            initializeForm();
+        }
+        
+        init();
     </script>
 </body>
 </html>
