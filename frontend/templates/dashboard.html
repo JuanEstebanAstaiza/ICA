@@ -14,12 +14,12 @@
     <header class="header">
         <div class="container header-content">
             <div class="logo">
-                <span class="logo-text">Sistema ICA</span>
+                <span class="logo-text">🏛️ Sistema ICA</span>
             </div>
             
             <nav>
                 <ul class="nav-menu">
-                    <li><a href="dashboard.html">Inicio</a></li>
+                    <li><a href="dashboard.html" class="active">Inicio</a></li>
                     <li><a href="form.html">Nueva Declaración</a></li>
                     <li><a href="admin.html" id="admin-link" style="display: none;">Administración</a></li>
                 </ul>
@@ -37,44 +37,44 @@
         <div class="container">
             <div id="alert-container"></div>
             
-            <div class="row">
+            <div class="row mb-3">
                 <div class="col-12">
-                    <h1>Panel de Control</h1>
-                    <p class="text-muted">Bienvenido al Sistema de Declaración ICA</p>
+                    <h1 style="font-size: 1.75rem; font-weight: 700; color: var(--text-color);">Panel de Control</h1>
+                    <p class="text-muted">Bienvenido al Sistema de Declaración ICA - Formulario Único Nacional</p>
                 </div>
             </div>
             
             <!-- Quick Stats -->
-            <div class="row" style="margin-top: 2rem;">
+            <div class="row mb-3">
                 <div class="col-3">
                     <div class="card">
-                        <div class="card-body" style="text-align: center;">
-                            <h3 id="stat-total">0</h3>
-                            <p>Total Declaraciones</p>
+                        <div class="card-body text-center">
+                            <div style="font-size: 2.5rem; font-weight: 700; color: var(--primary-color);" id="stat-total">0</div>
+                            <p class="text-muted mb-0">Total Declaraciones</p>
                         </div>
                     </div>
                 </div>
                 <div class="col-3">
                     <div class="card">
-                        <div class="card-body" style="text-align: center;">
-                            <h3 id="stat-draft">0</h3>
-                            <p>En Borrador</p>
+                        <div class="card-body text-center">
+                            <div style="font-size: 2.5rem; font-weight: 700; color: var(--warning-color);" id="stat-draft">0</div>
+                            <p class="text-muted mb-0">En Borrador</p>
                         </div>
                     </div>
                 </div>
                 <div class="col-3">
                     <div class="card">
-                        <div class="card-body" style="text-align: center;">
-                            <h3 id="stat-signed">0</h3>
-                            <p>Firmadas</p>
+                        <div class="card-body text-center">
+                            <div style="font-size: 2.5rem; font-weight: 700; color: var(--success-color);" id="stat-signed">0</div>
+                            <p class="text-muted mb-0">Firmadas</p>
                         </div>
                     </div>
                 </div>
                 <div class="col-3">
-                    <div class="card">
-                        <div class="card-body" style="text-align: center;">
-                            <a href="form.html" class="btn btn-primary btn-lg">
-                                + Nueva Declaración
+                    <div class="card" style="background: var(--accent-gradient);">
+                        <div class="card-body text-center">
+                            <a href="form.html" class="btn btn-lg" style="background: white; color: var(--accent-color); font-weight: 600;">
+                                ➕ Nueva Declaración
                             </a>
                         </div>
                     </div>
@@ -82,11 +82,11 @@
             </div>
             
             <!-- Recent Declarations -->
-            <div class="row" style="margin-top: 2rem;">
+            <div class="row">
                 <div class="col-12">
                     <div class="card">
                         <div class="card-header">
-                            Mis Declaraciones
+                            📋 Mis Declaraciones
                         </div>
                         <div class="card-body">
                             <table class="table" id="declarations-table">
@@ -102,8 +102,9 @@
                                 </thead>
                                 <tbody id="declarations-body">
                                     <tr>
-                                        <td colspan="6" style="text-align: center;">
-                                            Cargando declaraciones...
+                                        <td colspan="6" class="text-center">
+                                            <div class="spinner" style="margin: 1rem auto;"></div>
+                                            <p class="text-muted">Cargando declaraciones...</p>
                                         </td>
                                     </tr>
                                 </tbody>
@@ -119,7 +120,7 @@
     <footer class="footer">
         <div class="container">
             <p>&copy; 2024 Sistema ICA - Formulario Único Nacional de Declaración y Pago</p>
-            <p>Basado en: Documents/formulario-ICA.md</p>
+            <p><small>Basado en: Documents/formulario-ICA.md</small></p>
         </div>
     </footer>
     
@@ -168,9 +169,10 @@
                 if (declarations.length === 0) {
                     tbody.innerHTML = `
                         <tr>
-                            <td colspan="6" style="text-align: center;">
-                                No tiene declaraciones. 
-                                <a href="form.html">Crear nueva declaración</a>
+                            <td colspan="6" class="text-center empty-state">
+                                <div class="empty-state-icon">📄</div>
+                                <p>No tiene declaraciones aún.</p>
+                                <a href="form.html" class="btn btn-primary">➕ Crear nueva declaración</a>
                             </td>
                         </tr>
                     `;
@@ -179,7 +181,7 @@
                 
                 tbody.innerHTML = declarations.map(d => `
                     <tr>
-                        <td>${d.form_number}</td>
+                        <td><strong>${d.form_number || 'Sin número'}</strong></td>
                         <td>${d.tax_year}</td>
                         <td>${formatDeclarationType(d.declaration_type)}</td>
                         <td>
@@ -189,14 +191,16 @@
                         </td>
                         <td>${new Date(d.created_at).toLocaleDateString('es-CO')}</td>
                         <td>
-                            <a href="form.html?id=${d.id}" class="btn btn-sm btn-primary">
-                                ${d.is_signed ? 'Ver' : 'Editar'}
-                            </a>
-                            ${d.is_signed ? `
-                                <button class="btn btn-sm btn-secondary" onclick="downloadPDF(${d.id})">
-                                    Descargar PDF
-                                </button>
-                            ` : ''}
+                            <div class="d-flex gap-1">
+                                <a href="form.html?id=${d.id}" class="btn btn-sm btn-primary">
+                                    ${d.is_signed ? '👁️ Ver' : '✏️ Editar'}
+                                </a>
+                                ${d.is_signed ? `
+                                    <button class="btn btn-sm btn-secondary" onclick="downloadPDF(${d.id})">
+                                        📄 PDF
+                                    </button>
+                                ` : ''}
+                            </div>
                         </td>
                     </tr>
                 `).join('');
@@ -205,8 +209,8 @@
                 console.error('Error loading declarations:', error);
                 document.getElementById('declarations-body').innerHTML = `
                     <tr>
-                        <td colspan="6" style="text-align: center; color: red;">
-                            Error al cargar declaraciones
+                        <td colspan="6" class="text-center" style="color: var(--danger-color);">
+                            ❌ Error al cargar declaraciones
                         </td>
                     </tr>
                 `;
@@ -216,9 +220,7 @@
         function formatDeclarationType(type) {
             const types = {
                 'inicial': 'Inicial',
-                'correccion': 'Corrección',
-                'correccion_disminuye': 'Corrección (-)',
-                'correccion_aumenta': 'Corrección (+)'
+                'correccion': 'Corrección'
             };
             return types[type] || type;
         }

@@ -13,6 +13,7 @@
 5. [Implementaciones de Seguridad](#5-implementaciones-de-seguridad)
 6. [Manual de Usuario](#6-manual-de-usuario)
 7. [API Reference](#7-api-reference)
+8. [Changelog](#8-changelog)
 
 ---
 
@@ -69,6 +70,14 @@ El Sistema ICA es una plataforma web institucional diseñada para el diligenciam
    - Logs de auditoría
    - Sanitización de inputs
 
+7. **Interfaz Moderna (Actualización Diciembre 2024)**
+   - Diseño moderno inspirado en aplicaciones empresariales (HubSpot, Instagram, X)
+   - Paleta de colores actualizada con gradientes
+   - Animaciones suaves y transiciones
+   - Formularios bien organizados con secciones claras
+   - Campos de texto alineados y estructurados
+   - Diseño responsive mejorado
+
 ### 1.3 Stack Tecnológico
 
 #### Backend
@@ -83,9 +92,10 @@ El Sistema ICA es una plataforma web institucional diseñada para el diligenciam
 
 #### Frontend
 - **HTML5**: Estructura semántica
-- **CSS3**: Diseño responsivo
+- **CSS3**: Diseño responsivo con variables CSS modernas
 - **JavaScript**: Vanilla JS (sin frameworks)
 - **Canvas API**: Para firma digital
+- **Fuentes**: Inter (Google Fonts)
 
 #### Infraestructura
 - **Servidor**: Uvicorn con workers
@@ -1444,6 +1454,59 @@ Para soporte técnico o consultas:
 
 ---
 
-**Documento actualizado**: 19 de diciembre de 2024  
-**Versión**: 1.0.0  
+## 8. Changelog
+
+### Versión 1.1.0 (Diciembre 2024)
+
+#### 🎨 Mejoras de Interfaz de Usuario
+
+**Diseño Moderno**
+- Nueva paleta de colores inspirada en aplicaciones empresariales de alto impacto (HubSpot, Instagram, X)
+- Implementación de gradientes modernos en botones y cabeceras
+- Sombras suaves y efectos de profundidad mejorados
+- Transiciones y animaciones fluidas
+
+**Formulario ICA Reorganizado**
+- Campos de texto correctamente alineados y organizados
+- Secciones claramente delimitadas con títulos descriptivos
+- Numeración de renglones según el documento oficial `Documents/formulario-ICA.md`
+- Campos calculados visualmente diferenciados con fondo verde
+
+**Nuevos Campos Agregados (según formulario-ICA.md)**
+- Encabezado: Municipio, Departamento, Año Gravable, Fecha máxima de presentación
+- Sección Bogotá D.C.: Bimestre/Periodo (uso exclusivo)
+- Opción de corrección: Número de formulario corregido, fecha
+- Sección A: ¿Es consorcio o unión temporal?, ¿Patrimonio autónomo?, Número de establecimientos, Clasificación del contribuyente
+- Renglones reorganizados: 9-17 (ingresos), 18-21 (liquidación), 22-24 (descuentos), 25-26 (resultado)
+
+**Mejoras en Componentes**
+- Botones con efecto hover y sombras dinámicas
+- Inputs con estados de focus mejorados
+- Badges de estado con diseño moderno
+- Alertas con iconos y bordes laterales
+- Modales con animaciones de entrada
+
+**Página de Login**
+- Nuevo diseño con fondo degradado animado
+- Tarjeta de login con sombra pronunciada
+- Iconografía mejorada
+
+**Dashboard**
+- Estadísticas con números grandes y colores distintivos
+- Tabla de declaraciones mejorada
+- Estado vacío con diseño atractivo
+
+#### 📝 Documentación
+- Actualización de la documentación técnica
+- Añadida sección de Changelog
+- Actualización del stack tecnológico (fuentes Inter)
+
+#### 🔧 Correcciones Técnicas
+- Actualización del motor de cálculo JavaScript para usar los nuevos IDs de renglones
+- Compatibilidad con la estructura del formulario-ICA.md actualizado
+
+---
+
+**Documento actualizado**: 20 de diciembre de 2024  
+**Versión**: 1.1.0  
 **Sistema**: ICA - Formulario Único Nacional
