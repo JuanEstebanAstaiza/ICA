@@ -10,6 +10,24 @@ from enum import Enum
 import re
 
 
+# ===================== FUNCIONES DE VALIDACIÓN REUTILIZABLES =====================
+
+def validate_password_strength(password: str) -> str:
+    """
+    Valida que la contraseña cumpla con los requisitos de seguridad.
+    - Mínimo una mayúscula
+    - Mínimo una minúscula
+    - Mínimo un número
+    """
+    if not re.search(r'[A-Z]', password):
+        raise ValueError('La contraseña debe contener al menos una mayúscula')
+    if not re.search(r'[a-z]', password):
+        raise ValueError('La contraseña debe contener al menos una minúscula')
+    if not re.search(r'\d', password):
+        raise ValueError('La contraseña debe contener al menos un número')
+    return password
+
+
 # ===================== ENUMS =====================
 
 class UserRoleEnum(str, Enum):
@@ -51,13 +69,7 @@ class UserCreate(UserBase):
     
     @validator('password')
     def password_strength(cls, v):
-        if not re.search(r'[A-Z]', v):
-            raise ValueError('La contraseña debe contener al menos una mayúscula')
-        if not re.search(r'[a-z]', v):
-            raise ValueError('La contraseña debe contener al menos una minúscula')
-        if not re.search(r'\d', v):
-            raise ValueError('La contraseña debe contener al menos un número')
-        return v
+        return validate_password_strength(v)
 
 
 class UserLogin(BaseModel):
@@ -73,13 +85,7 @@ class AdminUserCreate(UserBase):
     
     @validator('password')
     def password_strength(cls, v):
-        if not re.search(r'[A-Z]', v):
-            raise ValueError('La contraseña debe contener al menos una mayúscula')
-        if not re.search(r'[a-z]', v):
-            raise ValueError('La contraseña debe contener al menos una minúscula')
-        if not re.search(r'\d', v):
-            raise ValueError('La contraseña debe contener al menos un número')
-        return v
+        return validate_password_strength(v)
 
 
 class UserStatusUpdate(BaseModel):
