@@ -1,224 +1,223 @@
-# Formulario Único Nacional de Declaración y Pago del ICA (COMPLETO)
+# Formulario Único ICA – Versión Digital Tipo Medellín (SSOT)
 
-> **Fuente oficial**: Archivo Excel `FORMULARIO-UNICO-ICA-NACIONAL PARA TRABAJO DE APLICATIVO.xlsx`
+> **Estado**: DEFINITIVO
 >
-> **Estado**: Transcripción completa renglón por renglón del formulario real
->
-> **Uso**: Fuente única de verdad (SSOT) para generación automática del formulario en aplicación web
+> **Propósito**: Este documento es la **fuente única de verdad (Single Source of Truth)** para generar una aplicación web ICA cuyo formulario sea **funcional y visualmente equivalente** al formulario digital usado por municipios como Medellín, incorporando **firma digital avanzada**.
 
 ---
 
-## ENCABEZADO DEL FORMULARIO
+## 0. METADATOS DEL FORMULARIO (SISTEMA)
 
-* **FORMULARIO ÚNICO NACIONAL DE DECLARACIÓN Y PAGO DEL IMPUESTO DE INDUSTRIA Y COMERCIO**
-* **Municipio o Distrito**
-* **Departamento**
-* **Año Gravable**
-* **Fecha máxima de presentación**
-* **Uso exclusivo Bogotá**:
+> Campos generados y controlados por el sistema, no editables por el usuario.
 
-  * Bimestre / Periodo:
+* **Periodo gravable** (YYYY)
+* **Fecha de presentación** (ISO-8601)
+* **Tipo de declaración**:
 
-    * ene-feb
-    * mar-abr
-    * may-jun
-    * jul-ago
-    * sep-oct
-    * nov-dic
-    * anual
+  * Inicial
+  * Corrección
+* **Consecutivo del formulario** (único)
+* **Número de radicado** (único, posterior a firma)
+* **Estado de la declaración**:
 
----
-
-## OPCIÓN DE USO DEL FORMULARIO
-
-* Declaración inicial
-* Declaración que corrige
-
-  * Número de formulario corregido
-  * Fecha (dd/mm/aaaa)
+  * En borrador
+  * Firmada
+  * Presentada
 
 ---
 
 ## A. INFORMACIÓN DEL CONTRIBUYENTE
 
-### Renglón 1
+### 1. Apellidos y nombres / Razón social
 
-* Nombres y apellidos o razón social
+### Tipo de entidad
 
-### Renglón 2
+* Privada
+* Pública
 
-* Tipo de documento:
+### 2. Cédula o NIT
 
-  * CC
-  * NIT
-  * TI
-  * CE
-* Número de documento
-* Es consorcio o unión temporal (Sí / No)
-* Realiza actividades a través de patrimonio autónomo (Sí / No)
+* Número
+* Dígito de verificación (DV)
 
-### Renglón 3
+### 3. Dirección de notificación
 
-* Dirección de notificación
-
-### Renglón 4
-
-* Municipio o distrito de la dirección
+* Dirección
 * Departamento
+* Municipio
 
-### Renglón 5
+### 4. Teléfono
 
-* Teléfono
+### 5. Correo electrónico
 
-### Renglón 6
+### 6. Número de establecimientos en el municipio
 
-* Correo electrónico
+### 7. Clasificación del contribuyente
 
-### Renglón 7
-
-* Número de establecimientos
-
-### Renglón 8
-
-* Clasificación del contribuyente
+* Común
+* Simplificado
 
 ---
 
-## B. ACTIVIDADES GRAVADAS
+## B. BASE GRAVABLE
 
-Por cada actividad:
+### 8. Total ingresos ordinarios y extraordinarios del período en todo el país
 
-* Código actividad
-* Descripción
+### 9. Menos ingresos fuera del municipio
+
+### 10. Total ingresos ordinarios y extraordinarios en el municipio
+
+* **Fórmula**: Renglón 8 − 9
+
+### 11. Menos ingresos por devoluciones, rebajas y descuentos
+
+### 12. Menos ingresos por exportaciones y venta de activos fijos
+
+### 13. Menos ingresos por actividades excluidas o no sujetas y otros ingresos no gravados
+
+### 14. Menos ingresos por actividades exentas en el municipio
+
+### 15. Total ingresos gravables
+
+* **Fórmula**: Renglón 10 − (11 + 12 + 13 + 14)
+
+---
+
+## C. DISCRIMINACIÓN DE INGRESOS GRAVADOS Y ACTIVIDADES
+
+Tabla dinámica de actividades (mínimo 1):
+
+* Actividad (principal / secundaria)
+* Código CIIU
 * Ingresos gravados
-* Tarifa
-* Impuesto
+* Tarifa (por mil)
+* Impuesto ICA
+* Tarifa especial (si aplica)
 
-(Se permiten múltiples actividades)
+### 16. Total ingresos gravados en el municipio
 
----
+### 17. Total impuesto ICA
 
-## C. INGRESOS Y BASE GRAVABLE
+* **Fórmula**: Suma de impuesto por actividad
 
-### Renglón 9
+### 18. Generación de energía – Capacidad instalada (kW)
 
-* Total ingresos ordinarios
-
-### Renglón 10
-
-* Total ingresos extraordinarios
-
-### Renglón 11
-
-* Total ingresos
-
-### Renglón 12
-
-* Devoluciones
-
-### Renglón 13
-
-* Exportaciones
-
-### Renglón 14
-
-* Ventas de activos fijos
-
-### Renglón 15
-
-* Ingresos excluidos
-
-### Renglón 16
-
-* Ingresos no gravados
-
-### Renglón 17 (CALCULADO)
-
-* **TOTAL INGRESOS GRAVABLES**
-* Fórmula textual oficial:
-
-  > TOTAL INGRESOS GRAVABLES (RENGLÓN 11 MENOS 12,13,14,15 Y 16)
+### 19. Impuesto Ley 56 de 1981
 
 ---
 
 ## D. LIQUIDACIÓN DEL IMPUESTO
 
-### Renglón 18
+### 20. Total impuesto de industria y comercio
 
-* Impuesto de Industria y Comercio
+* **Fórmula**: Renglón 17 + 19
 
-### Renglón 19
+### 21. Impuesto de avisos y tableros
 
-* Avisos y tableros
+### 22. Pago por unidades comerciales adicionales del sector financiero
 
-### Renglón 20
+### 23. Sobretasa bomberil
 
-* Sobretasa
+### 24. Sobretasa de seguridad
 
-### Renglón 21
+### 25. Total impuesto a cargo
 
-* Total impuesto
+* **Fórmula**: 20 + 21 + 22 + 23 + 24
 
----
+### 26. Menos exenciones o exoneraciones sobre el impuesto
 
-## E. DESCUENTOS Y ANTICIPOS
+### 27. Menos retenciones practicadas en el municipio
 
-### Renglón 22
+### 28. Menos autorretenciones practicadas en el municipio
 
-* Descuentos tributarios
+### 29. Menos anticipo liquidado en el año anterior
 
-### Renglón 23
+### 30. Anticipo del año siguiente
 
-* Anticipos del período anterior
+### 31. Sanciones (checklist)
 
-### Renglón 24
+* Extemporaneidad
+* Corrección
+* Inexactitud
+* Otra (especificar)
 
-* Retenciones sufridas
+### 32. Menos saldo a favor del período anterior
 
----
+### 33. Total saldo a cargo
 
-## F. RESULTADO FINAL
-
-### Renglón 25
-
-* Total saldo a pagar
-
-### Renglón 26
-
-* Total saldo a favor
-
-(Regla: solo uno puede ser mayor a cero)
+### 34. Total saldo a favor
 
 ---
 
-## G. RESPONSABILIDAD Y FIRMAS
+## E. PAGO
 
-### Declarante
+### 35. Valor a pagar
+
+### 36. Descuento por pronto pago
+
+### 37. Intereses de mora
+
+### 38. Total a pagar
+
+* **Fórmula**: 35 − 36 + 37
+
+### 39. Pago voluntario
+
+* Valor
+* Destino del aporte
+
+### 40. Total a pagar con pago voluntario
+
+* **Fórmula**: 38 + 39
+
+---
+
+## F. FIRMAS DIGITALES
+
+> Una vez firmada la declaración, **queda bloqueada para edición**.
+
+### Firma del declarante
 
 * Nombre
-* Firma
-* Fecha
+* Documento
+* Método de firma:
 
-### Contador / Revisor Fiscal
+  * Firma manuscrita (canvas)
+  * Firma con clave
+* Checkbox de declaración bajo juramento
 
+### Firma del contador / revisor fiscal
+
+* Aplica revisor fiscal (Sí / No)
 * Nombre
-* Firma
-* Número de tarjeta profesional
+* Documento
+* Tarjeta profesional
+* Método de firma
+
+### Metadatos de firma (NO visibles)
+
+* Hash del documento
+* Fecha y hora
+* IP
+* User-Agent
+* Integridad verificada
 
 ---
 
-## NOTAS TÉCNICAS IMPORTANTES
+## G. CONTROL INSTITUCIONAL
 
-* Filas vacías y separadores del Excel **NO representan campos de datos**
-* Los renglones están numerados conforme al formulario oficial
-* Los textos largos entre paréntesis representan **reglas de negocio explícitas**
-* Los campos calculados **no deben ser editables**
+* Número de radicado
+* Fecha y hora de presentación
+* Código de barras
+* Código QR
+
+> Campos de uso exclusivo del sistema o de la alcaldía
 
 ---
 
-## ESTADO DEL DOCUMENTO
+## REGLAS GENERALES
 
-✔ Formulario completo
-✔ Apto para automatización
-✔ Apto para IA generadora de aplicaciones
-✔ Legal y estructuralmente fiel al XLS
+* Los campos calculados **no son editables**
+* El radicado solo se genera tras firmas válidas
+* El PDF generado debe reflejar exactamente este formulario
+* Este documento reemplaza cualquier versión previa
