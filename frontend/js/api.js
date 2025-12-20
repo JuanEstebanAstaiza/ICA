@@ -32,6 +32,12 @@ async function handleResponse(response) {
         // Intentar refresh token
         const refreshed = await refreshAccessToken();
         if (!refreshed) {
+            // Limpiar tokens antes de redirigir para evitar loop infinito
+            accessToken = null;
+            refreshToken = null;
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+            
             // Redirigir a login usando constante configurable
             const LOGIN_URL = window.APP_CONFIG?.loginUrl || '/templates/login.html';
             window.location.href = LOGIN_URL;
@@ -385,6 +391,64 @@ const AdminAPI = {
         const response = await fetch(`${API_BASE_URL}/admin/activities/${activityId}`, {
             method: 'DELETE',
             headers: getHeaders()
+        });
+        return handleResponse(response);
+    },
+    
+    // ==================== GESTIÓN DE USUARIOS (SUPER ADMIN) ====================
+    
+    /**
+     * Listar usuarios (solo admin)
+     */
+    async listUsers() {
+        const response = await fetch(`${API_BASE_URL}/admin/users`, {
+            headers: getHeaders()
+        });
+        return handleResponse(response);
+    },
+    
+    /**
+     * Crear usuario administrador de alcaldía
+     */
+    async createAdminUser(userData) {
+        const response = await fetch(`${API_BASE_URL}/admin/users`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(userData)
+        });
+        return handleResponse(response);
+    },
+    
+    /**
+     * Actualizar rol de usuario
+     */
+    async updateUserRole(userId, role) {
+        const response = await fetch(`${API_BASE_URL}/admin/users/${userId}/role?role=${role}`, {
+            method: 'PUT',
+            headers: getHeaders()
+        });
+        return handleResponse(response);
+    },
+    
+    /**
+     * Asignar municipio a usuario
+     */
+    async assignUserMunicipality(userId, municipalityId) {
+        const response = await fetch(`${API_BASE_URL}/admin/users/${userId}/municipality?municipality_id=${municipalityId}`, {
+            method: 'PUT',
+            headers: getHeaders()
+        });
+        return handleResponse(response);
+    },
+    
+    /**
+     * Activar/Desactivar usuario
+     */
+    async toggleUserStatus(userId, isActive) {
+        const response = await fetch(`${API_BASE_URL}/admin/users/${userId}/status`, {
+            method: 'PUT',
+            headers: getHeaders(),
+            body: JSON.stringify({ is_active: isActive })
         });
         return handleResponse(response);
     }

@@ -65,6 +65,28 @@ class UserLogin(BaseModel):
     password: str
 
 
+class AdminUserCreate(UserBase):
+    """Schema para crear usuarios administradores desde el panel de super admin."""
+    password: str = Field(..., min_length=8, max_length=100)
+    role: UserRoleEnum = UserRoleEnum.ADMIN_ALCALDIA
+    municipality_id: Optional[int] = None
+    
+    @validator('password')
+    def password_strength(cls, v):
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('La contraseña debe contener al menos una mayúscula')
+        if not re.search(r'[a-z]', v):
+            raise ValueError('La contraseña debe contener al menos una minúscula')
+        if not re.search(r'\d', v):
+            raise ValueError('La contraseña debe contener al menos un número')
+        return v
+
+
+class UserStatusUpdate(BaseModel):
+    """Schema para actualizar estado de usuario."""
+    is_active: bool
+
+
 class UserResponse(UserBase):
     id: int
     role: UserRoleEnum

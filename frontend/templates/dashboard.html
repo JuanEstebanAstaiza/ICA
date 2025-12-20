@@ -22,6 +22,7 @@
                     <li><a href="dashboard.html" class="active">Inicio</a></li>
                     <li><a href="form.html">Nueva Declaración</a></li>
                     <li><a href="admin.html" id="admin-link" style="display: none;">Administración</a></li>
+                    <li><a href="superadmin.html" id="superadmin-link" style="display: none;">Super Admin</a></li>
                 </ul>
             </nav>
             
@@ -145,6 +146,11 @@
                 // Mostrar link de admin si tiene permisos
                 if (user.role === 'admin_alcaldia' || user.role === 'admin_sistema') {
                     document.getElementById('admin-link').style.display = 'inline';
+                }
+                
+                // Mostrar link de super admin solo para admin_sistema
+                if (user.role === 'admin_sistema') {
+                    document.getElementById('superadmin-link').style.display = 'inline';
                 }
             } catch (error) {
                 console.error('Error loading user:', error);
