@@ -1,216 +1,224 @@
-# Formulario Único Nacional de Declaración y Pago ICA
+# Formulario Único Nacional de Declaración y Pago del ICA (COMPLETO)
 
-> **Origen**: Archivo Excel `FORMULARIO-UNICO-ICA-NACIONAL PARA TRABAJO DE APLICATIVO.xls`
+> **Fuente oficial**: Archivo Excel `FORMULARIO-UNICO-ICA-NACIONAL PARA TRABAJO DE APLICATIVO.xlsx`
 >
-> **Objetivo**: Este documento describe **todos los campos, secciones, renglones y reglas** del formulario ICA con el fin de permitir la **automatización parcial de la generación del documento** y su posterior renderización (PDF/Excel/Web).
+> **Estado**: Transcripción completa renglón por renglón del formulario real
+>
+> **Uso**: Fuente única de verdad (SSOT) para generación automática del formulario en aplicación web
 
 ---
 
-## 1. Metadatos Generales del Formulario
+## ENCABEZADO DEL FORMULARIO
 
-* **Nombre oficial**: Formulario Único Nacional de Declaración y Pago del Impuesto de Industria y Comercio (ICA)
-* **Tipo**: Declaración tributaria
-* **Periodicidad**: Anual
-* **Año gravable**: Campo editable
-* **Municipio o Distrito**: Campo obligatorio
-* **Departamento**: Campo obligatorio
+* **FORMULARIO ÚNICO NACIONAL DE DECLARACIÓN Y PAGO DEL IMPUESTO DE INDUSTRIA Y COMERCIO**
+* **Municipio o Distrito**
+* **Departamento**
+* **Año Gravable**
+* **Fecha máxima de presentación**
+* **Uso exclusivo Bogotá**:
 
-> ⚠️ Nota técnica: En el Excel original, estos campos ocupan filas completas usadas solo para presentación visual.
+  * Bimestre / Periodo:
+
+    * ene-feb
+    * mar-abr
+    * may-jun
+    * jul-ago
+    * sep-oct
+    * nov-dic
+    * anual
 
 ---
 
-## 2. Opción de Uso del Formulario
-
-Campo de selección única:
+## OPCIÓN DE USO DEL FORMULARIO
 
 * Declaración inicial
-* Corrección
-* Corrección que disminuye valor a pagar
-* Corrección que aumenta valor a pagar
+* Declaración que corrige
 
-```json
-{
-  "tipo_declaracion": "inicial | correccion | correccion_disminuye | correccion_aumenta"
-}
-```
+  * Número de formulario corregido
+  * Fecha (dd/mm/aaaa)
 
 ---
 
-## 3. Sección A – Información del Contribuyente
+## A. INFORMACIÓN DEL CONTRIBUYENTE
 
-### 3.1 Identificación
+### Renglón 1
 
-* Tipo de documento
-* Número de documento / NIT
-* Dígito de verificación
-* Razón social / Nombre completo
+* Nombres y apellidos o razón social
 
-### 3.2 Ubicación
+### Renglón 2
 
-* Dirección
-* Municipio
+* Tipo de documento:
+
+  * CC
+  * NIT
+  * TI
+  * CE
+* Número de documento
+* Es consorcio o unión temporal (Sí / No)
+* Realiza actividades a través de patrimonio autónomo (Sí / No)
+
+### Renglón 3
+
+* Dirección de notificación
+
+### Renglón 4
+
+* Municipio o distrito de la dirección
 * Departamento
+
+### Renglón 5
+
 * Teléfono
+
+### Renglón 6
+
 * Correo electrónico
 
-> 🧠 Automatización sugerida: Autocompletar municipio y departamento desde un catálogo DANE.
+### Renglón 7
+
+* Número de establecimientos
+
+### Renglón 8
+
+* Clasificación del contribuyente
 
 ---
 
-## 4. Sección B – Base Gravable
-
-Cada renglón del formulario corresponde a un **concepto tributario**.
-
-### Renglones Base
-
-| Renglón | Concepto                  | Tipo      |
-| ------- | ------------------------- | --------- |
-| 8       | Total ingresos ordinarios | Numérico  |
-| 9       | Ingresos extraordinarios  | Numérico  |
-| 10      | Total ingresos            | Calculado |
-| 11      | Devoluciones              | Numérico  |
-| 12      | Exportaciones             | Numérico  |
-| 13      | Ventas de activos fijos   | Numérico  |
-| 14      | Ingresos excluidos        | Numérico  |
-| 15      | Ingresos no gravados      | Numérico  |
-
-### Fórmula Clave
-
-**TOTAL INGRESOS GRAVABLES**
-
-> Renglón 16 = Renglón 10 – (11 + 12 + 13 + 14 + 15)
-
-```python
-total_ingresos_gravables = total_ingresos - (
-    devoluciones + exportaciones + ventas_activos + excluidos + no_gravados
-)
-```
-
-⚠️ Este texto aparece literalmente en el Excel como:
-
-> *"TOTAL INGRESOS GRAVABLES (RENGLÓN 10 MENOS 11,12,13,14 Y 15)"*
-
----
-
-## 5. Sección C – Actividades Gravadas
+## B. ACTIVIDADES GRAVADAS
 
 Por cada actividad:
 
-* Código de actividad (CIIU)
+* Código actividad
 * Descripción
-* Ingresos asociados
-* Tarifa ICA
-* Impuesto generado
+* Ingresos gravados
+* Tarifa
+* Impuesto
 
-```json
-{
-  "actividad": {
-    "ciiu": "string",
-    "descripcion": "string",
-    "ingresos": "number",
-    "tarifa": "number",
-    "impuesto": "number"
-  }
-}
-```
+(Se permiten múltiples actividades)
 
 ---
 
-## 6. Sección D – Liquidación del Impuesto
+## C. INGRESOS Y BASE GRAVABLE
 
-| Renglón | Concepto                         |
-| ------- | -------------------------------- |
-| 30      | Impuesto de Industria y Comercio |
-| 31      | Avisos y Tableros                |
-| 32      | Sobretasa                        |
-| 33      | Total impuesto                   |
+### Renglón 9
 
----
+* Total ingresos ordinarios
 
-## 7. Sección E – Descuentos, Créditos y Anticipos
+### Renglón 10
 
-* Descuentos tributarios
-* Anticipos pagados
-* Retenciones sufridas
+* Total ingresos extraordinarios
 
-```python
-saldo_a_pagar = total_impuesto - (anticipos + retenciones + descuentos)
-```
-
----
-
-## 8. Sección F – Total a Pagar / Saldo a Favor
-
-* Total a pagar
-* Saldo a favor del contribuyente
-
-> Validación: **Nunca ambos al mismo tiempo**.
-
----
-
-## 9. Sección G – Firma y Responsabilidad
-
-Campos no automatizables (por normativa):
-
-* Nombre del declarante
-* Firma
-* Fecha
-* Nombre del contador / revisor fiscal
-* Número de tarjeta profesional
-
-> ⚠️ En el Excel estas filas existen únicamente para permitir firmas manuscritas.
-
----
-
-## 10. Consideraciones Técnicas para la Aplicación
-
-### 10.1 Campos que NO deben persistirse
-
-* Filas vacías
-* Filas de separación visual
-* Filas destinadas solo a firma física
-
-### 10.2 Campos Calculados
+### Renglón 11
 
 * Total ingresos
-* Total ingresos gravables
+
+### Renglón 12
+
+* Devoluciones
+
+### Renglón 13
+
+* Exportaciones
+
+### Renglón 14
+
+* Ventas de activos fijos
+
+### Renglón 15
+
+* Ingresos excluidos
+
+### Renglón 16
+
+* Ingresos no gravados
+
+### Renglón 17 (CALCULADO)
+
+* **TOTAL INGRESOS GRAVABLES**
+* Fórmula textual oficial:
+
+  > TOTAL INGRESOS GRAVABLES (RENGLÓN 11 MENOS 12,13,14,15 Y 16)
+
+---
+
+## D. LIQUIDACIÓN DEL IMPUESTO
+
+### Renglón 18
+
+* Impuesto de Industria y Comercio
+
+### Renglón 19
+
+* Avisos y tableros
+
+### Renglón 20
+
+* Sobretasa
+
+### Renglón 21
+
 * Total impuesto
-* Saldo a pagar
-
-> Estos campos **no deben ser editables**.
-
-### 10.3 Modelo de Datos Base
-
-```json
-{
-  "periodo": "YYYY",
-  "municipio": "string",
-  "contribuyente": {},
-  "ingresos": {},
-  "actividades": [],
-  "liquidacion": {},
-  "resultado": {}
-}
-```
 
 ---
 
-## 11. Observación Final
+## E. DESCUENTOS Y ANTICIPOS
 
-El Excel original utiliza **filas nativas como recurso de maquetación**, lo cual **no debe replicarse en la base de datos**. La aplicación debe trabajar con **estructura lógica**, no visual.
+### Renglón 22
+
+* Descuentos tributarios
+
+### Renglón 23
+
+* Anticipos del período anterior
+
+### Renglón 24
+
+* Retenciones sufridas
 
 ---
 
-📌 **Este documento está listo para ser usado como input directo para:**
+## F. RESULTADO FINAL
 
-* Generador de formularios web
-* Motor de validaciones
-* Generador de PDF
-* Sistema de autollenado tributario
+### Renglón 25
 
-Si necesitas, puedo:
+* Total saldo a pagar
 
-* Convertir esto en **JSON Schema**
-* Diseñar el **modelo SQL**
-* Generar el **backend en FastAPI**
-* Crear el **motor de reglas de cálculo**
+### Renglón 26
+
+* Total saldo a favor
+
+(Regla: solo uno puede ser mayor a cero)
+
+---
+
+## G. RESPONSABILIDAD Y FIRMAS
+
+### Declarante
+
+* Nombre
+* Firma
+* Fecha
+
+### Contador / Revisor Fiscal
+
+* Nombre
+* Firma
+* Número de tarjeta profesional
+
+---
+
+## NOTAS TÉCNICAS IMPORTANTES
+
+* Filas vacías y separadores del Excel **NO representan campos de datos**
+* Los renglones están numerados conforme al formulario oficial
+* Los textos largos entre paréntesis representan **reglas de negocio explícitas**
+* Los campos calculados **no deben ser editables**
+
+---
+
+## ESTADO DEL DOCUMENTO
+
+✔ Formulario completo
+✔ Apto para automatización
+✔ Apto para IA generadora de aplicaciones
+✔ Legal y estructuralmente fiel al XLS

@@ -82,7 +82,7 @@ class User(Base):
     
     # Relaciones
     municipality = relationship("Municipality", back_populates="users")
-    declarations = relationship("ICADeclaration", back_populates="user")
+    declarations = relationship("ICADeclaration", back_populates="user", foreign_keys="[ICADeclaration.user_id]")
 
 
 # ===================== MODELOS DE ALCALDÍA =====================
