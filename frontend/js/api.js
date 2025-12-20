@@ -33,7 +33,7 @@ async function handleResponse(response) {
         const refreshed = await refreshAccessToken();
         if (!refreshed) {
             // Redirigir a login usando constante configurable
-            const LOGIN_URL = window.APP_CONFIG?.loginUrl || '/static/templates/login.html';
+            const LOGIN_URL = window.APP_CONFIG?.loginUrl || '/templates/login.html';
             window.location.href = LOGIN_URL;
             throw new Error('Sesión expirada');
         }
