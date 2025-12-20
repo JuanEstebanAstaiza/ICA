@@ -342,6 +342,39 @@ const AdminAPI = {
             body: JSON.stringify(data)
         });
         return handleResponse(response);
+    },
+    
+    /**
+     * Obtener parámetros de fórmulas de un municipio
+     */
+    async getFormulaParameters(municipalityId) {
+        const response = await fetch(`${API_BASE_URL}/admin/formula-parameters/${municipalityId}`, {
+            headers: getHeaders()
+        });
+        return handleResponse(response);
+    },
+    
+    /**
+     * Actualizar parámetros de fórmulas de un municipio (edición en caliente)
+     */
+    async updateFormulaParameters(municipalityId, data) {
+        const response = await fetch(`${API_BASE_URL}/admin/formula-parameters/${municipalityId}`, {
+            method: 'PUT',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+        return handleResponse(response);
+    },
+    
+    /**
+     * Eliminar actividad económica
+     */
+    async deleteActivity(activityId) {
+        const response = await fetch(`${API_BASE_URL}/admin/activities/${activityId}`, {
+            method: 'DELETE',
+            headers: getHeaders()
+        });
+        return handleResponse(response);
     }
 };
 

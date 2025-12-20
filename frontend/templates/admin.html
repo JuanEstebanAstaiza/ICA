@@ -191,6 +191,140 @@
                 </div>
             </div>
             
+            <!-- Parámetros de Fórmulas (Edición en Caliente) -->
+            <div class="row" style="margin-top: 2rem;">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            ⚙️ Parámetros de Fórmulas (Edición en Caliente)
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-info mb-3">
+                                <strong>📌 Nota:</strong> Estos parámetros permiten ajustar los valores numéricos de las fórmulas 
+                                del formulario ICA sin necesidad de modificar el código. Use esta funcionalidad cuando cambien 
+                                las legislaciones municipales.
+                            </div>
+                            
+                            <form id="formula-params-form">
+                                <div class="form-group">
+                                    <label for="fp-municipality" class="form-label">Municipio</label>
+                                    <select id="fp-municipality" class="form-control">
+                                        <option value="">Seleccione municipio...</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="section-title" style="margin-top: 1.5rem;">Sección D - Liquidación del Impuesto</div>
+                                
+                                <div class="row">
+                                    <div class="col-4">
+                                        <div class="form-group">
+                                            <label for="fp-avisos-tableros" class="form-label">
+                                                Avisos y Tableros (% sobre ICA)
+                                                <small class="text-muted">Renglón 21</small>
+                                            </label>
+                                            <input type="number" id="fp-avisos-tableros" class="form-control" 
+                                                   min="0" max="100" step="0.1" value="15">
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="form-group">
+                                            <label for="fp-sobretasa-bomberil" class="form-label">
+                                                Sobretasa Bomberil (%)
+                                                <small class="text-muted">Renglón 23</small>
+                                            </label>
+                                            <input type="number" id="fp-sobretasa-bomberil" class="form-control" 
+                                                   min="0" max="100" step="0.1" value="0">
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="form-group">
+                                            <label for="fp-sobretasa-seguridad" class="form-label">
+                                                Sobretasa Seguridad (%)
+                                                <small class="text-muted">Renglón 24</small>
+                                            </label>
+                                            <input type="number" id="fp-sobretasa-seguridad" class="form-control" 
+                                                   min="0" max="100" step="0.1" value="0">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-4">
+                                        <div class="form-group">
+                                            <label for="fp-ley56-tarifa" class="form-label">
+                                                Ley 56/1981 - Tarifa por kW
+                                                <small class="text-muted">Renglón 19</small>
+                                            </label>
+                                            <input type="number" id="fp-ley56-tarifa" class="form-control" 
+                                                   min="0" step="0.01" value="0">
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="form-group">
+                                            <label for="fp-unidades-financiero" class="form-label">
+                                                Unidades Adicionales Financiero
+                                                <small class="text-muted">Renglón 22</small>
+                                            </label>
+                                            <input type="number" id="fp-unidades-financiero" class="form-control" 
+                                                   min="0" step="0.01" value="0">
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="form-group">
+                                            <label for="fp-anticipo" class="form-label">
+                                                Anticipo Año Siguiente (%)
+                                                <small class="text-muted">Renglón 30</small>
+                                            </label>
+                                            <input type="number" id="fp-anticipo" class="form-control" 
+                                                   min="0" max="100" step="0.1" value="40">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="section-title" style="margin-top: 1.5rem;">Sección E - Pago</div>
+                                
+                                <div class="row">
+                                    <div class="col-4">
+                                        <div class="form-group">
+                                            <label for="fp-descuento-pronto-pago" class="form-label">
+                                                Descuento Pronto Pago (%)
+                                                <small class="text-muted">Renglón 36</small>
+                                            </label>
+                                            <input type="number" id="fp-descuento-pronto-pago" class="form-control" 
+                                                   min="0" max="100" step="0.1" value="10">
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="form-group">
+                                            <label for="fp-descuento-dias" class="form-label">
+                                                Días para Descuento
+                                                <small class="text-muted">Días límite</small>
+                                            </label>
+                                            <input type="number" id="fp-descuento-dias" class="form-control" 
+                                                   min="0" value="30">
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="form-group">
+                                            <label for="fp-interes-mora" class="form-label">
+                                                Interés Mora Mensual (%)
+                                                <small class="text-muted">Renglón 37</small>
+                                            </label>
+                                            <input type="number" id="fp-interes-mora" class="form-control" 
+                                                   min="0" max="100" step="0.01" value="1">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <button type="submit" class="btn btn-primary" style="margin-top: 1rem;">
+                                    💾 Guardar Parámetros de Fórmulas
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <!-- Gestión de Municipios -->
             <div class="row" style="margin-top: 2rem;">
                 <div class="col-12">
@@ -283,17 +417,19 @@
             try {
                 const municipalities = await AdminAPI.listMunicipalities();
                 
-                // Llenar selects
-                const selects = ['wl-municipality', 'act-municipality'];
+                // Llenar selects (incluyendo el de parámetros de fórmulas)
+                const selects = ['wl-municipality', 'act-municipality', 'fp-municipality'];
                 selects.forEach(selectId => {
                     const select = document.getElementById(selectId);
-                    select.innerHTML = '<option value="">Seleccione municipio...</option>';
-                    municipalities.forEach(m => {
-                        const option = document.createElement('option');
-                        option.value = m.id;
-                        option.textContent = `${m.name} - ${m.department}`;
-                        select.appendChild(option);
-                    });
+                    if (select) {
+                        select.innerHTML = '<option value="">Seleccione municipio...</option>';
+                        municipalities.forEach(m => {
+                            const option = document.createElement('option');
+                            option.value = m.id;
+                            option.textContent = `${m.name} - ${m.department}`;
+                            select.appendChild(option);
+                        });
+                    }
                 });
                 
                 // Llenar tabla de municipios
@@ -372,6 +508,28 @@
             }
         }
         
+        // Cargar parámetros de fórmulas
+        async function loadFormulaParameters(municipalityId) {
+            if (!municipalityId) return;
+            
+            try {
+                const params = await AdminAPI.getFormulaParameters(municipalityId);
+                
+                document.getElementById('fp-avisos-tableros').value = params.avisos_tableros_porcentaje || 15;
+                document.getElementById('fp-sobretasa-bomberil').value = params.sobretasa_bomberil_porcentaje || 0;
+                document.getElementById('fp-sobretasa-seguridad').value = params.sobretasa_seguridad_porcentaje || 0;
+                document.getElementById('fp-ley56-tarifa').value = params.ley_56_tarifa_por_kw || 0;
+                document.getElementById('fp-unidades-financiero').value = params.unidades_adicionales_financiero_valor || 0;
+                document.getElementById('fp-anticipo').value = params.anticipo_ano_siguiente_porcentaje || 40;
+                document.getElementById('fp-descuento-pronto-pago').value = params.descuento_pronto_pago_porcentaje || 10;
+                document.getElementById('fp-descuento-dias').value = params.descuento_pronto_pago_dias || 30;
+                document.getElementById('fp-interes-mora').value = params.interes_mora_mensual || 1;
+            } catch (error) {
+                console.error('Error loading formula parameters:', error);
+                // Si no existen, usar valores por defecto (ya establecidos en los inputs)
+            }
+        }
+        
         // Event listeners
         document.getElementById('wl-municipality').addEventListener('change', (e) => {
             loadWhiteLabelConfig(e.target.value);
@@ -379,6 +537,46 @@
         
         document.getElementById('act-municipality').addEventListener('change', (e) => {
             loadActivities(e.target.value);
+        });
+        
+        // Event listener para parámetros de fórmulas
+        document.getElementById('fp-municipality').addEventListener('change', (e) => {
+            loadFormulaParameters(e.target.value);
+        });
+        
+        // Formulario de parámetros de fórmulas (edición en caliente)
+        document.getElementById('formula-params-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const municipalityId = document.getElementById('fp-municipality').value;
+            if (!municipalityId) {
+                alert('Seleccione un municipio');
+                return;
+            }
+            
+            try {
+                showLoading();
+                
+                const params = {
+                    avisos_tableros_porcentaje: parseFloat(document.getElementById('fp-avisos-tableros').value) || 15,
+                    sobretasa_bomberil_porcentaje: parseFloat(document.getElementById('fp-sobretasa-bomberil').value) || 0,
+                    sobretasa_seguridad_porcentaje: parseFloat(document.getElementById('fp-sobretasa-seguridad').value) || 0,
+                    ley_56_tarifa_por_kw: parseFloat(document.getElementById('fp-ley56-tarifa').value) || 0,
+                    unidades_adicionales_financiero_valor: parseFloat(document.getElementById('fp-unidades-financiero').value) || 0,
+                    anticipo_ano_siguiente_porcentaje: parseFloat(document.getElementById('fp-anticipo').value) || 40,
+                    descuento_pronto_pago_porcentaje: parseFloat(document.getElementById('fp-descuento-pronto-pago').value) || 10,
+                    descuento_pronto_pago_dias: parseInt(document.getElementById('fp-descuento-dias').value) || 30,
+                    interes_mora_mensual: parseFloat(document.getElementById('fp-interes-mora').value) || 1
+                };
+                
+                await AdminAPI.updateFormulaParameters(municipalityId, params);
+                
+                hideLoading();
+                alert('✅ Parámetros de fórmulas actualizados correctamente');
+            } catch (error) {
+                hideLoading();
+                alert('Error: ' + error.message);
+            }
         });
         
         // Formulario de configuración marca blanca
@@ -492,6 +690,30 @@
         
         function hideLoading() {
             document.getElementById('loading-overlay').classList.remove('active');
+        }
+        
+        // Eliminar actividad económica
+        async function deleteActivity(activityId) {
+            if (!confirm('¿Está seguro de eliminar esta actividad?')) {
+                return;
+            }
+            
+            try {
+                showLoading();
+                await AdminAPI.deleteActivity(activityId);
+                
+                // Recargar actividades del municipio seleccionado
+                const municipalityId = document.getElementById('act-municipality').value;
+                if (municipalityId) {
+                    loadActivities(municipalityId);
+                }
+                
+                hideLoading();
+                alert('Actividad eliminada correctamente');
+            } catch (error) {
+                hideLoading();
+                alert('Error: ' + error.message);
+            }
         }
         
         // Logout

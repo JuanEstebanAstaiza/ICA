@@ -176,18 +176,27 @@
                     </div>
                     <div class="card-body">
                         <!-- Renglón 1: Nombres y apellidos o razón social -->
-                        <div class="section-title">Renglón 1 - Identificación</div>
+                        <div class="section-title">1. Apellidos y nombres / Razón social</div>
                         <div class="row">
-                            <div class="col-12">
+                            <div class="col-9">
                                 <div class="form-group">
                                     <label for="legal_name" class="form-label required">Nombres y Apellidos o Razón Social</label>
                                     <input type="text" id="legal_name" class="form-control" required placeholder="Ingrese nombre completo o razón social">
                                 </div>
                             </div>
+                            <div class="col-3">
+                                <div class="form-group">
+                                    <label for="entity_type" class="form-label">Tipo de entidad</label>
+                                    <select id="entity_type" class="form-control">
+                                        <option value="privada">Privada</option>
+                                        <option value="publica">Pública</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
                         
-                        <!-- Renglón 2: Tipo de documento, número, etc. -->
-                        <div class="section-title">Renglón 2 - Documento de Identidad</div>
+                        <!-- Renglón 2: Cédula o NIT -->
+                        <div class="section-title">2. Cédula o NIT</div>
                         <div class="row">
                             <div class="col-2">
                                 <div class="form-group">
@@ -235,35 +244,30 @@
                         </div>
                         
                         <!-- Renglón 3: Dirección de notificación -->
-                        <div class="section-title">Renglón 3 - Dirección de Notificación</div>
+                        <div class="section-title">3. Dirección de notificación</div>
                         <div class="row">
-                            <div class="col-12">
+                            <div class="col-6">
                                 <div class="form-group">
-                                    <label for="address" class="form-label">Dirección de Notificación</label>
+                                    <label for="address" class="form-label">Dirección</label>
                                     <input type="text" id="address" class="form-control" placeholder="Dirección completa para notificaciones">
                                 </div>
                             </div>
-                        </div>
-                        
-                        <!-- Renglón 4: Municipio y Departamento de la dirección -->
-                        <div class="section-title">Renglón 4 - Ubicación de la Dirección</div>
-                        <div class="row">
-                            <div class="col-6">
-                                <div class="form-group">
-                                    <label for="taxpayer_municipality" class="form-label">Municipio o Distrito</label>
-                                    <input type="text" id="taxpayer_municipality" class="form-control" placeholder="Municipio">
-                                </div>
-                            </div>
-                            <div class="col-6">
+                            <div class="col-3">
                                 <div class="form-group">
                                     <label for="taxpayer_department" class="form-label">Departamento</label>
                                     <input type="text" id="taxpayer_department" class="form-control" placeholder="Departamento">
                                 </div>
                             </div>
+                            <div class="col-3">
+                                <div class="form-group">
+                                    <label for="taxpayer_municipality" class="form-label">Municipio</label>
+                                    <input type="text" id="taxpayer_municipality" class="form-control" placeholder="Municipio">
+                                </div>
+                            </div>
                         </div>
                         
-                        <!-- Renglón 5 y 6: Teléfono y Correo -->
-                        <div class="section-title">Renglón 5 y 6 - Contacto</div>
+                        <!-- Renglón 4: Teléfono -->
+                        <div class="section-title">4. Teléfono</div>
                         <div class="row">
                             <div class="col-4">
                                 <div class="form-group">
@@ -271,6 +275,11 @@
                                     <input type="tel" id="phone" class="form-control" placeholder="Ej: 3001234567">
                                 </div>
                             </div>
+                        </div>
+                        
+                        <!-- Renglón 5: Correo electrónico -->
+                        <div class="section-title">5. Correo electrónico</div>
+                        <div class="row">
                             <div class="col-5">
                                 <div class="form-group">
                                     <label for="email" class="form-label">Correo Electrónico</label>
@@ -279,8 +288,8 @@
                             </div>
                         </div>
                         
-                        <!-- Renglón 7 y 8: Establecimientos y Clasificación -->
-                        <div class="section-title">Renglón 7 y 8 - Información Adicional</div>
+                        <!-- Renglón 6: Número de establecimientos -->
+                        <div class="section-title">6. Número de establecimientos en el municipio</div>
                         <div class="row">
                             <div class="col-3">
                                 <div class="form-group">
@@ -288,16 +297,17 @@
                                     <input type="number" id="num_establishments" class="form-control" min="0" value="1" placeholder="1">
                                 </div>
                             </div>
-                            <div class="col-5">
+                        </div>
+                        
+                        <!-- Renglón 7: Clasificación del contribuyente -->
+                        <div class="section-title">7. Clasificación del contribuyente</div>
+                        <div class="row">
+                            <div class="col-4">
                                 <div class="form-group">
-                                    <label for="taxpayer_classification" class="form-label">Clasificación del Contribuyente</label>
+                                    <label for="taxpayer_classification" class="form-label">Clasificación</label>
                                     <select id="taxpayer_classification" class="form-control">
-                                        <option value="">Seleccione clasificación...</option>
-                                        <option value="persona_natural">Persona Natural</option>
-                                        <option value="persona_juridica">Persona Jurídica</option>
-                                        <option value="gran_contribuyente">Gran Contribuyente</option>
-                                        <option value="regimen_simple">Régimen Simple de Tributación</option>
-                                        <option value="consorcio">Consorcio o Unión Temporal</option>
+                                        <option value="comun">Común</option>
+                                        <option value="simplificado">Simplificado</option>
                                     </select>
                                 </div>
                             </div>
@@ -305,25 +315,109 @@
                     </div>
                 </div>
                 
-                <!-- SECCIÓN B - ACTIVIDADES GRAVADAS -->
+                <!-- SECCIÓN B - BASE GRAVABLE -->
                 <div class="card">
                     <div class="card-header">
-                        📊 SECCIÓN B – ACTIVIDADES GRAVADAS
+                        💰 SECCIÓN B – BASE GRAVABLE
                     </div>
                     <div class="card-body">
                         <p class="form-text mb-2">
-                            Agregue las actividades económicas con su código, descripción, ingresos gravados, tarifa (en ‰) e impuesto.
+                            Complete los renglones 8-15 según el formulario oficial ICA.
+                        </p>
+                        
+                        <div class="ica-row">
+                            <div class="ica-row-number">8</div>
+                            <div class="ica-row-label">Total ingresos ordinarios y extraordinarios del período en todo el país</div>
+                            <div class="ica-row-value">
+                                <input type="number" id="row_8" class="form-control" min="0" step="0.01" value="0">
+                            </div>
+                        </div>
+                        
+                        <div class="ica-row">
+                            <div class="ica-row-number">9</div>
+                            <div class="ica-row-label">Menos ingresos fuera del municipio</div>
+                            <div class="ica-row-value">
+                                <input type="number" id="row_9" class="form-control" min="0" step="0.01" value="0">
+                            </div>
+                        </div>
+                        
+                        <div class="ica-row calculated-field">
+                            <div class="ica-row-number">10</div>
+                            <div class="ica-row-label">
+                                <strong>Total ingresos ordinarios y extraordinarios en el municipio</strong>
+                                <small>(Calculado: Renglón 8 − 9)</small>
+                            </div>
+                            <div class="ica-row-value">
+                                <input type="number" id="row_10" class="form-control" readonly>
+                            </div>
+                        </div>
+                        
+                        <div class="ica-row">
+                            <div class="ica-row-number">11</div>
+                            <div class="ica-row-label">Menos ingresos por devoluciones, rebajas y descuentos</div>
+                            <div class="ica-row-value">
+                                <input type="number" id="row_11" class="form-control" min="0" step="0.01" value="0">
+                            </div>
+                        </div>
+                        
+                        <div class="ica-row">
+                            <div class="ica-row-number">12</div>
+                            <div class="ica-row-label">Menos ingresos por exportaciones y venta de activos fijos</div>
+                            <div class="ica-row-value">
+                                <input type="number" id="row_12" class="form-control" min="0" step="0.01" value="0">
+                            </div>
+                        </div>
+                        
+                        <div class="ica-row">
+                            <div class="ica-row-number">13</div>
+                            <div class="ica-row-label">Menos ingresos por actividades excluidas o no sujetas y otros ingresos no gravados</div>
+                            <div class="ica-row-value">
+                                <input type="number" id="row_13" class="form-control" min="0" step="0.01" value="0">
+                            </div>
+                        </div>
+                        
+                        <div class="ica-row">
+                            <div class="ica-row-number">14</div>
+                            <div class="ica-row-label">Menos ingresos por actividades exentas en el municipio</div>
+                            <div class="ica-row-value">
+                                <input type="number" id="row_14" class="form-control" min="0" step="0.01" value="0">
+                            </div>
+                        </div>
+                        
+                        <div class="ica-row calculated-field">
+                            <div class="ica-row-number">15</div>
+                            <div class="ica-row-label">
+                                <strong>Total ingresos gravables</strong>
+                                <small>(Calculado: Renglón 10 − (11 + 12 + 13 + 14))</small>
+                            </div>
+                            <div class="ica-row-value">
+                                <input type="number" id="row_15" class="form-control" readonly>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECCIÓN C - DISCRIMINACIÓN DE INGRESOS GRAVADOS Y ACTIVIDADES -->
+                <div class="card">
+                    <div class="card-header">
+                        📊 SECCIÓN C – DISCRIMINACIÓN DE INGRESOS GRAVADOS Y ACTIVIDADES
+                    </div>
+                    <div class="card-body">
+                        <p class="form-text mb-2">
+                            Agregue las actividades económicas con su código CIIU, descripción, ingresos gravados, tarifa (en ‰) e impuesto ICA.
                         </p>
                         
                         <table class="table">
                             <thead>
                                 <tr>
-                                    <th style="width: 120px;">Código Actividad</th>
+                                    <th style="width: 100px;">Tipo</th>
+                                    <th style="width: 100px;">Código CIIU</th>
                                     <th>Descripción</th>
-                                    <th style="width: 150px;">Ingresos Gravados</th>
-                                    <th style="width: 100px;">Tarifa (‰)</th>
-                                    <th style="width: 150px;">Impuesto</th>
-                                    <th style="width: 80px;">Acciones</th>
+                                    <th style="width: 140px;">Ingresos Gravados</th>
+                                    <th style="width: 90px;">Tarifa (‰)</th>
+                                    <th style="width: 140px;">Impuesto ICA</th>
+                                    <th style="width: 90px;">Tarifa Esp.</th>
+                                    <th style="width: 70px;">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody id="activities-container">
@@ -331,8 +425,12 @@
                             </tbody>
                             <tfoot>
                                 <tr class="table-total">
-                                    <td colspan="4" class="text-right">
-                                        <strong>TOTAL IMPUESTO POR ACTIVIDADES:</strong>
+                                    <td colspan="3" class="text-right">
+                                        <strong>16. Total ingresos gravados en el municipio:</strong>
+                                    </td>
+                                    <td id="total-taxed-income">$0.00</td>
+                                    <td colspan="2" class="text-right">
+                                        <strong>17. Total impuesto ICA:</strong>
                                     </td>
                                     <td id="total-activities-tax">$0.00</td>
                                     <td></td>
@@ -343,94 +441,31 @@
                         <button type="button" class="btn btn-ghost" id="btn-add-activity">
                             ➕ Agregar Actividad
                         </button>
-                    </div>
-                </div>
-
-                <!-- SECCIÓN C - INGRESOS Y BASE GRAVABLE -->
-                <div class="card">
-                    <div class="card-header">
-                        💰 SECCIÓN C – INGRESOS Y BASE GRAVABLE
-                    </div>
-                    <div class="card-body">
-                        <p class="form-text mb-2">
-                            Complete los renglones 9-16. El renglón 11 (Total Ingresos) y renglón 17 (Total Ingresos Gravables) se calculan automáticamente.
-                        </p>
                         
-                        <div class="ica-row">
-                            <div class="ica-row-number">9</div>
-                            <div class="ica-row-label">Total ingresos ordinarios</div>
-                            <div class="ica-row-value">
-                                <input type="number" id="row_9" class="form-control" min="0" step="0.01" value="0">
-                            </div>
-                        </div>
+                        <hr class="divider">
                         
-                        <div class="ica-row">
-                            <div class="ica-row-number">10</div>
-                            <div class="ica-row-label">Total ingresos extraordinarios</div>
-                            <div class="ica-row-value">
-                                <input type="number" id="row_10" class="form-control" min="0" step="0.01" value="0">
+                        <!-- Generación de Energía - Ley 56 de 1981 -->
+                        <div class="section-title">Generación de Energía - Ley 56 de 1981</div>
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="ica-row">
+                                    <div class="ica-row-number">18</div>
+                                    <div class="ica-row-label">Generación de energía – Capacidad instalada (kW)</div>
+                                    <div class="ica-row-value">
+                                        <input type="number" id="row_18_energy_kw" class="form-control" min="0" step="0.01" value="0">
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                        
-                        <div class="ica-row calculated-field">
-                            <div class="ica-row-number">11</div>
-                            <div class="ica-row-label">
-                                <strong>TOTAL INGRESOS</strong>
-                                <small>(Calculado: Renglón 9 + Renglón 10)</small>
-                            </div>
-                            <div class="ica-row-value">
-                                <input type="number" id="row_11" class="form-control" readonly>
-                            </div>
-                        </div>
-                        
-                        <div class="ica-row">
-                            <div class="ica-row-number">12</div>
-                            <div class="ica-row-label">Devoluciones</div>
-                            <div class="ica-row-value">
-                                <input type="number" id="row_12" class="form-control" min="0" step="0.01" value="0">
-                            </div>
-                        </div>
-                        
-                        <div class="ica-row">
-                            <div class="ica-row-number">13</div>
-                            <div class="ica-row-label">Exportaciones</div>
-                            <div class="ica-row-value">
-                                <input type="number" id="row_13" class="form-control" min="0" step="0.01" value="0">
-                            </div>
-                        </div>
-                        
-                        <div class="ica-row">
-                            <div class="ica-row-number">14</div>
-                            <div class="ica-row-label">Ventas de activos fijos</div>
-                            <div class="ica-row-value">
-                                <input type="number" id="row_14" class="form-control" min="0" step="0.01" value="0">
-                            </div>
-                        </div>
-                        
-                        <div class="ica-row">
-                            <div class="ica-row-number">15</div>
-                            <div class="ica-row-label">Ingresos excluidos</div>
-                            <div class="ica-row-value">
-                                <input type="number" id="row_15" class="form-control" min="0" step="0.01" value="0">
-                            </div>
-                        </div>
-                        
-                        <div class="ica-row">
-                            <div class="ica-row-number">16</div>
-                            <div class="ica-row-label">Ingresos no gravados</div>
-                            <div class="ica-row-value">
-                                <input type="number" id="row_16" class="form-control" min="0" step="0.01" value="0">
-                            </div>
-                        </div>
-                        
-                        <div class="ica-row calculated-field">
-                            <div class="ica-row-number">17</div>
-                            <div class="ica-row-label">
-                                <strong>TOTAL INGRESOS GRAVABLES</strong>
-                                <small>(Calculado: Renglón 11 menos 12, 13, 14, 15 y 16)</small>
-                            </div>
-                            <div class="ica-row-value">
-                                <input type="number" id="row_17" class="form-control" readonly>
+                            <div class="col-6">
+                                <div class="ica-row calculated-field">
+                                    <div class="ica-row-number">19</div>
+                                    <div class="ica-row-label">
+                                        <strong>Impuesto Ley 56 de 1981</strong>
+                                    </div>
+                                    <div class="ica-row-value">
+                                        <input type="number" id="row_19_law56" class="form-control" readonly>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -443,54 +478,27 @@
                     </div>
                     <div class="card-body">
                         <div class="ica-row calculated-field">
-                            <div class="ica-row-number">18</div>
-                            <div class="ica-row-label">
-                                <strong>Impuesto de Industria y Comercio</strong>
-                                <small>(Suma de impuestos por actividades)</small>
-                            </div>
-                            <div class="ica-row-value">
-                                <input type="number" id="row_18" class="form-control" readonly>
-                            </div>
-                        </div>
-                        
-                        <div class="ica-row">
-                            <div class="ica-row-number">19</div>
-                            <div class="ica-row-label">Avisos y Tableros</div>
-                            <div class="ica-row-value">
-                                <input type="number" id="row_19" class="form-control" min="0" step="0.01" value="0">
-                            </div>
-                        </div>
-                        
-                        <div class="ica-row">
                             <div class="ica-row-number">20</div>
-                            <div class="ica-row-label">Sobretasa</div>
+                            <div class="ica-row-label">
+                                <strong>Total impuesto de industria y comercio</strong>
+                                <small>(Calculado: Renglón 17 + 19)</small>
+                            </div>
                             <div class="ica-row-value">
-                                <input type="number" id="row_20" class="form-control" min="0" step="0.01" value="0">
+                                <input type="number" id="row_20" class="form-control" readonly>
                             </div>
                         </div>
                         
-                        <div class="ica-row calculated-field">
+                        <div class="ica-row">
                             <div class="ica-row-number">21</div>
-                            <div class="ica-row-label">
-                                <strong>TOTAL IMPUESTO</strong>
-                                <small>(Calculado: Renglón 18 + Renglón 19 + Renglón 20)</small>
-                            </div>
+                            <div class="ica-row-label">Impuesto de avisos y tableros</div>
                             <div class="ica-row-value">
-                                <input type="number" id="row_21" class="form-control" readonly>
+                                <input type="number" id="row_21" class="form-control" min="0" step="0.01" value="0">
                             </div>
                         </div>
-                    </div>
-                </div>
-                
-                <!-- SECCIÓN E - DESCUENTOS Y ANTICIPOS -->
-                <div class="card">
-                    <div class="card-header">
-                        💳 SECCIÓN E – DESCUENTOS Y ANTICIPOS
-                    </div>
-                    <div class="card-body">
+                        
                         <div class="ica-row">
                             <div class="ica-row-number">22</div>
-                            <div class="ica-row-label">Descuentos tributarios</div>
+                            <div class="ica-row-label">Pago por unidades comerciales adicionales del sector financiero</div>
                             <div class="ica-row-value">
                                 <input type="number" id="row_22" class="form-control" min="0" step="0.01" value="0">
                             </div>
@@ -498,7 +506,7 @@
                         
                         <div class="ica-row">
                             <div class="ica-row-number">23</div>
-                            <div class="ica-row-label">Anticipos del período anterior</div>
+                            <div class="ica-row-label">Sobretasa bomberil</div>
                             <div class="ica-row-value">
                                 <input type="number" id="row_23" class="form-control" min="0" step="0.01" value="0">
                             </div>
@@ -506,59 +514,192 @@
                         
                         <div class="ica-row">
                             <div class="ica-row-number">24</div>
-                            <div class="ica-row-label">Retenciones sufridas</div>
+                            <div class="ica-row-label">Sobretasa de seguridad</div>
                             <div class="ica-row-value">
                                 <input type="number" id="row_24" class="form-control" min="0" step="0.01" value="0">
                             </div>
                         </div>
                         
                         <div class="ica-row calculated-field">
-                            <div class="ica-row-number"></div>
+                            <div class="ica-row-number">25</div>
                             <div class="ica-row-label">
-                                <strong>TOTAL CRÉDITOS</strong>
-                                <small>(Calculado: Renglón 22 + Renglón 23 + Renglón 24)</small>
+                                <strong>Total impuesto a cargo</strong>
+                                <small>(Calculado: 20 + 21 + 22 + 23 + 24)</small>
                             </div>
                             <div class="ica-row-value">
-                                <input type="number" id="total_credits" class="form-control" readonly>
+                                <input type="number" id="row_25" class="form-control" readonly>
+                            </div>
+                        </div>
+                        
+                        <hr class="divider">
+                        
+                        <div class="ica-row">
+                            <div class="ica-row-number">26</div>
+                            <div class="ica-row-label">Menos exenciones o exoneraciones sobre el impuesto</div>
+                            <div class="ica-row-value">
+                                <input type="number" id="row_26" class="form-control" min="0" step="0.01" value="0">
+                            </div>
+                        </div>
+                        
+                        <div class="ica-row">
+                            <div class="ica-row-number">27</div>
+                            <div class="ica-row-label">Menos retenciones practicadas en el municipio</div>
+                            <div class="ica-row-value">
+                                <input type="number" id="row_27" class="form-control" min="0" step="0.01" value="0">
+                            </div>
+                        </div>
+                        
+                        <div class="ica-row">
+                            <div class="ica-row-number">28</div>
+                            <div class="ica-row-label">Menos autorretenciones practicadas en el municipio</div>
+                            <div class="ica-row-value">
+                                <input type="number" id="row_28" class="form-control" min="0" step="0.01" value="0">
+                            </div>
+                        </div>
+                        
+                        <div class="ica-row">
+                            <div class="ica-row-number">29</div>
+                            <div class="ica-row-label">Menos anticipo liquidado en el año anterior</div>
+                            <div class="ica-row-value">
+                                <input type="number" id="row_29" class="form-control" min="0" step="0.01" value="0">
+                            </div>
+                        </div>
+                        
+                        <div class="ica-row">
+                            <div class="ica-row-number">30</div>
+                            <div class="ica-row-label">Anticipo del año siguiente</div>
+                            <div class="ica-row-value">
+                                <input type="number" id="row_30" class="form-control" min="0" step="0.01" value="0">
+                            </div>
+                        </div>
+                        
+                        <div class="ica-row">
+                            <div class="ica-row-number">31</div>
+                            <div class="ica-row-label">
+                                Sanciones
+                                <select id="row_31_type" class="form-control" style="display: inline-block; width: 200px; margin-left: 10px;">
+                                    <option value="">Sin sanción</option>
+                                    <option value="extemporaneidad">Extemporaneidad</option>
+                                    <option value="correccion">Corrección</option>
+                                    <option value="inexactitud">Inexactitud</option>
+                                    <option value="otra">Otra</option>
+                                </select>
+                            </div>
+                            <div class="ica-row-value">
+                                <input type="number" id="row_31" class="form-control" min="0" step="0.01" value="0">
+                            </div>
+                        </div>
+                        
+                        <div class="ica-row">
+                            <div class="ica-row-number">32</div>
+                            <div class="ica-row-label">Menos saldo a favor del período anterior</div>
+                            <div class="ica-row-value">
+                                <input type="number" id="row_32" class="form-control" min="0" step="0.01" value="0">
+                            </div>
+                        </div>
+                        
+                        <hr class="divider">
+                        
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="ica-row" style="background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border-left: 4px solid var(--danger-color);">
+                                    <div class="ica-row-number" style="background: rgba(239, 68, 68, 0.2); color: var(--danger-color);">33</div>
+                                    <div class="ica-row-label">
+                                        <strong>Total saldo a cargo</strong>
+                                    </div>
+                                    <div class="ica-row-value">
+                                        <input type="number" id="row_33" class="form-control" readonly 
+                                               style="font-size: 1.25rem; font-weight: 700; color: var(--danger-color);">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="ica-row" style="background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); border-left: 4px solid var(--success-color);">
+                                    <div class="ica-row-number" style="background: rgba(16, 185, 129, 0.2); color: var(--success-color);">34</div>
+                                    <div class="ica-row-label">
+                                        <strong>Total saldo a favor</strong>
+                                    </div>
+                                    <div class="ica-row-value">
+                                        <input type="number" id="row_34" class="form-control" readonly
+                                               style="font-size: 1.25rem; font-weight: 700; color: var(--success-color);">
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
                 
-                <!-- SECCIÓN F - RESULTADO FINAL -->
+                <!-- SECCIÓN E - PAGO -->
                 <div class="card">
                     <div class="card-header">
-                        💵 SECCIÓN F – RESULTADO FINAL
+                        💵 SECCIÓN E – PAGO
                     </div>
                     <div class="card-body">
-                        <div class="alert alert-info mb-3">
-                            <strong>📌 Nota:</strong> Solo uno de estos campos tendrá valor. Si el impuesto es mayor que los créditos, habrá valor a pagar. Si los créditos son mayores, habrá saldo a favor.
+                        <div class="ica-row">
+                            <div class="ica-row-number">35</div>
+                            <div class="ica-row-label">Valor a pagar</div>
+                            <div class="ica-row-value">
+                                <input type="number" id="row_35" class="form-control" min="0" step="0.01" value="0">
+                            </div>
                         </div>
                         
+                        <div class="ica-row">
+                            <div class="ica-row-number">36</div>
+                            <div class="ica-row-label">Descuento por pronto pago</div>
+                            <div class="ica-row-value">
+                                <input type="number" id="row_36" class="form-control" min="0" step="0.01" value="0">
+                            </div>
+                        </div>
+                        
+                        <div class="ica-row">
+                            <div class="ica-row-number">37</div>
+                            <div class="ica-row-label">Intereses de mora</div>
+                            <div class="ica-row-value">
+                                <input type="number" id="row_37" class="form-control" min="0" step="0.01" value="0">
+                            </div>
+                        </div>
+                        
+                        <div class="ica-row calculated-field">
+                            <div class="ica-row-number">38</div>
+                            <div class="ica-row-label">
+                                <strong>Total a pagar</strong>
+                                <small>(Calculado: 35 − 36 + 37)</small>
+                            </div>
+                            <div class="ica-row-value">
+                                <input type="number" id="row_38" class="form-control" readonly>
+                            </div>
+                        </div>
+                        
+                        <hr class="divider">
+                        
+                        <div class="section-title">Pago Voluntario</div>
                         <div class="row">
-                            <div class="col-6" id="amount_to_pay_container">
-                                <div class="ica-row" style="background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border-left: 4px solid var(--danger-color);">
-                                    <div class="ica-row-number" style="background: rgba(239, 68, 68, 0.2); color: var(--danger-color);">25</div>
-                                    <div class="ica-row-label">
-                                        <strong>Total Saldo a Pagar</strong>
-                                    </div>
+                            <div class="col-6">
+                                <div class="ica-row">
+                                    <div class="ica-row-number">39</div>
+                                    <div class="ica-row-label">Pago voluntario (valor)</div>
                                     <div class="ica-row-value">
-                                        <input type="number" id="row_25" class="form-control" readonly 
-                                               style="font-size: 1.25rem; font-weight: 700; color: var(--danger-color);">
+                                        <input type="number" id="row_39" class="form-control" min="0" step="0.01" value="0">
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-6" id="balance_in_favor_container">
-                                <div class="ica-row" style="background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); border-left: 4px solid var(--success-color);">
-                                    <div class="ica-row-number" style="background: rgba(16, 185, 129, 0.2); color: var(--success-color);">26</div>
-                                    <div class="ica-row-label">
-                                        <strong>Total Saldo a Favor</strong>
-                                    </div>
-                                    <div class="ica-row-value">
-                                        <input type="number" id="row_26" class="form-control" readonly
-                                               style="font-size: 1.25rem; font-weight: 700; color: var(--success-color);">
-                                    </div>
+                            <div class="col-6">
+                                <div class="form-group">
+                                    <label for="row_39_destination" class="form-label">Destino del aporte</label>
+                                    <input type="text" id="row_39_destination" class="form-control" placeholder="Ej: Obras sociales, educación...">
                                 </div>
+                            </div>
+                        </div>
+                        
+                        <div class="ica-row calculated-field" style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-left: 4px solid var(--primary-color);">
+                            <div class="ica-row-number" style="background: rgba(59, 130, 246, 0.2); color: var(--primary-color);">40</div>
+                            <div class="ica-row-label">
+                                <strong>Total a pagar con pago voluntario</strong>
+                                <small>(Calculado: 38 + 39)</small>
+                            </div>
+                            <div class="ica-row-value">
+                                <input type="number" id="row_40" class="form-control" readonly
+                                       style="font-size: 1.25rem; font-weight: 700; color: var(--primary-color);">
                             </div>
                         </div>
                     </div>
@@ -591,45 +732,89 @@
         </div>
     </main>
     
-    <!-- Modal de Firma - SECCIÓN G -->
+    <!-- Modal de Firma - SECCIÓN F -->
     <div id="signature-modal" class="modal-overlay">
         <div class="modal">
             <div class="modal-header">
-                <h2 class="modal-title">✍️ SECCIÓN G – RESPONSABILIDAD Y FIRMAS</h2>
+                <h2 class="modal-title">✍️ SECCIÓN F – FIRMAS DIGITALES</h2>
                 <button type="button" class="modal-close">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="alert alert-warning mb-3">
-                    <strong>⚠️ Atención:</strong> Una vez firmada la declaración, no podrá ser modificada.
+                    <strong>⚠️ Atención:</strong> Una vez firmada la declaración, queda bloqueada para edición.
                 </div>
                 
-                <div class="section-title">DECLARANTE</div>
+                <div class="section-title">FIRMA DEL DECLARANTE</div>
                 <div class="form-group">
-                    <label for="declarant_name" class="form-label required">Nombre del Declarante</label>
+                    <label for="declarant_name" class="form-label required">Nombre</label>
                     <input type="text" id="declarant_name" class="form-control" required placeholder="Nombre completo">
                 </div>
                 
+                <div class="row">
+                    <div class="col-6">
+                        <div class="form-group">
+                            <label for="declarant_document" class="form-label">Documento</label>
+                            <input type="text" id="declarant_document" class="form-control" placeholder="Número de documento">
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="form-group">
+                            <label for="declaration_date" class="form-label required">Fecha de Declaración</label>
+                            <input type="date" id="declaration_date" class="form-control" required>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="form-group">
-                    <label for="declaration_date" class="form-label required">Fecha de Declaración</label>
-                    <input type="date" id="declaration_date" class="form-control" required>
+                    <label for="signature_method" class="form-label">Método de firma</label>
+                    <select id="signature_method" class="form-control">
+                        <option value="manuscrita">Firma manuscrita (canvas)</option>
+                        <option value="clave">Firma con clave</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">
+                        <input type="checkbox" id="declarant_oath" required>
+                        Declaro bajo juramento que la información contenida en este formulario es verídica
+                    </label>
                 </div>
                 
                 <hr class="divider">
                 
-                <div class="section-title">CONTADOR / REVISOR FISCAL</div>
+                <div class="section-title">FIRMA DEL CONTADOR / REVISOR FISCAL</div>
                 <div class="form-group">
-                    <label for="accountant_name" class="form-label">Nombre Contador / Revisor Fiscal</label>
-                    <input type="text" id="accountant_name" class="form-control" placeholder="Nombre del contador o revisor fiscal">
+                    <label class="form-label">
+                        <input type="checkbox" id="requires_fiscal_reviewer">
+                        ¿Aplica revisor fiscal?
+                    </label>
                 </div>
                 
-                <div class="form-group">
-                    <label for="professional_card" class="form-label">Número de Tarjeta Profesional</label>
-                    <input type="text" id="professional_card" class="form-control" placeholder="Ej: 12345-T">
+                <div id="accountant-fields" style="display: none;">
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="form-group">
+                                <label for="accountant_name" class="form-label">Nombre</label>
+                                <input type="text" id="accountant_name" class="form-control" placeholder="Nombre del contador o revisor fiscal">
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-group">
+                                <label for="accountant_document" class="form-label">Documento</label>
+                                <input type="text" id="accountant_document" class="form-control" placeholder="Número de documento">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="professional_card" class="form-label">Tarjeta profesional</label>
+                        <input type="text" id="professional_card" class="form-control" placeholder="Ej: 12345-T">
+                    </div>
                 </div>
                 
                 <hr class="divider">
                 
-                <div class="form-group">
+                <div class="form-group" id="signature-container">
                     <label class="form-label required">Firma Digital</label>
                     <p class="form-text">Dibuje su firma en el recuadro a continuación:</p>
                     <div class="signature-container">
@@ -676,6 +861,11 @@
         // Obtener ID de declaración de la URL
         const urlParams = new URLSearchParams(window.location.search);
         const declarationId = urlParams.get('id');
+        
+        // Toggle campos de contador/revisor fiscal
+        document.getElementById('requires_fiscal_reviewer').addEventListener('change', function() {
+            document.getElementById('accountant-fields').style.display = this.checked ? 'block' : 'none';
+        });
         
         // Cargar datos del usuario
         async function loadUserData() {
