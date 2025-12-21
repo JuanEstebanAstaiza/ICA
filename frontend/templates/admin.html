@@ -247,6 +247,25 @@
             <h1>Panel de Administración</h1>
             <p class="text-muted">Configuración marca blanca y gestión del sistema</p>
             
+            <!-- Acciones rápidas -->
+            <div class="row" style="margin-top: 1rem; margin-bottom: 1rem;">
+                <div class="col-12">
+                    <div class="card" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-left: 4px solid var(--primary-color);">
+                        <div class="card-body">
+                            <div class="d-flex justify-between align-center">
+                                <div>
+                                    <strong>👁️ Vista Previa del Formulario</strong>
+                                    <p class="text-muted mb-0" style="font-size: 0.875rem;">Verifique la estructura de campos del formulario ICA sin necesidad de llenarlo.</p>
+                                </div>
+                                <a href="form.html?preview=true" class="btn btn-primary">
+                                    👁️ Ver Vista Previa
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <div class="row" style="margin-top: 2rem;">
                 <!-- Configuración Marca Blanca -->
                 <div class="col-6">
@@ -402,6 +421,14 @@
                                     <label for="wl-footer" class="form-label">Texto de Pie de Página</label>
                                     <textarea id="wl-footer" class="form-control" rows="2" 
                                               placeholder="Texto para el pie de página..."></textarea>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="wl-watermark" class="form-label">🔒 Marca de Agua (PDF)</label>
+                                    <input type="text" id="wl-watermark" class="form-control" 
+                                           placeholder="Ej: Alcaldía de Medellín - Documento Oficial"
+                                           maxlength="255">
+                                    <small class="form-text">Este texto aparecerá como marca de agua diagonal en los PDFs generados para prevenir fraudes.</small>
                                 </div>
                                 
                                 <div class="form-group">
@@ -1096,6 +1123,7 @@
                 document.getElementById('wl-header').value = config.header_text || '';
                 document.getElementById('wl-legal').value = config.legal_notes || '';
                 document.getElementById('wl-footer').value = config.footer_text || '';
+                document.getElementById('wl-watermark').value = config.watermark_text || '';
                 
                 // Cargar configuración de consecutivo y radicado
                 document.getElementById('wl-consecutivo-prefijo').value = config.consecutivo_prefijo || '';
@@ -1242,6 +1270,7 @@
                     header_text: document.getElementById('wl-header').value,
                     legal_notes: document.getElementById('wl-legal').value,
                     footer_text: document.getElementById('wl-footer').value,
+                    watermark_text: document.getElementById('wl-watermark').value,
                     // Configuración de numeración
                     consecutivo_prefijo: document.getElementById('wl-consecutivo-prefijo').value,
                     consecutivo_actual: parseInt(document.getElementById('wl-consecutivo-inicio').value) || 1,

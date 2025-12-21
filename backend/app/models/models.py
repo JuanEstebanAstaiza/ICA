@@ -140,6 +140,9 @@ class WhiteLabelConfig(Base):
     # Configuración del formulario
     form_title = Column(String(500), default="Formulario Único Nacional de Declaración y Pago ICA")
     
+    # Marca de agua para PDF (prevención de fraudes)
+    watermark_text = Column(String(255), default="")  # Nombre de la alcaldía como marca de agua
+    
     # Configuración de Numeración (Consecutivo y Radicado)
     # Consecutivo: número secuencial del formulario dentro del municipio
     consecutivo_prefijo = Column(String(10), default="")  # Prefijo opcional

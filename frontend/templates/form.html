@@ -861,23 +861,35 @@
         // Obtener ID de declaración de la URL
         const urlParams = new URLSearchParams(window.location.search);
         const declarationId = urlParams.get('id');
+        const previewMode = urlParams.get('preview') === 'true';
+        
+        // Variable global para guardar el municipio del usuario
+        let userMunicipalityId = null;
         
         // Toggle campos de contador/revisor fiscal
         document.getElementById('requires_fiscal_reviewer').addEventListener('change', function() {
             document.getElementById('accountant-fields').style.display = this.checked ? 'block' : 'none';
         });
         
-        // Cargar datos del usuario
+        // Cargar datos del usuario y obtener su municipio asignado
         async function loadUserData() {
             try {
                 const user = await AuthAPI.getCurrentUser();
                 document.getElementById('user-name').textContent = user.full_name;
+                
+                // Guardar el municipio del usuario para auto-selección
+                if (user.municipality_id) {
+                    userMunicipalityId = user.municipality_id;
+                }
+                
+                return user;
             } catch (error) {
                 console.error('Error loading user:', error);
+                return null;
             }
         }
         
-        // Cargar municipios
+        // Cargar municipios y auto-seleccionar el municipio del usuario
         async function loadMunicipalities() {
             try {
                 const municipalities = await AdminAPI.listMunicipalities();
@@ -889,6 +901,23 @@
                     option.textContent = `${m.name} - ${m.department}`;
                     select.appendChild(option);
                 });
+                
+                // Auto-seleccionar el municipio del usuario si está asignado
+                if (userMunicipalityId) {
+                    // Convertir a string para comparación consistente con el valor del option
+                    select.value = String(userMunicipalityId);
+                    
+                    // También auto-seleccionar el departamento correspondiente
+                    // Usar comparación de tipo consistente (convertir ambos a número)
+                    const selectedMunicipality = municipalities.find(m => Number(m.id) === Number(userMunicipalityId));
+                    if (selectedMunicipality) {
+                        const deptSelect = document.getElementById('department');
+                        deptSelect.value = selectedMunicipality.department;
+                        
+                        // Disparar el evento change para actualizar la sección de Bogotá si aplica
+                        deptSelect.dispatchEvent(new Event('change'));
+                    }
+                }
             } catch (error) {
                 console.error('Error loading municipalities:', error);
             }
@@ -918,6 +947,102 @@
             }
         });
         
+        // Habilitar modo vista previa
+        function enablePreviewMode() {
+            // Mostrar banner de vista previa
+            const alertContainer = document.getElementById('alert-container');
+            const previewBanner = document.createElement('div');
+            previewBanner.className = 'alert alert-info';
+            previewBanner.setAttribute('role', 'alert');
+            previewBanner.setAttribute('aria-live', 'polite');
+            previewBanner.style.cssText = 'background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%); border-left: 4px solid #0284c7;';
+            previewBanner.innerHTML = `
+                <strong>👁️ MODO VISTA PREVIA</strong> - Este es un formulario de ejemplo para verificar la estructura de campos.
+                <button type="button" class="btn btn-primary" style="margin-left: 1rem;" id="btn-create-declaration">
+                    ✏️ Crear Nueva Declaración
+                </button>
+            `;
+            alertContainer.appendChild(previewBanner);
+            
+            // Agregar event listener al botón
+            document.getElementById('btn-create-declaration').addEventListener('click', function() {
+                window.location.href = 'form.html';
+            });
+            
+            // Constante para el texto ARIA de vista previa
+            const PREVIEW_ARIA_SUFFIX = ' (modo vista previa - solo lectura)';
+            
+            // Usar readonly en lugar de disabled para mejor accesibilidad
+            // y agregar atributos ARIA para explicar el modo vista previa
+            const formInputs = document.querySelectorAll('#ica-form input, #ica-form select, #ica-form textarea');
+            formInputs.forEach(input => {
+                const currentLabel = input.getAttribute('aria-label') || input.name || '';
+                if (input.type === 'checkbox' || input.type === 'radio') {
+                    input.disabled = true;
+                    input.setAttribute('aria-label', currentLabel + PREVIEW_ARIA_SUFFIX);
+                } else if (input.tagName === 'SELECT') {
+                    input.disabled = true;
+                    input.setAttribute('aria-label', currentLabel + PREVIEW_ARIA_SUFFIX);
+                } else {
+                    input.readOnly = true;
+                    input.setAttribute('aria-readonly', 'true');
+                }
+                input.setAttribute('tabindex', '0');
+            });
+            
+            // Agregar mensaje para lectores de pantalla
+            const srAnnouncement = document.createElement('div');
+            srAnnouncement.className = 'sr-only';
+            srAnnouncement.setAttribute('role', 'status');
+            srAnnouncement.setAttribute('aria-live', 'polite');
+            srAnnouncement.textContent = 'Modo vista previa activado. El formulario está en modo de solo lectura con datos de ejemplo.';
+            alertContainer.appendChild(srAnnouncement);
+            
+            // Ocultar botones de acción
+            const actionButtons = document.querySelectorAll('#ica-form button[type="submit"], #btn-open-signature, #btn-generate-pdf');
+            actionButtons.forEach(btn => {
+                btn.style.display = 'none';
+            });
+            
+            // Ocultar botón recalcular
+            const calcBtn = document.getElementById('btn-calculate');
+            if (calcBtn) {
+                calcBtn.style.display = 'none';
+            }
+            
+            // Agregar valores de ejemplo para vista previa
+            fillPreviewData();
+        }
+        
+        // Helper function to safely set element value
+        function setElementValue(elementId, value) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.value = value;
+            }
+        }
+        
+        // Llenar datos de ejemplo para vista previa
+        function fillPreviewData() {
+            // Datos de ejemplo para vista previa (con verificación de existencia)
+            setElementValue('legal_name', 'Empresa Ejemplo S.A.S.');
+            setElementValue('document_type', 'NIT');
+            setElementValue('document_number', '900123456');
+            setElementValue('verification_digit', '7');
+            setElementValue('address', 'Calle 123 # 45-67, Centro');
+            setElementValue('phone', '3001234567');
+            setElementValue('email', 'ejemplo@empresa.com');
+            setElementValue('num_establishments', '1');
+            
+            // Valores numéricos de ejemplo
+            setElementValue('row_8', '100000000');
+            setElementValue('row_9', '10000000');
+            setElementValue('row_11', '5000000');
+            setElementValue('row_12', '2000000');
+            setElementValue('row_13', '1000000');
+            setElementValue('row_14', '500000');
+        }
+        
         // Inicializar formulario
         function initializeForm() {
             // Establecer año actual por defecto
@@ -938,6 +1063,11 @@
                     console.log('Declaración firmada:', data);
                 }
             });
+            
+            // Activar modo vista previa si se solicita
+            if (previewMode) {
+                enablePreviewMode();
+            }
         }
         
         // Botón recalcular
@@ -972,10 +1102,14 @@
             window.location.href = 'login.html';
         });
         
-        // Inicializar
-        loadUserData();
-        loadMunicipalities();
-        initializeForm();
+        // Inicializar - primero cargar usuario, luego municipios
+        async function init() {
+            await loadUserData();
+            await loadMunicipalities();
+            initializeForm();
+        }
+        
+        init();
     </script>
 </body>
 </html>
