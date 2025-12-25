@@ -637,31 +637,34 @@
                         
                         <hr class="divider">
                         
-                        <div class="row">
-                            <div class="col-6">
-                                <div class="ica-row" style="background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border-left: 4px solid var(--danger-color);">
-                                    <div class="ica-row-number" style="background: rgba(239, 68, 68, 0.2); color: var(--danger-color);">33</div>
-                                    <div class="ica-row-label">
-                                        <strong>Total saldo a cargo</strong>
-                                    </div>
-                                    <div class="ica-row-value">
-                                        <input type="number" id="row_33" class="form-control" readonly 
-                                               style="font-size: 1.25rem; font-weight: 700; color: var(--danger-color);">
-                                    </div>
-                                </div>
+                        <!-- Renglón 33: Total saldo a cargo (lo que debe el contribuyente) -->
+                        <div class="ica-row" id="row_33_container" style="background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border-left: 4px solid var(--danger-color);">
+                            <div class="ica-row-number" style="background: rgba(239, 68, 68, 0.2); color: var(--danger-color);">33</div>
+                            <div class="ica-row-label">
+                                <strong>Total saldo a cargo</strong>
+                                <small style="color: #dc2626;">(Si este valor es mayor a 0, el contribuyente DEBE pagar)</small>
                             </div>
-                            <div class="col-6">
-                                <div class="ica-row" style="background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); border-left: 4px solid var(--success-color);">
-                                    <div class="ica-row-number" style="background: rgba(16, 185, 129, 0.2); color: var(--success-color);">34</div>
-                                    <div class="ica-row-label">
-                                        <strong>Total saldo a favor</strong>
-                                    </div>
-                                    <div class="ica-row-value">
-                                        <input type="number" id="row_34" class="form-control" readonly
-                                               style="font-size: 1.25rem; font-weight: 700; color: var(--success-color);">
-                                    </div>
-                                </div>
+                            <div class="ica-row-value">
+                                <input type="number" id="row_33" class="form-control" readonly 
+                                       style="font-size: 1.25rem; font-weight: 700; color: var(--danger-color);">
                             </div>
+                        </div>
+                        
+                        <!-- Renglón 34: Total saldo a favor (lo que le deben al contribuyente) -->
+                        <div class="ica-row" id="row_34_container" style="background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); border-left: 4px solid var(--success-color); margin-top: 0.5rem;">
+                            <div class="ica-row-number" style="background: rgba(16, 185, 129, 0.2); color: var(--success-color);">34</div>
+                            <div class="ica-row-label">
+                                <strong>Total saldo a favor</strong>
+                                <small style="color: #059669;">(Si este valor es mayor a 0, la alcaldía DEBE al contribuyente)</small>
+                            </div>
+                            <div class="ica-row-value">
+                                <input type="number" id="row_34" class="form-control" readonly
+                                       style="font-size: 1.25rem; font-weight: 700; color: var(--success-color);">
+                            </div>
+                        </div>
+                        
+                        <!-- Indicador visual del resultado -->
+                        <div id="balance-result-indicator" class="alert" style="margin-top: 1rem; display: none;">
                         </div>
                     </div>
                 </div>
@@ -672,11 +675,14 @@
                         💵 SECCIÓN E – PAGO
                     </div>
                     <div class="card-body">
-                        <div class="ica-row">
+                        <div class="ica-row calculated-field">
                             <div class="ica-row-number">35</div>
-                            <div class="ica-row-label">Valor a pagar</div>
+                            <div class="ica-row-label">
+                                <strong>Valor a pagar</strong>
+                                <small>(Autocompletado desde Renglón 33 - Saldo a cargo)</small>
+                            </div>
                             <div class="ica-row-value">
-                                <input type="number" id="row_35" class="form-control" min="0" step="0.01" value="0">
+                                <input type="number" id="row_35" class="form-control" readonly style="background-color: #f3f4f6;">
                             </div>
                         </div>
                         
@@ -1163,35 +1169,8 @@
             }
         }
         
-        // Recalcular campos basados en parámetros de fórmulas
-        function recalculateFromParameters() {
-            if (!formController) return;
-            
-            const row20 = parseFloat(document.getElementById('row_20')?.value) || 0;
-            
-            // Renglón 21: Avisos y Tableros (solo si está marcado el checkbox)
-            const usesSignsBoards = document.getElementById('uses_signs_boards')?.checked || false;
-            if (usesSignsBoards) {
-                const row21 = row20 * (formulaParameters.avisos_tableros_rate / 100);
-                document.getElementById('row_21').value = row21.toFixed(2);
-            }
-            
-            // Renglón 23: Sobretasa bomberil
-            const row23 = row20 * (formulaParameters.sobretasa_bomberil_rate / 100);
-            document.getElementById('row_23').value = row23.toFixed(2);
-            
-            // Renglón 24: Sobretasa seguridad
-            const row24 = row20 * (formulaParameters.sobretasa_seguridad_rate / 100);
-            document.getElementById('row_24').value = row24.toFixed(2);
-            
-            // Renglón 19: Ley 56 de 1981
-            const energyKw = parseFloat(document.getElementById('row_18_energy_kw')?.value) || 0;
-            const row19 = energyKw * formulaParameters.ley56_tarifa_kw;
-            document.getElementById('row_19_law56').value = row19.toFixed(2);
-            
-            // Recalcular todo el formulario
-            formController.recalculate();
-        }
+        // NOTA: La función recalculateFromParameters fue reemplazada por applyFormulaParameters
+        // que se llama desde initializeForm para evitar bucles infinitos
         
         // Verificación Sección C: Renglón 15 = Suma ingresos gravados actividades
         function verifySectionC() {
@@ -1520,17 +1499,48 @@
             // Configurar modal de vista previa PDF
             setupPdfPreviewModal();
             
-            // Observar cambios para verificación Sección C
+            // Extender recalculate para aplicar parámetros de fórmulas y verificación
             const originalRecalculate = formController.recalculate.bind(formController);
             formController.recalculate = function() {
+                // 1. Ejecutar cálculo base
                 originalRecalculate();
-                recalculateFromParameters();
+                
+                // 2. Aplicar parámetros de fórmulas (sin llamar a recalculate de nuevo)
+                applyFormulaParameters();
+                
+                // 3. Verificar Sección C
                 verifySectionC();
             };
             
             // Activar modo vista previa si se solicita
             if (previewMode) {
                 enablePreviewMode();
+            }
+        }
+        
+        // Aplicar parámetros de fórmulas sin recursión
+        function applyFormulaParameters() {
+            if (!formController) return;
+            
+            const row20 = parseFloat(document.getElementById('row_20')?.value) || 0;
+            
+            // Renglón 21: Avisos y Tableros (solo si está marcado el checkbox)
+            const usesSignsBoards = document.getElementById('uses_signs_boards')?.checked || false;
+            if (usesSignsBoards) {
+                const row21 = row20 * (formulaParameters.avisos_tableros_rate / 100);
+                document.getElementById('row_21').value = row21.toFixed(2);
+            }
+            
+            // Renglón 23: Sobretasa bomberil
+            if (formulaParameters.sobretasa_bomberil_rate > 0) {
+                const row23 = row20 * (formulaParameters.sobretasa_bomberil_rate / 100);
+                document.getElementById('row_23').value = row23.toFixed(2);
+            }
+            
+            // Renglón 24: Sobretasa seguridad
+            if (formulaParameters.sobretasa_seguridad_rate > 0) {
+                const row24 = row20 * (formulaParameters.sobretasa_seguridad_rate / 100);
+                document.getElementById('row_24').value = row24.toFixed(2);
             }
         }
         

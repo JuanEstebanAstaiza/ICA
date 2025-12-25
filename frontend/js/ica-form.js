@@ -207,8 +207,21 @@ class ICAFormController {
         calculableInputs.forEach(inputId => {
             const input = document.getElementById(inputId);
             if (input) {
+                input.classList.add('currency-input');
+                
+                // Recalcular cuando cambia el valor
                 input.addEventListener('input', () => this.recalculate());
-                input.addEventListener('blur', () => this.formatCurrency(input));
+                
+                // Al salir del campo: mostrar con formato visual
+                input.addEventListener('blur', (e) => {
+                    this.showFormattedValue(e.target);
+                });
+                
+                // Al entrar al campo: mostrar valor numérico puro para editar
+                input.addEventListener('focus', (e) => {
+                    this.showRawValue(e.target);
+                    e.target.select();
+                });
             }
         });
         
@@ -286,8 +299,55 @@ class ICAFormController {
     
     formatCurrency(input) {
         const value = parseFloat(input.value) || 0;
-        // Solo formatear visualmente, mantener valor numérico
         input.dataset.rawValue = value;
+    }
+    
+    /**
+     * Muestra el valor formateado con separadores (al salir del campo)
+     */
+    showFormattedValue(input) {
+        const value = parseFloat(input.value) || 0;
+        input.dataset.rawValue = value;
+        
+        if (value === 0) {
+            input.value = '0';
+        } else {
+            input.value = this.formatWithSeparators(value);
+        }
+    }
+    
+    /**
+     * Muestra el valor numérico puro (al entrar al campo para editar)
+     */
+    showRawValue(input) {
+        const rawValue = parseFloat(input.dataset.rawValue) || parseFloat(input.value.replace(/\./g, '').replace(',', '.')) || 0;
+        input.value = rawValue || '';
+    }
+    
+    /**
+     * Formatea un número con separadores de miles (formato colombiano)
+     * Solo para visualización, no afecta los cálculos
+     * Ejemplo: 1234567 -> "1.234.567"
+     */
+    formatWithSeparators(num) {
+        if (isNaN(num) || num === 0) return '0';
+        
+        // Redondear a 2 decimales
+        const rounded = Math.round(num * 100) / 100;
+        
+        // Separar parte entera y decimal
+        const parts = rounded.toString().split('.');
+        const integerPart = parts[0];
+        const decimalPart = parts[1] || '00';
+        
+        // Agregar separadores de miles (puntos)
+        const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        
+        // Retornar con coma decimal si hay decimales significativos
+        if (decimalPart && decimalPart !== '00' && decimalPart !== '0') {
+            return formattedInteger + ',' + decimalPart.padEnd(2, '0');
+        }
+        return formattedInteger;
     }
     
     /**
@@ -373,8 +433,14 @@ class ICAFormController {
         this.setValue('row_33', finalBalance.saldoCargo);
         this.setValue('row_34', finalBalance.saldoFavor);
         
+        // Mostrar indicador visual del resultado
+        this.showBalanceIndicator(finalBalance);
+        
         // ===== SECCIÓN E - PAGO =====
-        const row35 = this.getValue('row_35'); // Valor a pagar
+        // Renglón 35 se autocompleta con el saldo a cargo (lo que debe pagar)
+        // Si tiene saldo a favor, no debe pagar nada
+        const row35 = finalBalance.saldoCargo; // Autocompletado desde R33
+        this.setValue('row_35', row35);
         const row36 = this.getValue('row_36'); // Descuento pronto pago
         const row37 = this.getValue('row_37'); // Intereses mora
         
@@ -395,13 +461,40 @@ class ICAFormController {
     
     getValue(fieldId) {
         const input = document.getElementById(fieldId);
-        return input ? (parseFloat(input.value) || 0) : 0;
+        if (!input) return 0;
+        
+        // Si tiene valor raw guardado, usarlo
+        if (input.dataset.rawValue !== undefined && input.dataset.rawValue !== '') {
+            return parseFloat(input.dataset.rawValue) || 0;
+        }
+        
+        // Si el valor tiene separadores de miles (puntos), parsear
+        let value = input.value;
+        if (value.includes('.') && value.includes(',')) {
+            // Formato: 1.234.567,89 -> remover puntos, cambiar coma por punto
+            value = value.replace(/\./g, '').replace(',', '.');
+        } else if (value.includes('.') && !value.includes(',')) {
+            // Podría ser separador de miles o decimal
+            // Si hay más de un punto, son separadores de miles
+            if ((value.match(/\./g) || []).length > 1) {
+                value = value.replace(/\./g, '');
+            }
+            // Si hay un solo punto y más de 2 dígitos después, es separador de miles
+            else if (value.split('.')[1]?.length > 2) {
+                value = value.replace('.', '');
+            }
+        }
+        
+        return parseFloat(value) || 0;
     }
     
     setValue(fieldId, value) {
         const input = document.getElementById(fieldId);
         if (input) {
-            input.value = value.toFixed(2);
+            // Guardar valor raw
+            input.dataset.rawValue = value;
+            // Mostrar valor formateado con separadores
+            input.value = this.formatWithSeparators(value);
         }
     }
     
@@ -414,31 +507,65 @@ class ICAFormController {
     
     updateResultDisplay(result) {
         // Resaltar el campo que tiene valor (saldo a cargo o saldo a favor)
-        const row33Input = document.getElementById('row_33');
-        const row34Input = document.getElementById('row_34');
+        const row33Container = document.getElementById('row_33_container');
+        const row34Container = document.getElementById('row_34_container');
         
-        if (row33Input && row34Input) {
+        if (row33Container && row34Container) {
             if (result.saldoCargo > 0) {
-                row33Input.parentElement.parentElement.classList.add('highlight');
-                row34Input.parentElement.parentElement.classList.remove('highlight');
+                row33Container.style.opacity = '1';
+                row33Container.style.transform = 'scale(1.02)';
+                row34Container.style.opacity = '0.5';
+                row34Container.style.transform = 'scale(1)';
             } else if (result.saldoFavor > 0) {
-                row33Input.parentElement.parentElement.classList.remove('highlight');
-                row34Input.parentElement.parentElement.classList.add('highlight');
+                row33Container.style.opacity = '0.5';
+                row33Container.style.transform = 'scale(1)';
+                row34Container.style.opacity = '1';
+                row34Container.style.transform = 'scale(1.02)';
+            } else {
+                row33Container.style.opacity = '1';
+                row33Container.style.transform = 'scale(1)';
+                row34Container.style.opacity = '1';
+                row34Container.style.transform = 'scale(1)';
             }
         }
+    }
+    
+    /**
+     * Muestra indicador visual del resultado del balance
+     */
+    showBalanceIndicator(balance) {
+        const indicator = document.getElementById('balance-result-indicator');
+        if (!indicator) return;
         
-        // Legacy support para contenedores antiguos
-        const payContainer = document.getElementById('amount_to_pay_container');
-        const favorContainer = document.getElementById('balance_in_favor_container');
-        
-        if (payContainer && favorContainer) {
-            if (result.saldoCargo > 0 || result.amountToPay > 0) {
-                payContainer.classList.add('highlight');
-                favorContainer.classList.remove('highlight');
-            } else if (result.saldoFavor > 0 || result.balanceInFavor > 0) {
-                payContainer.classList.remove('highlight');
-                favorContainer.classList.add('highlight');
-            }
+        if (balance.saldoCargo > 0) {
+            indicator.style.display = 'block';
+            indicator.style.cssText = 'margin-top: 1rem; background: linear-gradient(135deg, #fef2f2, #fee2e2); border-left: 4px solid #dc2626; padding: 1rem;';
+            indicator.innerHTML = `
+                <strong style="color: #dc2626;">💰 RESULTADO: SALDO A CARGO</strong><br>
+                <span style="font-size: 0.875rem;">
+                    El contribuyente debe pagar <strong style="color: #dc2626;">$${balance.saldoCargo.toLocaleString('es-CO', {minimumFractionDigits: 2})}</strong> 
+                    a la alcaldía. Este valor se traslada automáticamente al Renglón 35.
+                </span>
+            `;
+        } else if (balance.saldoFavor > 0) {
+            indicator.style.display = 'block';
+            indicator.style.cssText = 'margin-top: 1rem; background: linear-gradient(135deg, #f0fdf4, #dcfce7); border-left: 4px solid #16a34a; padding: 1rem;';
+            indicator.innerHTML = `
+                <strong style="color: #16a34a;">✅ RESULTADO: SALDO A FAVOR</strong><br>
+                <span style="font-size: 0.875rem;">
+                    La alcaldía debe al contribuyente <strong style="color: #16a34a;">$${balance.saldoFavor.toLocaleString('es-CO', {minimumFractionDigits: 2})}</strong>.
+                    No hay valor a pagar (Renglón 35 = $0).
+                </span>
+            `;
+        } else {
+            indicator.style.display = 'block';
+            indicator.style.cssText = 'margin-top: 1rem; background: linear-gradient(135deg, #f8fafc, #f1f5f9); border-left: 4px solid #64748b; padding: 1rem;';
+            indicator.innerHTML = `
+                <strong style="color: #64748b;">⚖️ RESULTADO: BALANCE EN CERO</strong><br>
+                <span style="font-size: 0.875rem;">
+                    No hay saldo a cargo ni saldo a favor. El contribuyente está al día.
+                </span>
+            `;
         }
     }
     
@@ -498,17 +625,16 @@ class ICAFormController {
                            ${this.isSigned ? 'disabled' : ''}>
                 </td>
                 <td>
-                    <input type="number" class="form-control" 
+                    <input type="number" class="form-control currency-input" 
                            id="activity_income_${index}" 
                            value="${activity.income}"
                            min="0" step="0.01"
                            ${this.isSigned ? 'disabled' : ''}>
                 </td>
                 <td>
-                    <input type="number" class="form-control" 
+                    <input type="text" class="form-control" 
                            id="activity_rate_${index}" 
                            value="${activity.tax_rate}"
-                           min="0" max="100" step="0.01"
                            ${this.isSigned ? 'disabled' : ''}>
                 </td>
                 <td class="calculated-field" id="activity_tax_${index}">

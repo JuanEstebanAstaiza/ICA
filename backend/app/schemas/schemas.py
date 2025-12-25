@@ -394,9 +394,29 @@ class TaxpayerCreate(TaxpayerBase):
     pass
 
 
-class TaxpayerResponse(TaxpayerBase):
+class TaxpayerResponse(BaseModel):
+    """
+    Respuesta de contribuyente - campos opcionales para permitir
+    declaraciones recién creadas con datos vacíos.
+    """
     id: int
     declaration_id: int
+    
+    # Campos opcionales para la respuesta (pueden estar vacíos al crear)
+    legal_name: Optional[str] = None
+    entity_type: Optional[str] = "privada"
+    document_type: Optional[str] = None
+    document_number: Optional[str] = None
+    verification_digit: Optional[str] = None
+    address: Optional[str] = None
+    municipality: Optional[str] = None
+    department: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[EmailStr] = None
+    num_establishments: Optional[int] = 1
+    classification: Optional[str] = None
+    is_consortium: Optional[bool] = False
+    autonomous_patrimony: Optional[bool] = False
     
     class Config:
         from_attributes = True
