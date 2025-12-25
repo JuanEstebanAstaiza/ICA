@@ -85,7 +85,7 @@ async function refreshAccessToken() {
 
 const AuthAPI = {
     /**
-     * Registrar nuevo usuario
+     * Registrar nuevo usuario (legacy)
      */
     async register(userData) {
         const response = await fetch(`${API_BASE_URL}/auth/register`, {
@@ -94,6 +94,38 @@ const AuthAPI = {
             body: JSON.stringify(userData)
         });
         return handleResponse(response);
+    },
+    
+    /**
+     * Registrar persona natural
+     */
+    async registerNatural(userData) {
+        const response = await fetch(`${API_BASE_URL}/auth/register/natural`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(userData)
+        });
+        return handleResponse(response);
+    },
+    
+    /**
+     * Registrar persona jurídica
+     */
+    async registerJuridica(userData) {
+        const response = await fetch(`${API_BASE_URL}/auth/register/juridica`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(userData)
+        });
+        return handleResponse(response);
+    },
+    
+    /**
+     * Obtener información del municipio de la plataforma
+     */
+    async getPlatformMunicipality() {
+        const response = await fetch(`${API_BASE_URL}/auth/platform-municipality`);
+        return response.json();
     },
     
     /**

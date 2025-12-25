@@ -30,6 +30,12 @@ class UserRole(enum.Enum):
     ADMIN_SISTEMA = "admin_sistema"  # Administrador del sistema
 
 
+class PersonType(enum.Enum):
+    """Tipo de persona para registro de declarantes."""
+    NATURAL = "natural"  # Persona natural
+    JURIDICA = "juridica"  # Persona jurídica (empresa)
+
+
 class DeclarationType(enum.Enum):
     """
     Tipos de declaración - Sección 2 del formulario ICA.
@@ -55,6 +61,15 @@ class User(Base):
     """
     Modelo de usuario con autenticación.
     Soporta roles: declarante, admin_alcaldia, admin_sistema.
+    Soporta personas naturales y jurídicas.
+    
+    Para PERSONA NATURAL:
+    - Se usan los campos: full_name, document_type, document_number, email, phone, address
+    
+    Para PERSONA JURÍDICA:
+    - Datos de la empresa: company_name, nit, nit_verification_digit, company_address
+    - Datos del representante legal: full_name, document_type, document_number, email, phone
+    - El login se hace con el email del representante legal
     """
     __tablename__ = "users"
     
@@ -62,17 +77,30 @@ class User(Base):
     email = Column(String(255), unique=True, index=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
     
-    # Datos personales
-    full_name = Column(String(255), nullable=False)
-    document_type = Column(String(50))
-    document_number = Column(String(50), index=True)
-    phone = Column(String(50))
+    # Tipo de persona (natural o jurídica)
+    person_type = Column(Enum(PersonType), default=PersonType.NATURAL)
+    
+    # ===== DATOS DE PERSONA NATURAL / REPRESENTANTE LEGAL =====
+    full_name = Column(String(255), nullable=False)  # Nombre completo
+    document_type = Column(String(50))  # CC, CE, Pasaporte, etc.
+    document_number = Column(String(50), index=True)  # Número de documento
+    phone = Column(String(50))  # Teléfono de contacto
+    address = Column(String(500))  # Dirección (autocompletada con municipio de la plataforma)
+    
+    # ===== DATOS DE PERSONA JURÍDICA (solo si person_type == JURIDICA) =====
+    company_name = Column(String(255))  # Razón social
+    nit = Column(String(20), index=True)  # NIT de la empresa
+    nit_verification_digit = Column(String(1))  # Dígito de verificación del NIT
+    company_address = Column(String(500))  # Dirección de la empresa
+    company_phone = Column(String(50))  # Teléfono de la empresa
+    company_email = Column(String(255))  # Email corporativo
+    economic_activity = Column(String(255))  # Actividad económica principal
     
     # Rol y permisos
     role = Column(Enum(UserRole), default=UserRole.DECLARANTE)
     is_active = Column(Boolean, default=True)
     
-    # Relación con alcaldía
+    # Relación con alcaldía/municipio
     municipality_id = Column(Integer, ForeignKey("municipalities.id"))
     
     # Auditoría

@@ -777,6 +777,10 @@
             window.location.href = 'login.html';
         }
         
+        // Variable para controlar si el usuario tiene municipio fijo
+        let userHasFixedMunicipality = false;
+        let currentUserData = null;
+        
         // ==================== FUNCIONES DE MUNICIPIOS ====================
         
         // Cargar todos los municipios
@@ -1032,6 +1036,11 @@
         }
         
         function clearMunicipalitySelection(prefix) {
+            // No permitir limpiar si el usuario tiene municipio fijo
+            if (userHasFixedMunicipality) {
+                return;
+            }
+            
             document.getElementById(`${prefix}-municipality`).value = '';
             document.getElementById(`${prefix}-municipality-selected`).style.display = 'none';
             document.getElementById(`${prefix}-municipality-search`).value = '';
@@ -1050,6 +1059,11 @@
         }
         
         function restoreSelectedMunicipality() {
+            // Si tiene municipio fijo, no restaurar desde localStorage
+            if (userHasFixedMunicipality) {
+                return;
+            }
+            
             const prefixes = ['wl', 'act', 'fp'];
             prefixes.forEach(prefix => {
                 document.getElementById(`${prefix}-municipality`).value = selectedMunicipality.id;
@@ -1093,6 +1107,7 @@
         async function loadUserData() {
             try {
                 const user = await AuthAPI.getCurrentUser();
+                currentUserData = user;
                 document.getElementById('user-name').textContent = user.full_name;
                 
                 if (user.role !== 'admin_alcaldia' && user.role !== 'admin_sistema') {
@@ -1104,9 +1119,81 @@
                 if (user.role === 'admin_sistema') {
                     document.getElementById('superadmin-link').style.display = 'inline';
                 }
+                
+                // Si es ADMIN_ALCALDIA con municipio asignado, bloquear los selectores
+                if (user.role === 'admin_alcaldia' && user.municipality_id) {
+                    userHasFixedMunicipality = true;
+                    
+                    // Esperar a que carguen los municipios para configurar la selección fija
+                    setTimeout(() => {
+                        setupFixedMunicipality(user);
+                    }, 500);
+                }
             } catch (error) {
                 console.error('Error loading user:', error);
             }
+        }
+        
+        // Configurar municipio fijo para ADMIN_ALCALDIA
+        function setupFixedMunicipality(user) {
+            // Buscar el municipio del usuario en la lista
+            const municipality = allMunicipalities.find(m => m.id === user.municipality_id);
+            
+            if (!municipality) {
+                console.error('Municipio del usuario no encontrado');
+                return;
+            }
+            
+            const prefixes = ['wl', 'act', 'fp'];
+            
+            prefixes.forEach(prefix => {
+                // Ocultar el buscador
+                const searchContainer = document.querySelector(`#${prefix}-municipality-search`)?.closest('.municipality-search-container');
+                if (searchContainer) {
+                    searchContainer.style.display = 'none';
+                }
+                
+                // Configurar el valor oculto
+                document.getElementById(`${prefix}-municipality`).value = municipality.id;
+                
+                // Mostrar el municipio seleccionado (bloqueado)
+                const selectedDiv = document.getElementById(`${prefix}-municipality-selected`);
+                const nameSpan = document.getElementById(`${prefix}-municipality-name`);
+                
+                if (selectedDiv && nameSpan) {
+                    nameSpan.innerHTML = `<strong>🔒 ${municipality.name}</strong> - ${municipality.department} (Asignado a su cuenta)`;
+                    selectedDiv.style.display = 'flex';
+                    selectedDiv.style.background = 'linear-gradient(135deg, #2d3748, #1a202c)';
+                    
+                    // Remover el botón de limpiar
+                    const clearBtn = selectedDiv.querySelector('.clear-btn');
+                    if (clearBtn) {
+                        clearBtn.style.display = 'none';
+                    }
+                }
+            });
+            
+            // Guardar en localStorage y cargar datos
+            selectedMunicipality = { 
+                id: municipality.id, 
+                name: municipality.name, 
+                dept: municipality.department 
+            };
+            localStorage.setItem('selectedMunicipality', JSON.stringify(selectedMunicipality));
+            
+            // Cargar datos del municipio
+            loadWhiteLabelConfig(municipality.id);
+            loadActivities(municipality.id);
+            loadFormulaParameters(municipality.id);
+            
+            // Mostrar mensaje informativo
+            const alertContainer = document.getElementById('alert-container');
+            alertContainer.innerHTML = `
+                <div class="alert alert-info" style="margin-bottom: 1rem;">
+                    <strong>ℹ️ Información:</strong> Como administrador de alcaldía, solo puede configurar el municipio 
+                    <strong>${municipality.name}, ${municipality.department}</strong> que fue asignado a su cuenta.
+                </div>
+            `;
         }
         
         async function loadWhiteLabelConfig(municipalityId) {

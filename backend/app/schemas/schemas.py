@@ -36,6 +36,11 @@ class UserRoleEnum(str, Enum):
     ADMIN_SISTEMA = "admin_sistema"
 
 
+class PersonTypeEnum(str, Enum):
+    NATURAL = "natural"
+    JURIDICA = "juridica"
+
+
 class DeclarationTypeEnum(str, Enum):
     """
     Sección 2 - Opción de Uso del Formulario.
@@ -57,19 +62,95 @@ class FormStatusEnum(str, Enum):
 # ===================== AUTENTICACIÓN =====================
 
 class UserBase(BaseModel):
+    """Datos básicos de usuario."""
     email: EmailStr
     full_name: str = Field(..., min_length=2, max_length=255)
     document_type: Optional[str] = None
     document_number: Optional[str] = None
     phone: Optional[str] = None
+    address: Optional[str] = None
 
 
 class UserCreate(UserBase):
+    """Registro simple (legacy) - usado por admins."""
     password: str = Field(..., min_length=8, max_length=100)
     
     @validator('password')
     def password_strength(cls, v):
         return validate_password_strength(v)
+
+
+class UserRegisterNatural(BaseModel):
+    """
+    Registro para PERSONA NATURAL.
+    Los datos personales se usan para autocompletar el formulario ICA.
+    """
+    # Datos de autenticación
+    email: EmailStr
+    password: str = Field(..., min_length=8, max_length=100)
+    
+    # Datos personales
+    full_name: str = Field(..., min_length=2, max_length=255)
+    document_type: str = Field(..., min_length=1, max_length=20)  # CC, CE, Pasaporte
+    document_number: str = Field(..., min_length=5, max_length=20)
+    phone: Optional[str] = Field(None, max_length=20)
+    address: Optional[str] = Field(None, max_length=500)  # Se autocompleta con municipio
+    
+    # NIT opcional para persona natural con actividad económica
+    nit: Optional[str] = Field(None, max_length=20)
+    
+    @validator('password')
+    def password_strength(cls, v):
+        return validate_password_strength(v)
+    
+    @validator('document_number')
+    def validate_document(cls, v):
+        if re.search(r'[;\'"\\]', v):
+            raise ValueError('Caracteres no permitidos en número de documento')
+        return v
+
+
+class UserRegisterJuridica(BaseModel):
+    """
+    Registro para PERSONA JURÍDICA.
+    Incluye datos de la empresa y del representante legal.
+    El login se hace con los datos del representante legal.
+    Los datos se usan para autocompletar el formulario ICA.
+    """
+    # ===== DATOS DE LA EMPRESA =====
+    company_name: str = Field(..., min_length=2, max_length=255)  # Razón social
+    nit: str = Field(..., min_length=9, max_length=15)  # NIT de la empresa
+    nit_verification_digit: Optional[str] = Field(None, max_length=1)  # Dígito de verificación
+    company_address: Optional[str] = Field(None, max_length=500)  # Dirección empresa
+    company_phone: Optional[str] = Field(None, max_length=20)
+    company_email: Optional[EmailStr] = None  # Email corporativo
+    economic_activity: Optional[str] = Field(None, max_length=255)  # Actividad económica
+    
+    # ===== DATOS DEL REPRESENTANTE LEGAL (usado para login) =====
+    full_name: str = Field(..., min_length=2, max_length=255)  # Nombre del rep. legal
+    document_type: str = Field(..., min_length=1, max_length=20)  # CC, CE
+    document_number: str = Field(..., min_length=5, max_length=20)
+    email: EmailStr  # Email del rep. legal (usado para login)
+    password: str = Field(..., min_length=8, max_length=100)
+    phone: Optional[str] = Field(None, max_length=20)
+    address: Optional[str] = Field(None, max_length=500)  # Dirección personal
+    
+    @validator('password')
+    def password_strength(cls, v):
+        return validate_password_strength(v)
+    
+    @validator('document_number')
+    def validate_document(cls, v):
+        if re.search(r'[;\'"\\]', v):
+            raise ValueError('Caracteres no permitidos en número de documento')
+        return v
+    
+    @validator('nit')
+    def validate_nit(cls, v):
+        # NIT debe ser numérico
+        if not v.replace('-', '').replace('.', '').isdigit():
+            raise ValueError('NIT debe contener solo números')
+        return v
 
 
 class UserLogin(BaseModel):
@@ -93,11 +174,44 @@ class UserStatusUpdate(BaseModel):
     is_active: bool
 
 
-class UserResponse(UserBase):
+class MunicipalityInfo(BaseModel):
+    """Información básica del municipio para respuestas."""
     id: int
+    code: str
+    name: str
+    department: str
+    
+    class Config:
+        from_attributes = True
+
+
+class UserResponse(BaseModel):
+    """Respuesta completa de usuario con soporte para persona natural y jurídica."""
+    id: int
+    email: EmailStr
+    full_name: str
+    document_type: Optional[str] = None
+    document_number: Optional[str] = None
+    phone: Optional[str] = None
+    address: Optional[str] = None
+    
+    # Tipo de persona
+    person_type: Optional[PersonTypeEnum] = PersonTypeEnum.NATURAL
+    
+    # Datos de persona jurídica (si aplica)
+    company_name: Optional[str] = None
+    nit: Optional[str] = None
+    nit_verification_digit: Optional[str] = None
+    company_address: Optional[str] = None
+    company_phone: Optional[str] = None
+    company_email: Optional[str] = None
+    economic_activity: Optional[str] = None
+    
+    # Rol y estado
     role: UserRoleEnum
     is_active: bool
     municipality_id: Optional[int]
+    municipality: Optional[MunicipalityInfo] = None
     created_at: datetime
     
     class Config:

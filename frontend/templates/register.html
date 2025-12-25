@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Sistema de Declaración ICA - Registro de Usuario">
+    <meta name="description" content="Registro de Usuario - Sistema ICA">
     <title>Registro - Sistema ICA</title>
     <link rel="stylesheet" href="../css/styles.css">
     <style>
@@ -12,98 +12,206 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 50%, #0f3460 100%);
+            position: relative;
+            overflow: hidden;
             padding: 2rem 1rem;
+        }
+        
+        .register-container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(233, 69, 96, 0.1) 0%, transparent 50%);
+            animation: pulse 15s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(10%, 10%); }
         }
         
         .register-card {
             background: white;
-            border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            border-radius: var(--border-radius-xl);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
             width: 100%;
-            max-width: 550px;
+            max-width: 700px;
             padding: 2rem;
+            position: relative;
+            z-index: 1;
+            max-height: 90vh;
+            overflow-y: auto;
         }
         
         .register-header {
             text-align: center;
-            margin-bottom: 2rem;
+            margin-bottom: 1.5rem;
         }
         
-        .register-header img {
-            height: 80px;
-            margin-bottom: 1rem;
+        .register-header .logo-icon {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+            display: block;
         }
         
         .register-header h1 {
             color: var(--primary-color);
             font-size: 1.5rem;
-            margin-bottom: 0.5rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
         }
         
         .register-header p {
             color: var(--text-muted);
-            font-size: 0.9rem;
+            font-size: 0.875rem;
+            line-height: 1.5;
         }
         
-        .register-form .form-group {
+        /* Tabs para tipo de persona */
+        .person-type-tabs {
+            display: flex;
             margin-bottom: 1.5rem;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            border: 2px solid var(--primary-color);
         }
         
-        .register-form .form-row {
+        .person-type-tab {
+            flex: 1;
+            padding: 1rem;
+            text-align: center;
+            cursor: pointer;
+            background: white;
+            border: none;
+            font-weight: 600;
+            color: var(--primary-color);
+            transition: all 0.3s;
+        }
+        
+        .person-type-tab:hover {
+            background: rgba(0, 51, 102, 0.1);
+        }
+        
+        .person-type-tab.active {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .person-type-tab .tab-icon {
+            font-size: 1.5rem;
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+        
+        /* Formularios */
+        .form-section {
+            display: none;
+        }
+        
+        .form-section.active {
+            display: block;
+        }
+        
+        .section-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin: 1.5rem 0 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--primary-color);
+        }
+        
+        .section-title:first-child {
+            margin-top: 0;
+        }
+        
+        /* Info municipio */
+        .municipality-info {
+            background: linear-gradient(135deg, #e0f7fa, #b2ebf2);
+            padding: 1rem;
+            border-radius: var(--border-radius);
+            margin-bottom: 1.5rem;
+            border-left: 4px solid var(--secondary-color);
+        }
+        
+        .municipality-info strong {
+            display: block;
+            color: var(--primary-color);
+            margin-bottom: 0.25rem;
+        }
+        
+        .municipality-info .muni-name {
+            font-size: 1.1rem;
+            color: var(--text-dark);
+        }
+        
+        .municipality-info .muni-detail {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+        
+        /* Campos en grid */
+        .form-row {
             display: grid;
-            grid-template-columns: 1fr 1fr;
             gap: 1rem;
         }
         
-        .register-form .btn {
-            width: 100%;
-            padding: 1rem;
+        .form-row.two-cols {
+            grid-template-columns: 1fr 1fr;
         }
         
+        .form-row.three-cols {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+        
+        @media (max-width: 600px) {
+            .form-row.two-cols,
+            .form-row.three-cols {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Footer del form */
         .register-footer {
             text-align: center;
             margin-top: 1.5rem;
-            padding-top: 1.5rem;
+            padding-top: 1rem;
             border-top: 1px solid var(--border-color);
         }
         
         .register-footer a {
-            color: var(--primary-color);
+            color: var(--accent-color);
             text-decoration: none;
+            font-weight: 600;
         }
         
         .register-footer a:hover {
-            text-decoration: underline;
+            color: #d63850;
         }
         
-        .password-requirements {
-            font-size: 0.85rem;
+        /* Términos */
+        .terms-check {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            margin: 1rem 0;
+            font-size: 0.875rem;
             color: var(--text-muted);
-            margin-top: 0.5rem;
         }
         
-        .password-requirements ul {
-            margin: 0.5rem 0;
-            padding-left: 1.5rem;
+        .terms-check input {
+            margin-top: 0.25rem;
         }
         
-        .password-requirements li {
-            margin: 0.25rem 0;
-        }
-        
-        .password-requirements .valid {
-            color: var(--success-color);
-        }
-        
-        .password-requirements .invalid {
-            color: var(--danger-color);
-        }
-        
-        @media (max-width: 768px) {
-            .register-form .form-row {
-                grid-template-columns: 1fr;
-            }
+        /* Alerts */
+        .alert-info {
+            background: #e8f4fd;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
         }
     </style>
 </head>
@@ -113,109 +221,238 @@
     <div class="register-container">
         <div class="register-card">
             <div class="register-header">
-                <h1>Crear Cuenta</h1>
-                <p>Sistema ICA - Formulario Único Nacional</p>
+                <span class="logo-icon">🏛️</span>
+                <h1>Registro de Usuario</h1>
+                <p>Personas Naturales o Jurídicas</p>
+            </div>
+            
+            <!-- Información del municipio de la plataforma -->
+            <div class="municipality-info" id="municipality-info">
+                <strong>📍 Municipio de la Plataforma</strong>
+                <div class="muni-name" id="platform-muni-name">Cargando...</div>
+                <div class="muni-detail" id="platform-muni-detail">Los usuarios registrados quedarán asociados a este municipio</div>
             </div>
             
             <div id="alert-container"></div>
             
-            <form id="register-form" class="register-form">
-                <div class="form-group">
-                    <label for="email" class="form-label required">Correo Electrónico</label>
-                    <input type="email" 
-                           id="email" 
-                           name="email" 
-                           class="form-control" 
-                           placeholder="correo@ejemplo.com"
-                           required 
-                           autocomplete="email">
-                    <small class="form-text">Este será su nombre de usuario para iniciar sesión</small>
-                </div>
+            <!-- Tabs para seleccionar tipo de persona -->
+            <div class="person-type-tabs">
+                <button type="button" class="person-type-tab active" data-type="natural" onclick="selectPersonType('natural')">
+                    <span class="tab-icon">👤</span>
+                    Persona Natural
+                </button>
+                <button type="button" class="person-type-tab" data-type="juridica" onclick="selectPersonType('juridica')">
+                    <span class="tab-icon">🏢</span>
+                    Persona Jurídica
+                </button>
+            </div>
+            
+            <!-- Formulario Persona Natural -->
+            <form id="form-natural" class="form-section active">
+                <div class="section-title">📋 Datos Personales</div>
                 
-                <div class="form-group">
-                    <label for="full_name" class="form-label required">Nombre Completo / Razón Social</label>
-                    <input type="text" 
-                           id="full_name" 
-                           name="full_name" 
-                           class="form-control" 
-                           placeholder="Ej: Juan Pérez o Empresa XYZ SAS"
-                           required 
-                           minlength="2"
-                           maxlength="255"
-                           autocomplete="name">
-                </div>
-                
-                <div class="form-row">
+                <div class="form-row two-cols">
                     <div class="form-group">
-                        <label for="document_type" class="form-label">Tipo de Documento</label>
-                        <select id="document_type" 
-                                name="document_type" 
-                                class="form-control">
+                        <label for="nat-full-name" class="form-label required">Nombres y Apellidos</label>
+                        <input type="text" id="nat-full-name" class="form-control" 
+                               placeholder="Juan Carlos Pérez García" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="nat-doc-type" class="form-label required">Tipo de Documento</label>
+                        <select id="nat-doc-type" class="form-control" required>
                             <option value="">Seleccione...</option>
-                            <option value="NIT">NIT</option>
                             <option value="CC">Cédula de Ciudadanía</option>
                             <option value="CE">Cédula de Extranjería</option>
-                            <option value="PA">Pasaporte</option>
-                            <option value="TI">Tarjeta de Identidad</option>
+                            <option value="PASAPORTE">Pasaporte</option>
                         </select>
                     </div>
-                    
+                </div>
+                
+                <div class="form-row two-cols">
                     <div class="form-group">
-                        <label for="document_number" class="form-label">Número de Documento</label>
-                        <input type="text" 
-                               id="document_number" 
-                               name="document_number" 
-                               class="form-control" 
-                               placeholder="Ej: 900123456-7">
+                        <label for="nat-doc-number" class="form-label required">Número de Documento</label>
+                        <input type="text" id="nat-doc-number" class="form-control" 
+                               placeholder="1234567890" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="nat-phone" class="form-label">Teléfono</label>
+                        <input type="tel" id="nat-phone" class="form-control" 
+                               placeholder="3001234567">
                     </div>
                 </div>
                 
                 <div class="form-group">
-                    <label for="phone" class="form-label">Teléfono</label>
-                    <input type="tel" 
-                           id="phone" 
-                           name="phone" 
-                           class="form-control" 
-                           placeholder="Ej: 3001234567"
-                           autocomplete="tel">
+                    <label for="nat-address" class="form-label">Dirección</label>
+                    <input type="text" id="nat-address" class="form-control" 
+                           placeholder="Calle 10 #20-30, Barrio Centro">
+                    <small class="form-text">El municipio se autocompleta con el de la plataforma</small>
                 </div>
                 
                 <div class="form-group">
-                    <label for="password" class="form-label required">Contraseña</label>
-                    <input type="password" 
-                           id="password" 
-                           name="password" 
-                           class="form-control" 
-                           placeholder="Ingrese una contraseña segura"
-                           required 
-                           minlength="8"
-                           maxlength="100"
-                           autocomplete="new-password">
-                    <div class="password-requirements">
-                        <strong>La contraseña debe contener:</strong>
-                        <ul id="password-checks">
-                            <li id="check-length" class="invalid">• Al menos 8 caracteres</li>
-                            <li id="check-uppercase" class="invalid">• Una letra mayúscula</li>
-                            <li id="check-lowercase" class="invalid">• Una letra minúscula</li>
-                            <li id="check-number" class="invalid">• Un número</li>
-                        </ul>
+                    <label for="nat-nit" class="form-label">NIT (si tiene actividad económica)</label>
+                    <input type="text" id="nat-nit" class="form-control" 
+                           placeholder="1234567890-1">
+                    <small class="form-text">Opcional. Solo si tiene actividad económica registrada</small>
+                </div>
+                
+                <div class="section-title">🔐 Datos de Acceso</div>
+                
+                <div class="form-group">
+                    <label for="nat-email" class="form-label required">Correo Electrónico</label>
+                    <input type="email" id="nat-email" class="form-control" 
+                           placeholder="correo@ejemplo.com" required>
+                </div>
+                
+                <div class="form-row two-cols">
+                    <div class="form-group">
+                        <label for="nat-password" class="form-label required">Contraseña</label>
+                        <input type="password" id="nat-password" class="form-control" 
+                               placeholder="••••••••" minlength="8" required>
+                        <small class="form-text">Mínimo 8 caracteres, una mayúscula, una minúscula y un número</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="nat-password-confirm" class="form-label required">Confirmar Contraseña</label>
+                        <input type="password" id="nat-password-confirm" class="form-control" 
+                               placeholder="••••••••" minlength="8" required>
+                    </div>
+                </div>
+                
+                <div class="terms-check">
+                    <input type="checkbox" id="nat-terms" required>
+                    <label for="nat-terms">
+                        Acepto los términos y condiciones de uso del sistema y autorizo el tratamiento de mis datos personales 
+                        según la política de privacidad.
+                    </label>
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;">
+                    📝 Registrarme como Persona Natural
+                </button>
+            </form>
+            
+            <!-- Formulario Persona Jurídica -->
+            <form id="form-juridica" class="form-section">
+                <div class="section-title">🏢 Datos de la Empresa</div>
+                
+                <div class="form-group">
+                    <label for="jur-company-name" class="form-label required">Razón Social</label>
+                    <input type="text" id="jur-company-name" class="form-control" 
+                           placeholder="Empresa S.A.S." required>
+                </div>
+                
+                <div class="form-row three-cols">
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label for="jur-nit" class="form-label required">NIT</label>
+                        <input type="text" id="jur-nit" class="form-control" 
+                               placeholder="900123456" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="jur-nit-dv" class="form-label">DV</label>
+                        <input type="text" id="jur-nit-dv" class="form-control" 
+                               placeholder="1" maxlength="1">
                     </div>
                 </div>
                 
                 <div class="form-group">
-                    <label for="confirm_password" class="form-label required">Confirmar Contraseña</label>
-                    <input type="password" 
-                           id="confirm_password" 
-                           name="confirm_password" 
-                           class="form-control" 
-                           placeholder="Repita su contraseña"
-                           required 
-                           minlength="8"
-                           autocomplete="new-password">
+                    <label for="jur-company-address" class="form-label">Dirección de la Empresa</label>
+                    <input type="text" id="jur-company-address" class="form-control" 
+                           placeholder="Carrera 15 #85-20, Oficina 301">
                 </div>
                 
-                <button type="submit" class="btn btn-primary btn-lg" id="submit-btn">
-                    Crear Cuenta
+                <div class="form-row two-cols">
+                    <div class="form-group">
+                        <label for="jur-company-phone" class="form-label">Teléfono de la Empresa</label>
+                        <input type="tel" id="jur-company-phone" class="form-control" 
+                               placeholder="6012345678">
+                    </div>
+                    <div class="form-group">
+                        <label for="jur-company-email" class="form-label">Email Corporativo</label>
+                        <input type="email" id="jur-company-email" class="form-control" 
+                               placeholder="contacto@empresa.com">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="jur-economic-activity" class="form-label">Actividad Económica Principal</label>
+                    <input type="text" id="jur-economic-activity" class="form-control" 
+                           placeholder="Comercio al por menor">
+                </div>
+                
+                <div class="section-title">👔 Datos del Representante Legal</div>
+                <div class="alert alert-info" style="margin-bottom: 1rem;">
+                    <strong>📌 Importante:</strong> El representante legal es quien accederá al sistema y firmará las declaraciones.
+                    Los datos de la empresa y del representante se usarán para autocompletar el formulario ICA.
+                </div>
+                
+                <div class="form-row two-cols">
+                    <div class="form-group">
+                        <label for="jur-rep-name" class="form-label required">Nombres y Apellidos</label>
+                        <input type="text" id="jur-rep-name" class="form-control" 
+                               placeholder="María González López" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="jur-rep-doc-type" class="form-label required">Tipo de Documento</label>
+                        <select id="jur-rep-doc-type" class="form-control" required>
+                            <option value="">Seleccione...</option>
+                            <option value="CC">Cédula de Ciudadanía</option>
+                            <option value="CE">Cédula de Extranjería</option>
+                            <option value="PASAPORTE">Pasaporte</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row two-cols">
+                    <div class="form-group">
+                        <label for="jur-rep-doc-number" class="form-label required">Número de Documento</label>
+                        <input type="text" id="jur-rep-doc-number" class="form-control" 
+                               placeholder="1234567890" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="jur-rep-phone" class="form-label">Teléfono Personal</label>
+                        <input type="tel" id="jur-rep-phone" class="form-control" 
+                               placeholder="3009876543">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="jur-rep-address" class="form-label">Dirección Personal</label>
+                    <input type="text" id="jur-rep-address" class="form-control" 
+                           placeholder="Calle 50 #10-20">
+                </div>
+                
+                <div class="section-title">🔐 Datos de Acceso del Representante Legal</div>
+                
+                <div class="form-group">
+                    <label for="jur-email" class="form-label required">Correo Electrónico</label>
+                    <input type="email" id="jur-email" class="form-control" 
+                           placeholder="representante@empresa.com" required>
+                    <small class="form-text">Este correo se usará para iniciar sesión</small>
+                </div>
+                
+                <div class="form-row two-cols">
+                    <div class="form-group">
+                        <label for="jur-password" class="form-label required">Contraseña</label>
+                        <input type="password" id="jur-password" class="form-control" 
+                               placeholder="••••••••" minlength="8" required>
+                        <small class="form-text">Mínimo 8 caracteres, una mayúscula, una minúscula y un número</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="jur-password-confirm" class="form-label required">Confirmar Contraseña</label>
+                        <input type="password" id="jur-password-confirm" class="form-control" 
+                               placeholder="••••••••" minlength="8" required>
+                    </div>
+                </div>
+                
+                <div class="terms-check">
+                    <input type="checkbox" id="jur-terms" required>
+                    <label for="jur-terms">
+                        En representación de la empresa, acepto los términos y condiciones de uso del sistema y autorizo 
+                        el tratamiento de los datos personales y empresariales según la política de privacidad.
+                    </label>
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;">
+                    🏢 Registrar Empresa (Persona Jurídica)
                 </button>
             </form>
             
@@ -232,137 +469,184 @@
     
     <script src="../js/api.js"></script>
     <script>
-        // Validación de contraseña en tiempo real
-        const passwordInput = document.getElementById('password');
-        const confirmPasswordInput = document.getElementById('confirm_password');
+        // ==================== CARGAR INFORMACIÓN DEL MUNICIPIO ====================
+        async function loadPlatformMunicipality() {
+            try {
+                const data = await AuthAPI.getPlatformMunicipality();
+                
+                if (data.municipality) {
+                    document.getElementById('platform-muni-name').textContent = 
+                        `${data.municipality.name}, ${data.municipality.department}`;
+                    document.getElementById('platform-muni-detail').textContent = 
+                        `Código DANE: ${data.municipality.code} - Los usuarios registrados quedarán asociados a este municipio`;
+                } else {
+                    document.getElementById('platform-muni-name').textContent = 'Plataforma no configurada';
+                    document.getElementById('platform-muni-detail').textContent = 
+                        'Contacte al administrador para configurar el municipio de la plataforma';
+                }
+            } catch (error) {
+                console.error('Error loading platform municipality:', error);
+                document.getElementById('platform-muni-name').textContent = 'Error al cargar';
+            }
+        }
         
-        passwordInput.addEventListener('input', function() {
-            const password = this.value;
-            
-            // Verificar longitud
-            const checkLength = document.getElementById('check-length');
-            if (password.length >= 8) {
-                checkLength.classList.remove('invalid');
-                checkLength.classList.add('valid');
-            } else {
-                checkLength.classList.remove('valid');
-                checkLength.classList.add('invalid');
-            }
-            
-            // Verificar mayúscula
-            const checkUppercase = document.getElementById('check-uppercase');
-            if (/[A-Z]/.test(password)) {
-                checkUppercase.classList.remove('invalid');
-                checkUppercase.classList.add('valid');
-            } else {
-                checkUppercase.classList.remove('valid');
-                checkUppercase.classList.add('invalid');
-            }
-            
-            // Verificar minúscula
-            const checkLowercase = document.getElementById('check-lowercase');
-            if (/[a-z]/.test(password)) {
-                checkLowercase.classList.remove('invalid');
-                checkLowercase.classList.add('valid');
-            } else {
-                checkLowercase.classList.remove('valid');
-                checkLowercase.classList.add('invalid');
-            }
-            
-            // Verificar número
-            const checkNumber = document.getElementById('check-number');
-            if (/\d/.test(password)) {
-                checkNumber.classList.remove('invalid');
-                checkNumber.classList.add('valid');
-            } else {
-                checkNumber.classList.remove('valid');
-                checkNumber.classList.add('invalid');
-            }
-        });
+        loadPlatformMunicipality();
         
-        // Manejo del formulario
-        document.getElementById('register-form').addEventListener('submit', async function(e) {
+        // ==================== SELECCIÓN DE TIPO DE PERSONA ====================
+        function selectPersonType(type) {
+            // Actualizar tabs
+            document.querySelectorAll('.person-type-tab').forEach(tab => {
+                tab.classList.remove('active');
+                if (tab.dataset.type === type) {
+                    tab.classList.add('active');
+                }
+            });
+            
+            // Mostrar formulario correspondiente
+            document.querySelectorAll('.form-section').forEach(form => {
+                form.classList.remove('active');
+            });
+            document.getElementById(`form-${type}`).classList.add('active');
+        }
+        
+        // ==================== VALIDACIÓN DE CONTRASEÑA ====================
+        function validatePassword(password) {
+            if (password.length < 8) {
+                return 'La contraseña debe tener al menos 8 caracteres';
+            }
+            if (!/[A-Z]/.test(password)) {
+                return 'La contraseña debe contener al menos una mayúscula';
+            }
+            if (!/[a-z]/.test(password)) {
+                return 'La contraseña debe contener al menos una minúscula';
+            }
+            if (!/\d/.test(password)) {
+                return 'La contraseña debe contener al menos un número';
+            }
+            return null;
+        }
+        
+        // ==================== FORMULARIO PERSONA NATURAL ====================
+        document.getElementById('form-natural').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const email = document.getElementById('email').value;
-            const fullName = document.getElementById('full_name').value;
-            const documentType = document.getElementById('document_type').value;
-            const documentNumber = document.getElementById('document_number').value;
-            const phone = document.getElementById('phone').value;
-            const password = document.getElementById('password').value;
-            const confirmPassword = document.getElementById('confirm_password').value;
+            const password = document.getElementById('nat-password').value;
+            const passwordConfirm = document.getElementById('nat-password-confirm').value;
             
-            // Validaciones
-            if (!email || !fullName || !password || !confirmPassword) {
-                showLocalAlert('Por favor complete todos los campos obligatorios', 'warning');
+            // Validar contraseñas
+            const passwordError = validatePassword(password);
+            if (passwordError) {
+                showAlert(passwordError, 'danger');
                 return;
             }
             
-            if (password !== confirmPassword) {
-                showLocalAlert('Las contraseñas no coinciden', 'warning');
+            if (password !== passwordConfirm) {
+                showAlert('Las contraseñas no coinciden', 'danger');
                 return;
             }
             
-            // Validar requisitos de contraseña
-            if (password.length < 8) {
-                showLocalAlert('La contraseña debe tener al menos 8 caracteres', 'warning');
+            if (!document.getElementById('nat-terms').checked) {
+                showAlert('Debe aceptar los términos y condiciones', 'danger');
                 return;
             }
             
-            if (!/[A-Z]/.test(password)) {
-                showLocalAlert('La contraseña debe contener al menos una mayúscula', 'warning');
-                return;
-            }
-            
-            if (!/[a-z]/.test(password)) {
-                showLocalAlert('La contraseña debe contener al menos una minúscula', 'warning');
-                return;
-            }
-            
-            if (!/\d/.test(password)) {
-                showLocalAlert('La contraseña debe contener al menos un número', 'warning');
-                return;
-            }
+            const userData = {
+                full_name: document.getElementById('nat-full-name').value,
+                document_type: document.getElementById('nat-doc-type').value,
+                document_number: document.getElementById('nat-doc-number').value,
+                phone: document.getElementById('nat-phone').value || null,
+                address: document.getElementById('nat-address').value || null,
+                nit: document.getElementById('nat-nit').value || null,
+                email: document.getElementById('nat-email').value,
+                password: password
+            };
             
             try {
                 showLoading();
+                await AuthAPI.registerNatural(userData);
+                hideLoading();
                 
-                const userData = {
-                    email: email,
-                    password: password,
-                    full_name: fullName,
-                    document_type: documentType || null,
-                    document_number: documentNumber || null,
-                    phone: phone || null
-                };
+                showAlert('✅ Registro exitoso. Ahora puede iniciar sesión.', 'success');
                 
-                await AuthAPI.register(userData);
-                
-                // Mostrar mensaje de éxito
-                showLocalAlert('¡Cuenta creada exitosamente! Redirigiendo al login...', 'success');
-                
-                // Redirigir al login después de 2 segundos
                 setTimeout(() => {
                     window.location.href = 'login.html';
                 }, 2000);
-                
             } catch (error) {
                 hideLoading();
-                showLocalAlert('Error al crear la cuenta: ' + error.message, 'danger');
+                showAlert('❌ Error: ' + error.message, 'danger');
             }
         });
         
+        // ==================== FORMULARIO PERSONA JURÍDICA ====================
+        document.getElementById('form-juridica').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const password = document.getElementById('jur-password').value;
+            const passwordConfirm = document.getElementById('jur-password-confirm').value;
+            
+            // Validar contraseñas
+            const passwordError = validatePassword(password);
+            if (passwordError) {
+                showAlert(passwordError, 'danger');
+                return;
+            }
+            
+            if (password !== passwordConfirm) {
+                showAlert('Las contraseñas no coinciden', 'danger');
+                return;
+            }
+            
+            if (!document.getElementById('jur-terms').checked) {
+                showAlert('Debe aceptar los términos y condiciones', 'danger');
+                return;
+            }
+            
+            const userData = {
+                // Datos de la empresa
+                company_name: document.getElementById('jur-company-name').value,
+                nit: document.getElementById('jur-nit').value,
+                nit_verification_digit: document.getElementById('jur-nit-dv').value || null,
+                company_address: document.getElementById('jur-company-address').value || null,
+                company_phone: document.getElementById('jur-company-phone').value || null,
+                company_email: document.getElementById('jur-company-email').value || null,
+                economic_activity: document.getElementById('jur-economic-activity').value || null,
+                
+                // Datos del representante legal
+                full_name: document.getElementById('jur-rep-name').value,
+                document_type: document.getElementById('jur-rep-doc-type').value,
+                document_number: document.getElementById('jur-rep-doc-number').value,
+                phone: document.getElementById('jur-rep-phone').value || null,
+                address: document.getElementById('jur-rep-address').value || null,
+                email: document.getElementById('jur-email').value,
+                password: password
+            };
+            
+            try {
+                showLoading();
+                await AuthAPI.registerJuridica(userData);
+                hideLoading();
+                
+                showAlert('✅ Empresa registrada exitosamente. Ahora puede iniciar sesión.', 'success');
+                
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+            } catch (error) {
+                hideLoading();
+                showAlert('❌ Error: ' + error.message, 'danger');
+            }
+        });
+        
+        // ==================== FUNCIONES AUXILIARES ====================
         function showLoading() {
             document.getElementById('loading-overlay').classList.add('active');
-            document.getElementById('submit-btn').disabled = true;
         }
         
         function hideLoading() {
             document.getElementById('loading-overlay').classList.remove('active');
-            document.getElementById('submit-btn').disabled = false;
         }
         
-        function showLocalAlert(message, type) {
+        function showAlert(message, type) {
             const container = document.getElementById('alert-container');
             container.innerHTML = `
                 <div class="alert alert-${type}">
@@ -370,10 +654,11 @@
                 </div>
             `;
             
+            // Scroll al mensaje
+            container.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
             setTimeout(() => {
-                if (type !== 'success') {
-                    container.innerHTML = '';
-                }
+                container.innerHTML = '';
             }, 5000);
         }
         
@@ -384,3 +669,4 @@
     </script>
 </body>
 </html>
+
