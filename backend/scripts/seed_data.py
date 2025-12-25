@@ -14,7 +14,7 @@ sys.path.insert(0, str(root_dir))
 
 from sqlalchemy.orm import Session
 from app.db.database import SessionLocal, engine, Base
-from app.models.models import User, UserRole
+from app.models.models import User, UserRole, PersonType
 from app.core.security import get_password_hash
 
 
@@ -23,41 +23,58 @@ def seed_users(db: Session):
     
     # Lista de usuarios de prueba
     test_users = [
+        # Usuario PERSONA NATURAL
         {
             "email": "contribuyente@example.com",
-            "password": "Test1234!",
-            "full_name": "Juan Pérez Empresa SAS",
-            "document_type": "NIT",
-            "document_number": "900123456-7",
+            "password": "Contrib2024!",
+            "full_name": "Juan Carlos Pérez García",
+            "document_type": "CC",
+            "document_number": "1234567890",
             "phone": "3001234567",
-            "role": UserRole.DECLARANTE
+            "address": "Carrera 15 #45-67, Barrio Centro",
+            "role": UserRole.DECLARANTE,
+            "person_type": PersonType.NATURAL
         },
+        # Usuario PERSONA JURÍDICA (Empresa)
         {
             "email": "empresa@demo.com",
-            "password": "Demo2024!",
-            "full_name": "Comercial Demo LTDA",
-            "document_type": "NIT",
-            "document_number": "890456789-2",
+            "password": "Empresa2024!",
+            "full_name": "Pedro Martínez López",  # Representante Legal
+            "document_type": "CC",
+            "document_number": "9876543210",
             "phone": "3109876543",
-            "role": UserRole.DECLARANTE
+            "role": UserRole.DECLARANTE,
+            "person_type": PersonType.JURIDICA,
+            # Datos de la empresa
+            "company_name": "Comercial Demo S.A.S.",
+            "nit": "890456789",
+            "nit_verification_digit": "2",
+            "company_address": "Calle 100 #15-20, Zona Industrial",
+            "company_phone": "6012345678",
+            "company_email": "contacto@comercialdemo.com",
+            "economic_activity": "Comercio al por mayor"
         },
+        # Administrador de Alcaldía
         {
             "email": "admin@alcaldia.gov.co",
             "password": "Admin2024!",
             "full_name": "María González Administradora",
             "document_type": "CC",
-            "document_number": "899999123-1",
+            "document_number": "52345678",
             "phone": "3157891234",
-            "role": UserRole.ADMIN_ALCALDIA
+            "role": UserRole.ADMIN_ALCALDIA,
+            "person_type": PersonType.NATURAL
         },
+        # Super Administrador del Sistema
         {
             "email": "superadmin@sistema.com",
             "password": "Super2024!",
             "full_name": "Carlos Rodríguez SuperAdmin",
             "document_type": "CC",
-            "document_number": "800000000-0",
+            "document_number": "11223344",
             "phone": "3201234567",
-            "role": UserRole.ADMIN_SISTEMA
+            "role": UserRole.ADMIN_SISTEMA,
+            "person_type": PersonType.NATURAL
         }
     ]
     
@@ -75,7 +92,7 @@ def seed_users(db: Session):
             # Hash de contraseña
             hashed_password = get_password_hash(user_data["password"])
             
-            # Crear usuario
+            # Crear usuario con todos los campos
             user = User(
                 email=user_data["email"],
                 hashed_password=hashed_password,
@@ -83,13 +100,25 @@ def seed_users(db: Session):
                 document_type=user_data.get("document_type"),
                 document_number=user_data.get("document_number"),
                 phone=user_data.get("phone"),
+                address=user_data.get("address"),
                 role=user_data["role"],
-                is_active=True
+                is_active=True,
+                # Tipo de persona
+                person_type=user_data.get("person_type", PersonType.NATURAL),
+                # Campos persona jurídica
+                company_name=user_data.get("company_name"),
+                nit=user_data.get("nit"),
+                nit_verification_digit=user_data.get("nit_verification_digit"),
+                company_address=user_data.get("company_address"),
+                company_phone=user_data.get("company_phone"),
+                company_email=user_data.get("company_email"),
+                economic_activity=user_data.get("economic_activity")
             )
             
             db.add(user)
             created_count += 1
-            print(f"✅ Usuario creado: {user_data['email']} ({user_data['role'].value})")
+            person_type = user_data.get("person_type", PersonType.NATURAL)
+            print(f"✅ Usuario creado: {user_data['email']} ({user_data['role'].value}) - Tipo: {person_type.value}")
         else:
             existing_count += 1
             print(f"⚠️  Usuario ya existe: {user_data['email']}")
@@ -131,16 +160,21 @@ def main():
         if created > 0:
             print("\n🎉 ¡Datos de prueba importados exitosamente!")
             print("\n📖 Credenciales de acceso:")
-            print("\n   Usuario Contribuyente:")
+            print("\n   👤 PERSONA NATURAL (Contribuyente):")
             print("   - Email: contribuyente@example.com")
-            print("   - Contraseña: Test1234!")
-            print("\n   Usuario Empresa:")
+            print("   - Contraseña: Contrib2024!")
+            print("   - Nombre: Juan Carlos Pérez García")
+            print("   - Documento: CC 1234567890")
+            print("\n   🏢 PERSONA JURÍDICA (Empresa):")
             print("   - Email: empresa@demo.com")
-            print("   - Contraseña: Demo2024!")
-            print("\n   Admin Alcaldía:")
+            print("   - Contraseña: Empresa2024!")
+            print("   - Empresa: Comercial Demo S.A.S.")
+            print("   - NIT: 890456789-2")
+            print("   - Rep. Legal: Pedro Martínez López")
+            print("\n   🏛️ Admin Alcaldía:")
             print("   - Email: admin@alcaldia.gov.co")
             print("   - Contraseña: Admin2024!")
-            print("\n   Super Admin:")
+            print("\n   👑 Super Admin:")
             print("   - Email: superadmin@sistema.com")
             print("   - Contraseña: Super2024!")
             print("\n📚 Ver más detalles en: docs/DATOS_PRUEBA.md")

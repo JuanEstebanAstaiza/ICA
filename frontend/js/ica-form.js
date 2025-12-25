@@ -339,8 +339,8 @@ class ICAFormController {
         
         // Ley 56 de 1981 - Generación de energía
         const row18_energy_kw = this.getValue('row_18_energy_kw');
-        // TODO: Obtener tarifa por kW de parámetros del municipio
-        const law56Rate = 0; // Por ahora en 0, debería venir de formulaParameters
+        // Obtener tarifa por kW de parámetros del municipio (si están disponibles)
+        const law56Rate = window.formulaParameters?.ley56_tarifa_kw || 0;
         const row19_law56 = ICACalculator.calculateLaw56Tax(row18_energy_kw, law56Rate);
         this.setValue('row_19_law56', row19_law56);
         

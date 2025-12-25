@@ -175,19 +175,28 @@
                         👤 SECCIÓN A – INFORMACIÓN DEL CONTRIBUYENTE
                     </div>
                     <div class="card-body">
+                        <!-- Indicador de campos autocompletados -->
+                        <div class="alert alert-info" style="margin-bottom: 1rem; background: linear-gradient(135deg, #f0f9ff, #e0f2fe); border-left: 4px solid #0284c7;">
+                            <strong>📋 Campos Autocompletados:</strong> Los datos del contribuyente se han rellenado automáticamente 
+                            con la información de su registro. Estos campos son <strong>OBLIGATORIOS</strong> por convención institucional 
+                            nacional y deben ser verificados antes de enviar la declaración.
+                        </div>
+                        
                         <!-- Renglón 1: Nombres y apellidos o razón social -->
                         <div class="section-title">1. Apellidos y nombres / Razón social</div>
                         <div class="row">
                             <div class="col-9">
                                 <div class="form-group">
                                     <label for="legal_name" class="form-label required">Nombres y Apellidos o Razón Social</label>
-                                    <input type="text" id="legal_name" class="form-control" required placeholder="Ingrese nombre completo o razón social">
+                                    <input type="text" id="legal_name" class="form-control" required placeholder="Ingrese nombre completo o razón social"
+                                           style="background-color: #f0fdf4;">
+                                    <small class="form-text" style="color: #059669;">✓ Campo obligatorio - autocompletado desde registro</small>
                                 </div>
                             </div>
                             <div class="col-3">
                                 <div class="form-group">
-                                    <label for="entity_type" class="form-label">Tipo de entidad</label>
-                                    <select id="entity_type" class="form-control">
+                                    <label for="entity_type" class="form-label required">Tipo de entidad</label>
+                                    <select id="entity_type" class="form-control" required>
                                         <option value="privada">Privada</option>
                                         <option value="publica">Pública</option>
                                     </select>
@@ -201,7 +210,7 @@
                             <div class="col-2">
                                 <div class="form-group">
                                     <label for="document_type" class="form-label required">Tipo Documento</label>
-                                    <select id="document_type" class="form-control" required>
+                                    <select id="document_type" class="form-control" required style="background-color: #f0fdf4;">
                                         <option value="">Seleccione...</option>
                                         <option value="CC">CC - Cédula de Ciudadanía</option>
                                         <option value="NIT">NIT - Número de Identificación Tributaria</option>
@@ -214,13 +223,16 @@
                             <div class="col-3">
                                 <div class="form-group">
                                     <label for="document_number" class="form-label required">Número de Documento</label>
-                                    <input type="text" id="document_number" class="form-control" required placeholder="Ej: 1234567890">
+                                    <input type="text" id="document_number" class="form-control" required placeholder="Ej: 1234567890"
+                                           style="background-color: #f0fdf4;">
+                                    <small class="form-text" style="color: #059669;">✓ Obligatorio</small>
                                 </div>
                             </div>
                             <div class="col-1">
                                 <div class="form-group">
                                     <label for="verification_digit" class="form-label">DV</label>
-                                    <input type="text" id="verification_digit" class="form-control" maxlength="1" placeholder="0">
+                                    <input type="text" id="verification_digit" class="form-control" maxlength="1" placeholder="0"
+                                           style="background-color: #f0fdf4;">
                                 </div>
                             </div>
                             <div class="col-3">
@@ -248,20 +260,24 @@
                         <div class="row">
                             <div class="col-6">
                                 <div class="form-group">
-                                    <label for="address" class="form-label">Dirección</label>
-                                    <input type="text" id="address" class="form-control" placeholder="Dirección completa para notificaciones">
+                                    <label for="address" class="form-label required">Dirección</label>
+                                    <input type="text" id="address" class="form-control" required placeholder="Dirección completa para notificaciones"
+                                           style="background-color: #f0fdf4;">
+                                    <small class="form-text" style="color: #059669;">✓ Obligatorio</small>
                                 </div>
                             </div>
                             <div class="col-3">
                                 <div class="form-group">
-                                    <label for="taxpayer_department" class="form-label">Departamento</label>
-                                    <input type="text" id="taxpayer_department" class="form-control" placeholder="Departamento">
+                                    <label for="taxpayer_department" class="form-label required">Departamento</label>
+                                    <input type="text" id="taxpayer_department" class="form-control" required placeholder="Departamento"
+                                           style="background-color: #f0fdf4;">
                                 </div>
                             </div>
                             <div class="col-3">
                                 <div class="form-group">
-                                    <label for="taxpayer_municipality" class="form-label">Municipio</label>
-                                    <input type="text" id="taxpayer_municipality" class="form-control" placeholder="Municipio">
+                                    <label for="taxpayer_municipality" class="form-label required">Municipio</label>
+                                    <input type="text" id="taxpayer_municipality" class="form-control" required placeholder="Municipio"
+                                           style="background-color: #f0fdf4;">
                                 </div>
                             </div>
                         </div>
@@ -271,8 +287,10 @@
                         <div class="row">
                             <div class="col-4">
                                 <div class="form-group">
-                                    <label for="phone" class="form-label">Teléfono</label>
-                                    <input type="tel" id="phone" class="form-control" placeholder="Ej: 3001234567">
+                                    <label for="phone" class="form-label required">Teléfono</label>
+                                    <input type="tel" id="phone" class="form-control" required placeholder="Ej: 3001234567"
+                                           style="background-color: #f0fdf4;">
+                                    <small class="form-text" style="color: #059669;">✓ Obligatorio</small>
                                 </div>
                             </div>
                         </div>
@@ -282,8 +300,10 @@
                         <div class="row">
                             <div class="col-5">
                                 <div class="form-group">
-                                    <label for="email" class="form-label">Correo Electrónico</label>
-                                    <input type="email" id="email" class="form-control" autocomplete="email" placeholder="correo@ejemplo.com">
+                                    <label for="email" class="form-label required">Correo Electrónico</label>
+                                    <input type="email" id="email" class="form-control" required autocomplete="email" placeholder="correo@ejemplo.com"
+                                           style="background-color: #f0fdf4;">
+                                    <small class="form-text" style="color: #059669;">✓ Obligatorio</small>
                                 </div>
                             </div>
                         </div>
@@ -394,6 +414,11 @@
                                 <input type="number" id="row_15" class="form-control" readonly>
                             </div>
                         </div>
+                        
+                        <!-- Verificación Sección C -->
+                        <div id="section-c-verification" class="alert" style="margin-top: 1rem; display: none;">
+                            <div id="verification-content"></div>
+                        </div>
                     </div>
                 </div>
 
@@ -488,11 +513,23 @@
                             </div>
                         </div>
                         
-                        <div class="ica-row">
+                        <div class="ica-row" id="row_21_container">
                             <div class="ica-row-number">21</div>
-                            <div class="ica-row-label">Impuesto de avisos y tableros</div>
+                            <div class="ica-row-label">
+                                <div style="display: flex; align-items: center; gap: 1rem;">
+                                    <span>Impuesto de avisos y tableros</span>
+                                    <label class="checkbox-label" style="display: flex; align-items: center; gap: 0.5rem; font-weight: normal; cursor: pointer;">
+                                        <input type="checkbox" id="uses_signs_boards" style="width: auto; margin: 0;">
+                                        <span style="font-size: 0.875rem; color: #4b5563;">¿Usa avisos y tableros en el municipio?</span>
+                                    </label>
+                                </div>
+                                <small id="row_21_formula" style="color: #6b7280; display: none;">
+                                    (Calculado: Renglón 20 × <span id="avisos_rate_display">15</span>%)
+                                </small>
+                            </div>
                             <div class="ica-row-value">
-                                <input type="number" id="row_21" class="form-control" min="0" step="0.01" value="0">
+                                <input type="number" id="row_21" class="form-control" min="0" step="0.01" value="0" readonly 
+                                       style="background-color: #f3f4f6;">
                             </div>
                         </div>
                         
@@ -718,11 +755,14 @@
                                 </button>
                             </div>
                             <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-info btn-lg" id="btn-preview-pdf">
+                                    👁️ Vista Previa PDF
+                                </button>
                                 <button type="button" class="btn btn-success btn-lg" id="btn-open-signature">
                                     ✍️ Firmar Declaración
                                 </button>
                                 <button type="button" class="btn btn-secondary btn-lg" id="btn-generate-pdf">
-                                    📄 Generar PDF
+                                    📄 Descargar PDF
                                 </button>
                             </div>
                         </div>
@@ -744,17 +784,27 @@
                     <strong>⚠️ Atención:</strong> Una vez firmada la declaración, queda bloqueada para edición.
                 </div>
                 
-                <div class="section-title">FIRMA DEL DECLARANTE</div>
+                <!-- Indicador para persona jurídica -->
+                <div id="juridica-signature-info" class="alert alert-info mb-3" style="display: none; background: linear-gradient(135deg, #dbeafe, #bfdbfe); border-left: 4px solid #2563eb;">
+                    <strong>🏢 Firma como Representante Legal:</strong> Los datos de firma corresponden al representante legal 
+                    registrado de la empresa. Esta información es <strong>OBLIGATORIA</strong> y se usa para validar la declaración.
+                </div>
+                
+                <div class="section-title">FIRMA DEL DECLARANTE / REPRESENTANTE LEGAL</div>
                 <div class="form-group">
-                    <label for="declarant_name" class="form-label required">Nombre</label>
-                    <input type="text" id="declarant_name" class="form-control" required placeholder="Nombre completo">
+                    <label for="declarant_name" class="form-label required">Nombre Completo</label>
+                    <input type="text" id="declarant_name" class="form-control" required placeholder="Nombre completo"
+                           style="background-color: #f0fdf4;">
+                    <small class="form-text" style="color: #059669;">✓ Campo obligatorio - autocompletado desde registro</small>
                 </div>
                 
                 <div class="row">
                     <div class="col-6">
                         <div class="form-group">
-                            <label for="declarant_document" class="form-label">Documento</label>
-                            <input type="text" id="declarant_document" class="form-control" placeholder="Número de documento">
+                            <label for="declarant_document" class="form-label required">Número de Documento</label>
+                            <input type="text" id="declarant_document" class="form-control" required placeholder="Número de documento"
+                                   style="background-color: #f0fdf4;">
+                            <small class="form-text" style="color: #059669;">✓ Obligatorio</small>
                         </div>
                     </div>
                     <div class="col-6">
@@ -836,6 +886,37 @@
         </div>
     </div>
     
+    <!-- Modal de Vista Previa PDF -->
+    <div id="pdf-preview-modal" class="modal-overlay">
+        <div class="modal" style="max-width: 900px; width: 95%; max-height: 95vh;">
+            <div class="modal-header">
+                <h2 class="modal-title">👁️ Vista Previa de la Declaración</h2>
+                <button type="button" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 0; height: 70vh;">
+                <iframe id="pdf-preview-frame" style="width: 100%; height: 100%; border: none;"></iframe>
+                <div id="pdf-preview-loading" class="text-center" style="padding: 3rem; display: none;">
+                    <div class="spinner"></div>
+                    <p style="margin-top: 1rem;">Generando vista previa...</p>
+                </div>
+                <div id="pdf-preview-error" class="alert alert-danger" style="margin: 1rem; display: none;"></div>
+            </div>
+            <div class="modal-footer">
+                <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                    <div>
+                        <span id="pdf-preview-status" class="badge" style="font-size: 0.875rem;"></span>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-ghost modal-close">Cerrar</button>
+                        <button type="button" class="btn btn-primary" id="btn-download-from-preview">
+                            📥 Descargar PDF
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <!-- Footer -->
     <footer class="footer">
         <div class="container">
@@ -865,6 +946,20 @@
         
         // Variable global para guardar el municipio del usuario
         let userMunicipalityId = null;
+        let currentUserData = null;
+        
+        // Parámetros de fórmulas del municipio (cargados desde admin)
+        let formulaParameters = {
+            avisos_tableros_rate: 15,        // % sobre el ICA (Renglón 21)
+            sobretasa_bomberil_rate: 0,      // % (Renglón 23)
+            sobretasa_seguridad_rate: 0,     // % (Renglón 24)
+            ley56_tarifa_kw: 0,              // Tarifa por kW (Renglón 19)
+            unidades_financiero_rate: 0,     // (Renglón 22)
+            anticipo_siguiente_rate: 40,     // % (Renglón 30)
+            descuento_pronto_pago_rate: 10,  // % (Renglón 36)
+            descuento_pronto_pago_dias: 30,  // Días límite
+            interes_mora_mensual_rate: 1     // % mensual (Renglón 37)
+        };
         
         // Toggle campos de contador/revisor fiscal
         document.getElementById('requires_fiscal_reviewer').addEventListener('change', function() {
@@ -875,6 +970,7 @@
         async function loadUserData() {
             try {
                 const user = await AuthAPI.getCurrentUser();
+                currentUserData = user;
                 document.getElementById('user-name').textContent = user.full_name;
                 
                 // Guardar el municipio del usuario para auto-selección
@@ -882,11 +978,355 @@
                     userMunicipalityId = user.municipality_id;
                 }
                 
+                // Autocompletar datos según tipo de persona
+                autoFillTaxpayerData(user);
+                autoFillSignatureData(user);
+                
                 return user;
             } catch (error) {
                 console.error('Error loading user:', error);
                 return null;
             }
+        }
+        
+        // Autocompletar SECCIÓN A (Contribuyente) según tipo de persona
+        function autoFillTaxpayerData(user) {
+            if (!user) return;
+            
+            const isJuridica = user.person_type === 'juridica';
+            
+            // IDs de campos que serán autocompletados y deshabilitados
+            const taxpayerFields = [
+                'legal_name', 'document_type', 'document_number', 'verification_digit',
+                'address', 'phone', 'email', 'taxpayer_department', 'taxpayer_municipality'
+            ];
+            
+            if (isJuridica) {
+                // PERSONA JURÍDICA: Usar datos de la empresa
+                document.getElementById('legal_name').value = user.company_name || '';
+                document.getElementById('document_type').value = 'NIT';
+                document.getElementById('document_number').value = user.nit || '';
+                document.getElementById('verification_digit').value = user.nit_verification_digit || '';
+                document.getElementById('address').value = user.company_address || '';
+                document.getElementById('phone').value = user.company_phone || '';
+                document.getElementById('email').value = user.company_email || user.email || '';
+                
+                // Marcar como privada por defecto
+                document.getElementById('entity_type').value = 'privada';
+                
+                // Mostrar indicador de persona jurídica
+                showPersonTypeIndicator('juridica', user.company_name);
+            } else {
+                // PERSONA NATURAL: Usar datos personales
+                document.getElementById('legal_name').value = user.full_name || '';
+                document.getElementById('document_type').value = user.document_type || 'CC';
+                document.getElementById('document_number').value = user.document_number || '';
+                document.getElementById('address').value = user.address || '';
+                document.getElementById('phone').value = user.phone || '';
+                document.getElementById('email').value = user.email || '';
+                
+                // Mostrar indicador de persona natural
+                showPersonTypeIndicator('natural', user.full_name);
+            }
+            
+            // Autocompletar departamento y municipio si tiene municipio asignado
+            if (user.municipality) {
+                document.getElementById('taxpayer_department').value = user.municipality.department || '';
+                document.getElementById('taxpayer_municipality').value = user.municipality.name || '';
+            }
+            
+            // DESHABILITAR campos autocompletados (obligatorios pero no editables)
+            taxpayerFields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                if (field && field.value) {
+                    field.readOnly = true;
+                    field.style.backgroundColor = '#e5e7eb';
+                    field.style.cursor = 'not-allowed';
+                    field.title = 'Campo autocompletado desde su registro - no editable';
+                }
+            });
+        }
+        
+        // Autocompletar SECCIÓN F (Firma) según tipo de persona
+        function autoFillSignatureData(user) {
+            if (!user) return;
+            
+            const isJuridica = user.person_type === 'juridica';
+            
+            if (isJuridica) {
+                // PERSONA JURÍDICA: El representante legal firma (es el usuario logueado)
+                document.getElementById('declarant_name').value = user.full_name || '';
+                document.getElementById('declarant_document').value = user.document_number || '';
+            } else {
+                // PERSONA NATURAL: El usuario mismo firma
+                document.getElementById('declarant_name').value = user.full_name || '';
+                document.getElementById('declarant_document').value = user.document_number || '';
+            }
+            
+            // Deshabilitar campos de firma (autocompletados)
+            const signatureFields = ['declarant_name', 'declarant_document'];
+            signatureFields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                if (field && field.value) {
+                    field.readOnly = true;
+                    field.style.backgroundColor = '#e5e7eb';
+                    field.style.cursor = 'not-allowed';
+                    field.title = 'Campo autocompletado desde su registro - no editable';
+                }
+            });
+            
+            // Mostrar indicador para persona jurídica en el modal de firma
+            const juridicaInfo = document.getElementById('juridica-signature-info');
+            if (juridicaInfo) {
+                juridicaInfo.style.display = user.person_type === 'juridica' ? 'block' : 'none';
+            }
+        }
+        
+        // Mostrar indicador visual del tipo de persona
+        function showPersonTypeIndicator(type, name) {
+            const alertContainer = document.getElementById('alert-container');
+            
+            // Remover indicador previo si existe
+            const existingIndicator = document.getElementById('person-type-indicator');
+            if (existingIndicator) {
+                existingIndicator.remove();
+            }
+            
+            const isJuridica = type === 'juridica';
+            const indicator = document.createElement('div');
+            indicator.id = 'person-type-indicator';
+            indicator.className = 'alert';
+            indicator.style.cssText = isJuridica 
+                ? 'background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-left: 4px solid #2563eb; margin-bottom: 1rem;'
+                : 'background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); border-left: 4px solid #10b981; margin-bottom: 1rem;';
+            
+            indicator.innerHTML = isJuridica
+                ? `<strong>🏢 Declaración como PERSONA JURÍDICA</strong><br>
+                   <span style="font-size: 0.875rem;">Empresa: ${name || 'N/A'}<br>
+                   Los datos del contribuyente se han autocompletado con la información de la empresa.<br>
+                   La firma corresponde al representante legal registrado.</span>`
+                : `<strong>👤 Declaración como PERSONA NATURAL</strong><br>
+                   <span style="font-size: 0.875rem;">Contribuyente: ${name || 'N/A'}<br>
+                   Los datos se han autocompletado con su información de registro.</span>`;
+            
+            alertContainer.insertBefore(indicator, alertContainer.firstChild);
+        }
+        
+        // Cargar parámetros de fórmulas del municipio
+        async function loadFormulaParameters(municipalityId) {
+            try {
+                const params = await AdminAPI.getFormulaParameters(municipalityId);
+                if (params) {
+                    // Mapear nombres del backend a nombres locales
+                    formulaParameters = {
+                        avisos_tableros_rate: params.avisos_tableros_porcentaje || 15,
+                        sobretasa_bomberil_rate: params.sobretasa_bomberil_porcentaje || 0,
+                        sobretasa_seguridad_rate: params.sobretasa_seguridad_porcentaje || 0,
+                        ley56_tarifa_kw: params.ley_56_tarifa_por_kw || 0,
+                        unidades_financiero_rate: params.unidades_adicionales_financiero_valor || 0,
+                        anticipo_siguiente_rate: params.anticipo_ano_siguiente_porcentaje || 40,
+                        descuento_pronto_pago_rate: params.descuento_pronto_pago_porcentaje || 10,
+                        descuento_pronto_pago_dias: params.descuento_pronto_pago_dias || 30,
+                        interes_mora_mensual_rate: params.interes_mora_mensual || 1
+                    };
+                    
+                    // Actualizar displays
+                    const avisosRateDisplay = document.getElementById('avisos_rate_display');
+                    if (avisosRateDisplay) {
+                        avisosRateDisplay.textContent = formulaParameters.avisos_tableros_rate;
+                    }
+                    
+                    console.log('Parámetros de fórmulas cargados:', formulaParameters);
+                }
+            } catch (error) {
+                console.log('No se pudieron cargar parámetros de fórmulas:', error.message);
+            }
+        }
+        
+        // Manejar checkbox de avisos y tableros
+        function setupAvisosTablerosCheckbox() {
+            const checkbox = document.getElementById('uses_signs_boards');
+            const formulaDisplay = document.getElementById('row_21_formula');
+            const row21Input = document.getElementById('row_21');
+            
+            if (checkbox) {
+                checkbox.addEventListener('change', function() {
+                    if (this.checked) {
+                        formulaDisplay.style.display = 'block';
+                        recalculateFromParameters();
+                    } else {
+                        formulaDisplay.style.display = 'none';
+                        row21Input.value = '0';
+                        if (formController) formController.recalculate();
+                    }
+                });
+            }
+        }
+        
+        // Recalcular campos basados en parámetros de fórmulas
+        function recalculateFromParameters() {
+            if (!formController) return;
+            
+            const row20 = parseFloat(document.getElementById('row_20')?.value) || 0;
+            
+            // Renglón 21: Avisos y Tableros (solo si está marcado el checkbox)
+            const usesSignsBoards = document.getElementById('uses_signs_boards')?.checked || false;
+            if (usesSignsBoards) {
+                const row21 = row20 * (formulaParameters.avisos_tableros_rate / 100);
+                document.getElementById('row_21').value = row21.toFixed(2);
+            }
+            
+            // Renglón 23: Sobretasa bomberil
+            const row23 = row20 * (formulaParameters.sobretasa_bomberil_rate / 100);
+            document.getElementById('row_23').value = row23.toFixed(2);
+            
+            // Renglón 24: Sobretasa seguridad
+            const row24 = row20 * (formulaParameters.sobretasa_seguridad_rate / 100);
+            document.getElementById('row_24').value = row24.toFixed(2);
+            
+            // Renglón 19: Ley 56 de 1981
+            const energyKw = parseFloat(document.getElementById('row_18_energy_kw')?.value) || 0;
+            const row19 = energyKw * formulaParameters.ley56_tarifa_kw;
+            document.getElementById('row_19_law56').value = row19.toFixed(2);
+            
+            // Recalcular todo el formulario
+            formController.recalculate();
+        }
+        
+        // Verificación Sección C: Renglón 15 = Suma ingresos gravados actividades
+        function verifySectionC() {
+            const row15 = parseFloat(document.getElementById('row_15')?.value) || 0;
+            const totalActivitiesIncomeText = document.getElementById('total-taxed-income')?.textContent || '$0.00';
+            const totalActivitiesIncome = parseFloat(totalActivitiesIncomeText.replace(/[$,]/g, '')) || 0;
+            
+            const verificationDiv = document.getElementById('section-c-verification');
+            const contentDiv = document.getElementById('verification-content');
+            
+            if (!verificationDiv || !contentDiv) return;
+            
+            const difference = Math.abs(row15 - totalActivitiesIncome);
+            const isValid = difference < 0.01; // Tolerancia para redondeo
+            
+            verificationDiv.style.display = 'block';
+            
+            if (isValid) {
+                verificationDiv.className = 'alert';
+                verificationDiv.style.cssText = 'margin-top: 1rem; background: linear-gradient(135deg, #d1fae5, #a7f3d0); border-left: 4px solid #10b981;';
+                contentDiv.innerHTML = `
+                    <strong>✅ Verificación Correcta</strong><br>
+                    <span style="font-size: 0.875rem;">
+                        Renglón 15 (Total ingresos gravables): <strong>$${row15.toLocaleString('es-CO', {minimumFractionDigits: 2})}</strong><br>
+                        Suma Sección C (Ingresos gravados): <strong>$${totalActivitiesIncome.toLocaleString('es-CO', {minimumFractionDigits: 2})}</strong>
+                    </span>
+                `;
+            } else {
+                verificationDiv.className = 'alert';
+                verificationDiv.style.cssText = 'margin-top: 1rem; background: linear-gradient(135deg, #fee2e2, #fecaca); border-left: 4px solid #ef4444;';
+                contentDiv.innerHTML = `
+                    <strong>⚠️ Verificación: Diferencia Detectada</strong><br>
+                    <span style="font-size: 0.875rem;">
+                        Renglón 15 (Total ingresos gravables): <strong>$${row15.toLocaleString('es-CO', {minimumFractionDigits: 2})}</strong><br>
+                        Suma Sección C (Ingresos gravados): <strong>$${totalActivitiesIncome.toLocaleString('es-CO', {minimumFractionDigits: 2})}</strong><br>
+                        <span style="color: #ef4444;">Diferencia: $${difference.toLocaleString('es-CO', {minimumFractionDigits: 2})}</span><br>
+                        <em>El total de ingresos gravables (R15) debe coincidir con la suma de ingresos gravados en las actividades de la Sección C.</em>
+                    </span>
+                `;
+            }
+        }
+        
+        // Vista previa del PDF
+        async function showPdfPreview() {
+            if (!formController || !formController.declarationId) {
+                showAlert('⚠️ Primero debe guardar la declaración antes de ver la vista previa', 'warning');
+                return;
+            }
+            
+            const modal = document.getElementById('pdf-preview-modal');
+            const frame = document.getElementById('pdf-preview-frame');
+            const loadingDiv = document.getElementById('pdf-preview-loading');
+            const errorDiv = document.getElementById('pdf-preview-error');
+            const statusSpan = document.getElementById('pdf-preview-status');
+            
+            // Mostrar modal
+            modal.classList.add('active');
+            frame.style.display = 'none';
+            loadingDiv.style.display = 'block';
+            errorDiv.style.display = 'none';
+            
+            try {
+                // Generar PDF primero (si no existe)
+                await DeclarationsAPI.generatePDF(formController.declarationId);
+                
+                // Obtener URL del PDF para vista previa
+                const token = localStorage.getItem('accessToken');
+                const pdfUrl = `/api/v1/declarations/${formController.declarationId}/download-pdf`;
+                
+                // Cargar en iframe usando blob
+                const response = await fetch(pdfUrl, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('No se pudo obtener el PDF');
+                }
+                
+                const blob = await response.blob();
+                const objectUrl = URL.createObjectURL(blob);
+                
+                frame.src = objectUrl;
+                frame.style.display = 'block';
+                loadingDiv.style.display = 'none';
+                
+                // Obtener estado de firma
+                const declaration = await DeclarationsAPI.get(formController.declarationId);
+                if (declaration.is_signed) {
+                    statusSpan.textContent = '✅ Declaración Firmada';
+                    statusSpan.style.cssText = 'background: #10b981; color: white; padding: 0.25rem 0.75rem; border-radius: 1rem;';
+                } else {
+                    statusSpan.textContent = '📝 Borrador (Sin Firmar)';
+                    statusSpan.style.cssText = 'background: #f59e0b; color: white; padding: 0.25rem 0.75rem; border-radius: 1rem;';
+                }
+                
+            } catch (error) {
+                loadingDiv.style.display = 'none';
+                errorDiv.style.display = 'block';
+                errorDiv.textContent = '❌ Error al generar vista previa: ' + error.message;
+            }
+        }
+        
+        // Cerrar modal de vista previa PDF
+        function setupPdfPreviewModal() {
+            const modal = document.getElementById('pdf-preview-modal');
+            const closeButtons = modal.querySelectorAll('.modal-close');
+            
+            closeButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    modal.classList.remove('active');
+                    const frame = document.getElementById('pdf-preview-frame');
+                    if (frame.src) {
+                        URL.revokeObjectURL(frame.src);
+                        frame.src = '';
+                    }
+                });
+            });
+            
+            // Cerrar al hacer clic fuera
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('active');
+                }
+            });
+            
+            // Botón descargar desde preview
+            document.getElementById('btn-download-from-preview')?.addEventListener('click', async () => {
+                if (formController && formController.declarationId) {
+                    try {
+                        await DeclarationsAPI.downloadPDF(formController.declarationId);
+                    } catch (error) {
+                        showAlert('❌ Error al descargar PDF: ' + error.message, 'danger');
+                    }
+                }
+            });
         }
         
         // Cargar municipios y auto-seleccionar el municipio del usuario
@@ -917,7 +1357,17 @@
                         // Disparar el evento change para actualizar la sección de Bogotá si aplica
                         deptSelect.dispatchEvent(new Event('change'));
                     }
+                    
+                    // Cargar parámetros de fórmulas del municipio
+                    await loadFormulaParameters(userMunicipalityId);
                 }
+                
+                // Escuchar cambios de municipio para recargar parámetros
+                select.addEventListener('change', async function() {
+                    if (this.value) {
+                        await loadFormulaParameters(this.value);
+                    }
+                });
             } catch (error) {
                 console.error('Error loading municipalities:', error);
             }
@@ -1064,6 +1514,20 @@
                 }
             });
             
+            // Configurar checkbox de avisos y tableros
+            setupAvisosTablerosCheckbox();
+            
+            // Configurar modal de vista previa PDF
+            setupPdfPreviewModal();
+            
+            // Observar cambios para verificación Sección C
+            const originalRecalculate = formController.recalculate.bind(formController);
+            formController.recalculate = function() {
+                originalRecalculate();
+                recalculateFromParameters();
+                verifySectionC();
+            };
+            
             // Activar modo vista previa si se solicita
             if (previewMode) {
                 enablePreviewMode();
@@ -1078,7 +1542,12 @@
             }
         });
         
-        // Botón generar PDF
+        // Botón vista previa PDF
+        document.getElementById('btn-preview-pdf').addEventListener('click', async () => {
+            await showPdfPreview();
+        });
+        
+        // Botón descargar PDF
         document.getElementById('btn-generate-pdf').addEventListener('click', async () => {
             if (!formController || !formController.declarationId) {
                 showAlert('⚠️ Primero debe guardar la declaración', 'warning');
@@ -1088,11 +1557,12 @@
             try {
                 showLoading();
                 await DeclarationsAPI.generatePDF(formController.declarationId);
+                await DeclarationsAPI.downloadPDF(formController.declarationId);
                 hideLoading();
-                showAlert('📄 PDF generado correctamente. Puede descargarlo desde el panel de control.', 'success');
+                showAlert('📄 PDF descargado correctamente.', 'success');
             } catch (error) {
                 hideLoading();
-                showAlert('❌ Error al generar PDF: ' + error.message, 'danger');
+                showAlert('❌ Error al descargar PDF: ' + error.message, 'danger');
             }
         });
         

@@ -142,7 +142,13 @@ const AuthAPI = {
             body: formData
         });
         
-        const data = await handleResponse(response);
+        // Manejar errores de login sin intentar refresh token
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Credenciales incorrectas');
+        }
+        
+        const data = await response.json();
         
         accessToken = data.access_token;
         refreshToken = data.refresh_token;
@@ -481,6 +487,28 @@ const AdminAPI = {
             method: 'PUT',
             headers: getHeaders(),
             body: JSON.stringify({ is_active: isActive })
+        });
+        return handleResponse(response);
+    },
+    
+    /**
+     * Eliminar usuario (solo super admin)
+     */
+    async deleteUser(userId) {
+        const response = await fetch(`${API_BASE_URL}/admin/users/${userId}`, {
+            method: 'DELETE',
+            headers: getHeaders()
+        });
+        return handleResponse(response);
+    },
+    
+    /**
+     * Limpiar datos de un municipio (declaraciones y declarantes)
+     */
+    async cleanMunicipalityData(municipalityId) {
+        const response = await fetch(`${API_BASE_URL}/admin/municipalities/${municipalityId}/clean`, {
+            method: 'DELETE',
+            headers: getHeaders()
         });
         return handleResponse(response);
     }

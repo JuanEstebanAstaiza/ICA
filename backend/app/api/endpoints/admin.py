@@ -627,6 +627,132 @@ async def toggle_user_status(
     return {"message": f"Usuario {status_text} correctamente"}
 
 
+@router.delete("/users/{user_id}")
+async def delete_user(
+    user_id: int,
+    current_user: User = Depends(require_role([UserRole.ADMIN_SISTEMA])),
+    db: Session = Depends(get_db)
+):
+    """
+    Elimina permanentemente un usuario.
+    Solo administrador del sistema.
+    
+    ADVERTENCIA: Esta acción es irreversible.
+    Las declaraciones del usuario NO se eliminan (se mantienen para auditoría).
+    """
+    user = db.query(User).filter(User.id == user_id).first()
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuario no encontrado"
+        )
+    
+    # No permitir eliminar al propio usuario
+    if user.id == current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No puede eliminar su propia cuenta"
+        )
+    
+    # No permitir eliminar otros super admins
+    if user.role == UserRole.ADMIN_SISTEMA:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No puede eliminar a otro super administrador"
+        )
+    
+    # Guardar info para el mensaje
+    user_email = user.email
+    user_name = user.full_name
+    
+    # Eliminar el usuario
+    db.delete(user)
+    db.commit()
+    
+    return {
+        "message": f"Usuario {user_name} ({user_email}) eliminado correctamente",
+        "deleted_user_id": user_id
+    }
+
+
+@router.delete("/municipalities/{municipality_id}/clean")
+async def clean_municipality_data(
+    municipality_id: int,
+    current_user: User = Depends(require_role([UserRole.ADMIN_SISTEMA])),
+    db: Session = Depends(get_db)
+):
+    """
+    Limpia todos los datos de un municipio:
+    - Elimina todas las declaraciones ICA
+    - Elimina todos los usuarios declarantes asociados
+    - Mantiene el municipio y su configuración de marca blanca
+    
+    Solo administrador del sistema.
+    ADVERTENCIA: Esta acción es irreversible.
+    """
+    from ...models.models import ICADeclaration, Taxpayer, IncomeBase, TaxableActivity
+    from ...models.models import EnergyGeneration, TaxSettlement, PaymentSection
+    from ...models.models import DiscountsCredits, DeclarationResult, AuditLog
+    
+    municipality = db.query(Municipality).filter(
+        Municipality.id == municipality_id
+    ).first()
+    
+    if not municipality:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Municipio no encontrado"
+        )
+    
+    # Contar datos a eliminar
+    declarations_count = db.query(ICADeclaration).filter(
+        ICADeclaration.municipality_id == municipality_id
+    ).count()
+    
+    declarantes_count = db.query(User).filter(
+        User.municipality_id == municipality_id,
+        User.role == UserRole.DECLARANTE
+    ).count()
+    
+    # Eliminar declaraciones y sus datos relacionados
+    declarations = db.query(ICADeclaration).filter(
+        ICADeclaration.municipality_id == municipality_id
+    ).all()
+    
+    for declaration in declarations:
+        # Eliminar datos relacionados de cada declaración
+        db.query(Taxpayer).filter(Taxpayer.declaration_id == declaration.id).delete()
+        db.query(IncomeBase).filter(IncomeBase.declaration_id == declaration.id).delete()
+        db.query(TaxableActivity).filter(TaxableActivity.declaration_id == declaration.id).delete()
+        db.query(EnergyGeneration).filter(EnergyGeneration.declaration_id == declaration.id).delete()
+        db.query(TaxSettlement).filter(TaxSettlement.declaration_id == declaration.id).delete()
+        db.query(PaymentSection).filter(PaymentSection.declaration_id == declaration.id).delete()
+        db.query(DiscountsCredits).filter(DiscountsCredits.declaration_id == declaration.id).delete()
+        db.query(DeclarationResult).filter(DeclarationResult.declaration_id == declaration.id).delete()
+        db.query(AuditLog).filter(AuditLog.declaration_id == declaration.id).delete()
+    
+    # Eliminar las declaraciones
+    db.query(ICADeclaration).filter(
+        ICADeclaration.municipality_id == municipality_id
+    ).delete()
+    
+    # Eliminar usuarios declarantes del municipio
+    db.query(User).filter(
+        User.municipality_id == municipality_id,
+        User.role == UserRole.DECLARANTE
+    ).delete()
+    
+    db.commit()
+    
+    return {
+        "message": f"Datos del municipio {municipality.name} limpiados correctamente",
+        "municipality_id": municipality_id,
+        "declarations_deleted": declarations_count,
+        "users_deleted": declarantes_count
+    }
+
+
 # ===================== PARÁMETROS DE FÓRMULAS (EDICIÓN EN CALIENTE) =====================
 
 @router.get("/formula-parameters/{municipality_id}", response_model=FormulaParametersResponse)
