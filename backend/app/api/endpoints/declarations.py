@@ -275,6 +275,14 @@ async def update_declaration(
             db.add(activity)
         new_values['activities'] = [a.dict() for a in data.activities]
     
+    # Actualizar Generación de Energía (Renglones 18-19)
+    if data.energy_generation:
+        energy = declaration.energy_generation
+        if energy:
+            for key, value in data.energy_generation.dict(exclude_unset=True).items():
+                setattr(energy, key, value)
+            new_values['energy_generation'] = data.energy_generation.dict()
+    
     # Actualizar Sección D - Liquidación
     if data.settlement:
         settlement = declaration.settlement
@@ -283,7 +291,15 @@ async def update_declaration(
                 setattr(settlement, key, value)
             new_values['settlement'] = data.settlement.dict()
     
-    # Actualizar Sección E - Descuentos
+    # Actualizar Sección E - Pago
+    if data.payment_section:
+        payment = declaration.payment_section
+        if payment:
+            for key, value in data.payment_section.dict(exclude_unset=True).items():
+                setattr(payment, key, value)
+            new_values['payment_section'] = data.payment_section.dict()
+    
+    # Actualizar Sección E - Descuentos (legacy)
     if data.discounts:
         discounts = declaration.discounts
         if discounts:
@@ -399,6 +415,7 @@ async def sign_declaration(
     """
     Firma digital de la declaración.
     Una vez firmado, el formulario queda bloqueado.
+    Genera el número de radicado automáticamente.
     """
     declaration = db.query(ICADeclaration).filter(
         ICADeclaration.id == declaration_id
@@ -427,13 +444,63 @@ async def sign_declaration(
     declaration_content = f"{declaration.id}-{declaration.form_number}-{current_user.id}-{datetime.utcnow().isoformat()}"
     integrity_hash = generate_integrity_hash(declaration_content)
     
+    # Generar número de radicado usando configuración del municipio
+    filing_number = None
+    municipality = declaration.municipality
+    if municipality and municipality.config:
+        config = municipality.config
+        prefijo = config.radicado_prefijo or ""
+        numero = config.radicado_actual or 1
+        digitos = config.radicado_digitos or 16
+        
+        # Formato: PREFIJO + número con ceros a la izquierda
+        filing_number = f"{prefijo}{str(numero).zfill(digitos)}"
+        
+        # Incrementar el contador para el próximo radicado
+        config.radicado_actual = numero + 1
+    else:
+        # Si no hay configuración, generar uno genérico
+        filing_number = f"RAD-{declaration.id}-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+    
     # Actualizar declaración
     declaration.is_signed = True
     declaration.signature_data = signature_data.signature_image
     declaration.signed_at = datetime.utcnow()
+    declaration.filing_date = datetime.utcnow()  # Fecha de presentación
+    declaration.filing_number = filing_number  # Número de radicado
     declaration.signed_by_user_id = current_user.id
     declaration.integrity_hash = integrity_hash
     declaration.status = FormStatus.FIRMADO
+    
+    # Crear o actualizar SignatureInfo con todos los datos del firmante
+    from ..models.models import SignatureInfo
+    
+    # Eliminar firma anterior si existe
+    if declaration.signature_info:
+        db.delete(declaration.signature_info)
+    
+    # Crear nueva información de firma
+    signature_info = SignatureInfo(
+        declaration_id=declaration.id,
+        declarant_name=signature_data.declarant_name,
+        declarant_document=signature_data.declarant_document,
+        declarant_signature_method=signature_data.declarant_signature_method,
+        declarant_signature_image=signature_data.signature_image,
+        declarant_oath_accepted=signature_data.declarant_oath_accepted,
+        declaration_date=signature_data.declaration_date,
+        requires_fiscal_reviewer=signature_data.requires_fiscal_reviewer,
+        accountant_name=signature_data.accountant_name,
+        accountant_document=signature_data.accountant_document,
+        accountant_professional_card=signature_data.accountant_professional_card,
+        accountant_signature_method=signature_data.accountant_signature_method,
+        accountant_signature_image=signature_data.accountant_signature_image,
+        document_hash=integrity_hash,
+        signed_at=datetime.utcnow(),
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        integrity_verified=True
+    )
+    db.add(signature_info)
     
     # Log de auditoría
     audit_log = AuditLog(
@@ -444,7 +511,9 @@ async def sign_declaration(
         entity_id=declaration.id,
         new_values={
             'signed_at': declaration.signed_at.isoformat(),
-            'integrity_hash': integrity_hash[:16] + '...'
+            'filing_number': filing_number,
+            'integrity_hash': integrity_hash[:16] + '...',
+            'declarant_name': signature_data.declarant_name
         },
         ip_address=request.client.host if request.client else None,
         user_agent=request.headers.get("user-agent")
@@ -456,6 +525,7 @@ async def sign_declaration(
     return {
         "message": "Declaración firmada correctamente",
         "signed_at": declaration.signed_at,
+        "filing_number": filing_number,
         "integrity_hash": integrity_hash
     }
 
@@ -501,6 +571,8 @@ async def generate_pdf(
     declaration_data = {
         'id': declaration.id,
         'form_number': declaration.form_number,
+        'filing_number': declaration.filing_number,  # Número de radicado
+        'filing_date': declaration.filing_date.isoformat() if declaration.filing_date else None,
         'tax_year': declaration.tax_year,
         'declaration_type': declaration.declaration_type.value,
         'status': declaration.status.value,
@@ -519,8 +591,28 @@ async def generate_pdf(
         'activities': [],
         'settlement': {},
         'discounts': {},
-        'result': {}
+        'result': {},
+        'signature_info': {}
     }
+    
+    # Información de firma del declarante
+    if declaration.signature_info:
+        sig = declaration.signature_info
+        declaration_data['signature_info'] = {
+            'declarant_name': sig.declarant_name,
+            'declarant_document': sig.declarant_document,
+            'declarant_signature_method': sig.declarant_signature_method,
+            'declarant_signature_image': sig.declarant_signature_image,
+            'declarant_oath_accepted': sig.declarant_oath_accepted,
+            'declaration_date': sig.declaration_date.isoformat() if sig.declaration_date else None,
+            'requires_fiscal_reviewer': sig.requires_fiscal_reviewer,
+            'accountant_name': sig.accountant_name,
+            'accountant_document': sig.accountant_document,
+            'accountant_professional_card': sig.accountant_professional_card,
+            'accountant_signature_method': sig.accountant_signature_method,
+            'accountant_signature_image': sig.accountant_signature_image,
+            'signed_at': sig.signed_at.isoformat() if sig.signed_at else None
+        }
     
     # Sección A - Contribuyente
     if declaration.taxpayer:
@@ -536,49 +628,128 @@ async def generate_pdf(
             'email': declaration.taxpayer.email
         }
     
-    # Sección B - Base Gravable
+    # Sección B - Base Gravable (Renglones 8-15)
     if declaration.income_base:
+        ib = declaration.income_base
+        # Cálculos
+        row_10 = (ib.row_8_total_income_country or 0) - (ib.row_9_income_outside_municipality or 0)
+        row_15 = row_10 - (
+            (ib.row_11_returns_rebates_discounts or 0) + 
+            (ib.row_12_exports_fixed_assets or 0) + 
+            (ib.row_13_excluded_non_taxable or 0) + 
+            (ib.row_14_exempt_income or 0)
+        )
         declaration_data['income_base'] = {
-            'row_8_ordinary_income': declaration.income_base.row_8_ordinary_income,
-            'row_9_extraordinary_income': declaration.income_base.row_9_extraordinary_income,
-            'row_11_returns': declaration.income_base.row_11_returns,
-            'row_12_exports': declaration.income_base.row_12_exports,
-            'row_13_fixed_assets_sales': declaration.income_base.row_13_fixed_assets_sales,
-            'row_14_excluded_income': declaration.income_base.row_14_excluded_income,
-            'row_15_non_taxable_income': declaration.income_base.row_15_non_taxable_income
+            'row_8': ib.row_8_total_income_country or 0,
+            'row_9': ib.row_9_income_outside_municipality or 0,
+            'row_10': row_10,
+            'row_11': ib.row_11_returns_rebates_discounts or 0,
+            'row_12': ib.row_12_exports_fixed_assets or 0,
+            'row_13': ib.row_13_excluded_non_taxable or 0,
+            'row_14': ib.row_14_exempt_income or 0,
+            'row_15': row_15
         }
     
     # Sección C - Actividades
+    total_activities_income = 0
+    total_activities_tax = 0
     for activity in declaration.activities:
+        income = activity.income or 0
+        rate = activity.tax_rate or 0
+        tax = income * rate / 1000
+        total_activities_income += income
+        total_activities_tax += tax
         declaration_data['activities'].append({
             'ciiu_code': activity.ciiu_code,
             'description': activity.description,
-            'income': activity.income,
-            'tax_rate': activity.tax_rate
+            'income': income,
+            'tax_rate': rate,
+            'generated_tax': tax
         })
     
-    # Sección D - Liquidación
+    # Renglones 16-17: Totales de actividades
+    declaration_data['activities_totals'] = {
+        'row_16': total_activities_income,
+        'row_17': total_activities_tax
+    }
+    
+    # Energía - Ley 56 (Renglones 18-19)
+    if declaration.energy_generation:
+        eg = declaration.energy_generation
+        declaration_data['energy'] = {
+            'row_18': eg.installed_capacity_kw or 0,
+            'row_19': eg.law_56_tax or 0
+        }
+    else:
+        declaration_data['energy'] = {'row_18': 0, 'row_19': 0}
+    
+    # Sección D - Liquidación (Renglones 20-34)
     if declaration.settlement:
+        s = declaration.settlement
+        # Cálculos
+        row_20 = total_activities_tax + (declaration_data['energy']['row_19'] or 0)
+        row_25 = row_20 + (s.row_21_signs_boards or 0) + (s.row_22_financial_additional_units or 0) + (s.row_23_bomberil_surcharge or 0) + (s.row_24_security_surcharge or 0)
+        balance = row_25 - (s.row_26_exemptions or 0) - (s.row_27_withholdings_municipality or 0) - (s.row_28_self_withholdings or 0) - (s.row_29_previous_advance or 0) + (s.row_30_next_year_advance or 0) + (s.row_31_penalties or 0) - (s.row_32_previous_balance_favor or 0)
+        row_33 = balance if balance > 0 else 0
+        row_34 = abs(balance) if balance < 0 else 0
+        
         declaration_data['settlement'] = {
-            'row_30_ica_tax': declaration.settlement.row_30_ica_tax,
-            'row_31_signs_boards': declaration.settlement.row_31_signs_boards,
-            'row_32_surcharge': declaration.settlement.row_32_surcharge
+            'row_20': row_20,
+            'row_21': s.row_21_signs_boards or 0,
+            'row_22': s.row_22_financial_additional_units or 0,
+            'row_23': s.row_23_bomberil_surcharge or 0,
+            'row_24': s.row_24_security_surcharge or 0,
+            'row_25': row_25,
+            'row_26': s.row_26_exemptions or 0,
+            'row_27': s.row_27_withholdings_municipality or 0,
+            'row_28': s.row_28_self_withholdings or 0,
+            'row_29': s.row_29_previous_advance or 0,
+            'row_30': s.row_30_next_year_advance or 0,
+            'row_31': s.row_31_penalties or 0,
+            'row_32': s.row_32_previous_balance_favor or 0,
+            'row_33': row_33,
+            'row_34': row_34
+        }
+    else:
+        # Valores por defecto si no hay settlement
+        declaration_data['settlement'] = {
+            'row_20': total_activities_tax,
+            'row_21': 0, 'row_22': 0, 'row_23': 0, 'row_24': 0,
+            'row_25': total_activities_tax,
+            'row_26': 0, 'row_27': 0, 'row_28': 0, 'row_29': 0,
+            'row_30': 0, 'row_31': 0, 'row_32': 0,
+            'row_33': total_activities_tax, 'row_34': 0
         }
     
-    # Sección E - Descuentos
-    if declaration.discounts:
-        declaration_data['discounts'] = {
-            'tax_discounts': declaration.discounts.tax_discounts,
-            'advance_payments': declaration.discounts.advance_payments,
-            'withholdings': declaration.discounts.withholdings
+    # Sección E - Pago (Renglones 35-40)
+    if declaration.payment_section:
+        p = declaration.payment_section
+        row_35 = declaration_data['settlement']['row_33']  # Saldo a cargo
+        row_38 = (row_35 or 0) - (p.row_36_early_payment_discount or 0) + (p.row_37_late_interest or 0)
+        row_40 = row_38 + (p.row_39_voluntary_payment or 0)
+        
+        declaration_data['payment'] = {
+            'row_35': row_35,
+            'row_36': p.row_36_early_payment_discount or 0,
+            'row_37': p.row_37_late_interest or 0,
+            'row_38': row_38,
+            'row_39': p.row_39_voluntary_payment or 0,
+            'row_39_destination': p.row_39_voluntary_destination or '',
+            'row_40': row_40
+        }
+    else:
+        row_35 = declaration_data['settlement']['row_33']
+        declaration_data['payment'] = {
+            'row_35': row_35, 'row_36': 0, 'row_37': 0,
+            'row_38': row_35, 'row_39': 0, 'row_39_destination': '',
+            'row_40': row_35
         }
     
-    # Sección F - Resultado
-    if declaration.result:
-        declaration_data['result'] = {
-            'amount_to_pay': declaration.result.amount_to_pay,
-            'balance_in_favor': declaration.result.balance_in_favor
-        }
+    # Resultado final (resumen)
+    declaration_data['result'] = {
+        'amount_to_pay': declaration_data['settlement']['row_33'],
+        'balance_in_favor': declaration_data['settlement']['row_34']
+    }
     
     # Generar PDF
     pdf_generator = PDFGenerator(white_label_config)

@@ -288,6 +288,7 @@ class ICADeclaration(Base):
     payment_section = relationship("PaymentSection", back_populates="declaration", uselist=False)
     discounts = relationship("DiscountsCredits", back_populates="declaration", uselist=False)
     result = relationship("DeclarationResult", back_populates="declaration", uselist=False)
+    signature_info = relationship("SignatureInfo", back_populates="declaration", uselist=False)
     audit_logs = relationship("AuditLog", back_populates="declaration")
 
 
@@ -686,6 +687,9 @@ class SignatureInfo(Base):
     # Legacy field
     professional_card_number = Column(String(50))  # Alias para compatibilidad
     signature_image = Column(Text)  # Alias para compatibilidad
+    
+    # Relación
+    declaration = relationship("ICADeclaration", back_populates="signature_info")
 
 
 # ===================== MODELO DE AUDITORÍA =====================

@@ -270,33 +270,87 @@ class SignatureModal {
         }
         
         // Validar campos requeridos
-        const declarantName = document.getElementById('declarant_name')?.value;
+        const declarantName = document.getElementById('declarant_name')?.value?.trim();
+        const declarantDocument = document.getElementById('declarant_document')?.value?.trim();
         const declarationDate = document.getElementById('declaration_date')?.value;
+        const declarantOath = document.getElementById('declarant_oath')?.checked;
         
-        if (!declarantName || !declarationDate) {
-            showAlert('Por favor complete el nombre del declarante y la fecha', 'warning');
+        if (!declarantName || !declarantDocument || !declarationDate) {
+            showAlert('Por favor complete todos los campos obligatorios del declarante', 'warning');
             return;
+        }
+        
+        if (!declarantOath) {
+            showAlert('Debe aceptar la declaración bajo juramento para continuar', 'warning');
+            return;
+        }
+        
+        // Verificar si requiere contador/revisor
+        const reviewerType = document.getElementById('reviewer_type')?.value || 'none';
+        const requiresReviewer = reviewerType !== 'none';
+        
+        // Validar campos de contador/revisor si aplica
+        if (requiresReviewer) {
+            const accountantName = document.getElementById('accountant_name')?.value?.trim();
+            const accountantDocument = document.getElementById('accountant_document')?.value?.trim();
+            const professionalCard = document.getElementById('professional_card')?.value?.trim();
+            
+            if (!accountantName || !accountantDocument || !professionalCard) {
+                showAlert(`Por favor complete todos los campos del ${reviewerType === 'contador' ? 'Contador' : 'Revisor Fiscal'}`, 'warning');
+                return;
+            }
         }
         
         try {
             showLoading();
             
+            // Construir datos de firma según el esquema del backend
             const signatureData = {
+                // Datos del declarante
                 declarant_name: declarantName,
+                declarant_document: declarantDocument,
+                declarant_signature_method: document.getElementById('signature_method')?.value || 'manuscrita',
+                declarant_oath_accepted: declarantOath,
                 declaration_date: declarationDate,
-                accountant_name: document.getElementById('accountant_name')?.value || null,
-                professional_card_number: document.getElementById('professional_card')?.value || null,
-                signature_image: this.signatureCanvas.toDataURL()
+                
+                // Datos del contador/revisor fiscal
+                requires_fiscal_reviewer: reviewerType === 'revisor_fiscal',
+                accountant_name: requiresReviewer ? document.getElementById('accountant_name')?.value?.trim() : null,
+                accountant_document: requiresReviewer ? document.getElementById('accountant_document')?.value?.trim() : null,
+                accountant_professional_card: requiresReviewer ? document.getElementById('professional_card')?.value?.trim() : null,
+                accountant_signature_method: requiresReviewer ? 'manuscrita' : null,
+                
+                // Imágenes de firma
+                signature_image: this.signatureCanvas.toDataURL(),
+                accountant_signature_image: null
             };
+            
+            // Capturar firma del contador/revisor si existe
+            const accountantCanvas = document.getElementById('accountant-signature-canvas');
+            if (requiresReviewer && accountantCanvas) {
+                try {
+                    const accountantCtx = accountantCanvas.getContext('2d');
+                    if (accountantCtx) {
+                        signatureData.accountant_signature_image = accountantCanvas.toDataURL();
+                    }
+                } catch (e) {
+                    console.warn('No se pudo capturar firma del contador:', e);
+                }
+            }
             
             // Llamar a la API para firmar
             if (this.declarationId) {
-                await DeclarationsAPI.sign(this.declarationId, signatureData);
+                const result = await DeclarationsAPI.sign(this.declarationId, signatureData);
                 
-                showAlert('Declaración firmada correctamente', 'success');
+                // Mostrar número de radicado si se generó
+                if (result.filing_number) {
+                    showAlert(`✅ Declaración firmada correctamente. Número de Radicado: ${result.filing_number}`, 'success');
+                } else {
+                    showAlert('✅ Declaración firmada correctamente', 'success');
+                }
                 
                 // Callback
-                this.onSign(signatureData);
+                this.onSign(result);
                 
                 // Cerrar modal
                 this.close();
@@ -304,7 +358,7 @@ class SignatureModal {
                 // Recargar página para mostrar estado firmado
                 setTimeout(() => {
                     window.location.reload();
-                }, 1500);
+                }, 2000);
             } else {
                 showAlert('Error: No hay declaración seleccionada', 'danger');
             }

@@ -197,31 +197,43 @@ class ICAFormController {
         // Sección C - Energía (18)
         // Sección D - Liquidación (21-32)
         // Sección E - Pago (35-37, 39)
-        const calculableInputs = [
+        const editableInputs = [
             'row_8', 'row_9', 'row_11', 'row_12', 'row_13', 'row_14',
             'row_18_energy_kw',
-            'row_21', 'row_22', 'row_23', 'row_24', 'row_26', 'row_27', 'row_28', 'row_29', 'row_30', 'row_31', 'row_32',
-            'row_35', 'row_36', 'row_37', 'row_39'
+            'row_22', 'row_23', 'row_24', 'row_26', 'row_27', 'row_28', 'row_29', 'row_30', 'row_31', 'row_32',
+            'row_36', 'row_37', 'row_39'
         ];
         
-        calculableInputs.forEach(inputId => {
+        editableInputs.forEach(inputId => {
             const input = document.getElementById(inputId);
             if (input) {
-                input.classList.add('currency-input');
+                // Inicializar el valor raw
+                input.dataset.rawValue = this.parseFormattedValue(input.value) || 0;
                 
-                // Recalcular cuando cambia el valor
-                input.addEventListener('input', () => this.recalculate());
+                // Recalcular cuando cambia el valor (mientras escribe)
+                input.addEventListener('input', (e) => {
+                    // Guardar el valor raw mientras escribe (sin formatear)
+                    const rawValue = this.parseFormattedValue(e.target.value);
+                    e.target.dataset.rawValue = rawValue;
+                    this.recalculate();
+                });
                 
-                // Al salir del campo: mostrar con formato visual
+                // Al salir del campo: mostrar con formato visual (separadores de miles)
                 input.addEventListener('blur', (e) => {
-                    this.showFormattedValue(e.target);
+                    const rawValue = parseFloat(e.target.dataset.rawValue) || 0;
+                    e.target.value = this.formatWithSeparators(rawValue);
                 });
                 
                 // Al entrar al campo: mostrar valor numérico puro para editar
                 input.addEventListener('focus', (e) => {
-                    this.showRawValue(e.target);
+                    const rawValue = parseFloat(e.target.dataset.rawValue) || 0;
+                    e.target.value = rawValue > 0 ? rawValue.toString() : '';
                     e.target.select();
                 });
+                
+                // Formatear valores iniciales
+                const rawValue = parseFloat(input.dataset.rawValue) || 0;
+                input.value = this.formatWithSeparators(rawValue);
             }
         });
         
@@ -236,6 +248,38 @@ class ICAFormController {
         if (addActivityBtn) {
             addActivityBtn.addEventListener('click', () => this.addActivity());
         }
+    }
+    
+    /**
+     * Parsea un valor que puede tener formato colombiano (1.234.567,89) o ser un número simple
+     */
+    parseFormattedValue(value) {
+        if (typeof value === 'number') return value;
+        if (!value || value.trim() === '') return 0;
+        
+        let strValue = value.toString().trim();
+        
+        // Si tiene punto y coma, es formato colombiano: 1.234.567,89
+        if (strValue.includes('.') && strValue.includes(',')) {
+            strValue = strValue.replace(/\./g, '').replace(',', '.');
+        }
+        // Si solo tiene puntos y hay más de uno, son separadores de miles
+        else if ((strValue.match(/\./g) || []).length > 1) {
+            strValue = strValue.replace(/\./g, '');
+        }
+        // Si tiene un solo punto con más de 2 dígitos después, es separador de miles
+        else if (strValue.includes('.') && !strValue.includes(',')) {
+            const parts = strValue.split('.');
+            if (parts[1] && parts[1].length > 2) {
+                strValue = strValue.replace(/\./g, '');
+            }
+        }
+        // Si tiene coma, la coma es decimal
+        else if (strValue.includes(',')) {
+            strValue = strValue.replace(',', '.');
+        }
+        
+        return parseFloat(strValue) || 0;
     }
     
     setupValidation() {
@@ -297,56 +341,25 @@ class ICAFormController {
         }
     }
     
-    formatCurrency(input) {
-        const value = parseFloat(input.value) || 0;
-        input.dataset.rawValue = value;
-    }
-    
-    /**
-     * Muestra el valor formateado con separadores (al salir del campo)
-     */
-    showFormattedValue(input) {
-        const value = parseFloat(input.value) || 0;
-        input.dataset.rawValue = value;
-        
-        if (value === 0) {
-            input.value = '0';
-        } else {
-            input.value = this.formatWithSeparators(value);
-        }
-    }
-    
-    /**
-     * Muestra el valor numérico puro (al entrar al campo para editar)
-     */
-    showRawValue(input) {
-        const rawValue = parseFloat(input.dataset.rawValue) || parseFloat(input.value.replace(/\./g, '').replace(',', '.')) || 0;
-        input.value = rawValue || '';
-    }
-    
     /**
      * Formatea un número con separadores de miles (formato colombiano)
      * Solo para visualización, no afecta los cálculos
      * Ejemplo: 1234567 -> "1.234.567"
+     * Ejemplo: 1234567.89 -> "1.234.567,89"
      */
     formatWithSeparators(num) {
-        if (isNaN(num) || num === 0) return '0';
+        if (num === null || num === undefined || isNaN(num)) return '0';
+        if (num === 0) return '0';
         
-        // Redondear a 2 decimales
-        const rounded = Math.round(num * 100) / 100;
+        // Redondear a enteros para evitar problemas con decimales
+        const rounded = Math.round(num);
         
-        // Separar parte entera y decimal
-        const parts = rounded.toString().split('.');
-        const integerPart = parts[0];
-        const decimalPart = parts[1] || '00';
+        // Separar parte entera
+        const integerPart = rounded.toString();
         
         // Agregar separadores de miles (puntos)
         const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
         
-        // Retornar con coma decimal si hay decimales significativos
-        if (decimalPart && decimalPart !== '00' && decimalPart !== '0') {
-            return formattedInteger + ',' + decimalPart.padEnd(2, '0');
-        }
         return formattedInteger;
     }
     
@@ -468,33 +481,20 @@ class ICAFormController {
             return parseFloat(input.dataset.rawValue) || 0;
         }
         
-        // Si el valor tiene separadores de miles (puntos), parsear
-        let value = input.value;
-        if (value.includes('.') && value.includes(',')) {
-            // Formato: 1.234.567,89 -> remover puntos, cambiar coma por punto
-            value = value.replace(/\./g, '').replace(',', '.');
-        } else if (value.includes('.') && !value.includes(',')) {
-            // Podría ser separador de miles o decimal
-            // Si hay más de un punto, son separadores de miles
-            if ((value.match(/\./g) || []).length > 1) {
-                value = value.replace(/\./g, '');
-            }
-            // Si hay un solo punto y más de 2 dígitos después, es separador de miles
-            else if (value.split('.')[1]?.length > 2) {
-                value = value.replace('.', '');
-            }
-        }
-        
-        return parseFloat(value) || 0;
+        // Si no, parsear el valor formateado
+        return this.parseFormattedValue(input.value);
     }
     
     setValue(fieldId, value) {
         const input = document.getElementById(fieldId);
         if (input) {
+            const numValue = parseFloat(value) || 0;
             // Guardar valor raw
-            input.dataset.rawValue = value;
-            // Mostrar valor formateado con separadores
-            input.value = this.formatWithSeparators(value);
+            input.dataset.rawValue = numValue;
+            // Mostrar valor formateado con separadores (solo si no tiene el foco)
+            if (document.activeElement !== input) {
+                input.value = this.formatWithSeparators(numValue);
+            }
         }
     }
     
@@ -739,6 +739,15 @@ class ICAFormController {
         this.setFieldValue('tax_year', declaration.tax_year);
         this.setFieldValue('declaration_type', declaration.declaration_type);
         this.setFieldValue('form_number', declaration.form_number);
+        this.setFieldValue('filing_number', declaration.filing_number || 'Se genera al firmar');
+        
+        // Seleccionar municipio si existe
+        if (declaration.municipality_id) {
+            const municipalitySelect = document.getElementById('municipality_id');
+            if (municipalitySelect) {
+                municipalitySelect.value = declaration.municipality_id;
+            }
+        }
         
         // Sección A - Contribuyente
         if (declaration.taxpayer) {
@@ -881,7 +890,7 @@ class ICAFormController {
     
     collectFormData() {
         return {
-            tax_year: this.getValue('tax_year') || new Date().getFullYear(),
+            tax_year: parseInt(document.getElementById('tax_year')?.value) || new Date().getFullYear(),
             declaration_type: document.getElementById('declaration_type')?.value || 'inicial',
             department: document.getElementById('department')?.value || '',
             bogota_period: document.getElementById('bogota_period')?.value || '',
@@ -902,25 +911,45 @@ class ICAFormController {
                 is_consortium: document.getElementById('is_consortium')?.value || 'no',
                 autonomous_patrimony: document.getElementById('autonomous_patrimony')?.value || 'no'
             },
+            // Sección B - Base Gravable (Renglones 8-15)
             income_base: {
-                row_9_ordinary_income: this.getValue('row_9'),
-                row_10_extraordinary_income: this.getValue('row_10'),
-                row_12_returns: this.getValue('row_12'),
-                row_13_exports: this.getValue('row_13'),
-                row_14_fixed_assets_sales: this.getValue('row_14'),
-                row_15_excluded_income: this.getValue('row_15'),
-                row_16_non_taxable_income: this.getValue('row_16')
+                row_8_total_income_country: this.getValue('row_8'),
+                row_9_income_outside_municipality: this.getValue('row_9'),
+                row_11_returns_rebates_discounts: this.getValue('row_11'),
+                row_12_exports_fixed_assets: this.getValue('row_12'),
+                row_13_excluded_non_taxable: this.getValue('row_13'),
+                row_14_exempt_income: this.getValue('row_14')
             },
+            // Sección C - Actividades
             activities: this.activities,
-            settlement: {
-                row_18_ica_tax: this.getValue('row_18'),
-                row_19_signs_boards: this.getValue('row_19'),
-                row_20_surcharge: this.getValue('row_20')
+            // Sección C - Energía (Renglones 18-19)
+            energy_generation: {
+                installed_capacity_kw: this.getValue('row_18_energy_kw'),
+                law_56_tax: this.getValue('row_19_law56')
             },
-            discounts: {
-                row_22_tax_discounts: this.getValue('row_22'),
-                row_23_advance_payments: this.getValue('row_23'),
-                row_24_withholdings: this.getValue('row_24')
+            // Sección D - Liquidación (Renglones 20-34)
+            settlement: {
+                row_20_total_ica_tax: this.getValue('row_20'),
+                row_21_signs_boards: this.getValue('row_21'),
+                row_22_financial_additional_units: this.getValue('row_22'),
+                row_23_bomberil_surcharge: this.getValue('row_23'),
+                row_24_security_surcharge: this.getValue('row_24'),
+                row_26_exemptions: this.getValue('row_26'),
+                row_27_withholdings_municipality: this.getValue('row_27'),
+                row_28_self_withholdings: this.getValue('row_28'),
+                row_29_previous_advance: this.getValue('row_29'),
+                row_30_next_year_advance: this.getValue('row_30'),
+                row_31_penalties: this.getValue('row_31'),
+                row_31_penalty_type: document.getElementById('row_31_type')?.value || '',
+                row_32_previous_balance_favor: this.getValue('row_32')
+            },
+            // Sección E - Pago (Renglones 35-40)
+            payment_section: {
+                row_35_amount_to_pay: this.getValue('row_35'),
+                row_36_early_payment_discount: this.getValue('row_36'),
+                row_37_late_interest: this.getValue('row_37'),
+                row_39_voluntary_payment: this.getValue('row_39'),
+                row_39_voluntary_destination: document.getElementById('row_39_destination')?.value || ''
             }
         };
     }
