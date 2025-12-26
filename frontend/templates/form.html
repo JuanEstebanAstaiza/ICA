@@ -797,6 +797,12 @@
                     <strong>⚠️ Atención:</strong> Una vez firmada la declaración, queda bloqueada para edición.
                 </div>
                 
+                <!-- Indicador de hora Colombia -->
+                <div id="colombia-time-signature" class="alert mb-3" style="background: linear-gradient(135deg, #f0fdf4, #dcfce7); border-left: 4px solid #10b981;">
+                    <strong>🕐 Hora Colombia (Oficial):</strong> <span id="colombia-time-modal">Cargando...</span>
+                    <br><small style="color: #059669;">La declaración se radicará con esta fecha y hora.</small>
+                </div>
+                
                 <!-- Indicador para persona jurídica -->
                 <div id="juridica-signature-info" class="alert alert-info mb-3" style="display: none; background: linear-gradient(135deg, #dbeafe, #bfdbfe); border-left: 4px solid #2563eb;">
                     <strong>🏢 Firma como Representante Legal:</strong> Los datos de firma corresponden al representante legal 
@@ -822,8 +828,9 @@
                     </div>
                     <div class="col-6">
                         <div class="form-group">
-                            <label for="declaration_date" class="form-label required">Fecha de Declaración</label>
+                            <label for="declaration_date" class="form-label required">Fecha de Declaración (Colombia)</label>
                             <input type="date" id="declaration_date" class="form-control" required>
+                            <small class="form-text" style="color: #059669;">✓ Fecha en zona horaria de Colombia</small>
                         </div>
                     </div>
                 </div>
@@ -1567,13 +1574,31 @@
         }
         
         // Inicializar formulario
-        function initializeForm() {
-            // Establecer año actual por defecto
-            document.getElementById('tax_year').value = new Date().getFullYear();
-            
-            // Establecer fecha actual para firma
-            document.getElementById('declaration_date').value = 
-                new Date().toISOString().split('T')[0];
+        async function initializeForm() {
+            // Obtener hora de Colombia del servidor
+            try {
+                const colombiaTime = await AuthAPI.getColombiaTime();
+                // Establecer año actual según hora de Colombia
+                const colombiaYear = parseInt(colombiaTime.date.split('-')[0]);
+                document.getElementById('tax_year').value = colombiaYear;
+                
+                // Establecer fecha actual para firma (hora Colombia)
+                document.getElementById('declaration_date').value = colombiaTime.date;
+                
+                // Actualizar el indicador de hora en el modal de firma
+                document.getElementById('colombia-time-modal').textContent = colombiaTime.formatted;
+            } catch (error) {
+                console.warn('No se pudo obtener hora de Colombia, usando hora local:', error);
+                // Fallback: calcular hora de Colombia localmente (UTC-5)
+                const now = new Date();
+                const colombiaOffset = -5 * 60; // UTC-5 en minutos
+                const localOffset = now.getTimezoneOffset();
+                const colombiaTime = new Date(now.getTime() + (localOffset + colombiaOffset) * 60000);
+                
+                document.getElementById('tax_year').value = colombiaTime.getFullYear();
+                document.getElementById('declaration_date').value = colombiaTime.toISOString().split('T')[0];
+                document.getElementById('colombia-time-modal').textContent = colombiaTime.toLocaleString('es-CO');
+            }
             
             // Inicializar controlador de formulario
             const form = document.getElementById('ica-form');

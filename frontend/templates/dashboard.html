@@ -79,6 +79,9 @@
                 <div class="col-12">
                     <h1 style="font-size: 1.75rem; font-weight: 700; color: var(--text-color);">Panel de Control</h1>
                     <p class="text-muted">Bienvenido al Sistema de Declaración ICA - Formulario Único Nacional</p>
+                    <div id="colombia-time-display" style="font-size: 0.9rem; color: var(--primary-color); margin-top: 0.5rem;">
+                        🕐 Hora Colombia: <span id="colombia-time">Cargando...</span>
+                    </div>
                 </div>
             </div>
             
@@ -403,9 +406,31 @@
             window.location.href = 'login.html';
         });
         
+        // Función para cargar y mostrar hora de Colombia
+        async function loadColombiaTime() {
+            try {
+                const timeData = await AuthAPI.getColombiaTime();
+                document.getElementById('colombia-time').textContent = timeData.formatted;
+            } catch (error) {
+                // Si falla el endpoint, calcular hora de Colombia localmente (UTC-5)
+                const now = new Date();
+                const colombiaOffset = -5 * 60; // UTC-5 en minutos
+                const localOffset = now.getTimezoneOffset();
+                const colombiaTime = new Date(now.getTime() + (localOffset + colombiaOffset) * 60000);
+                document.getElementById('colombia-time').textContent = colombiaTime.toLocaleString('es-CO');
+            }
+        }
+        
+        // Actualizar hora de Colombia cada minuto
+        function startColombiaTimeClock() {
+            loadColombiaTime();
+            setInterval(loadColombiaTime, 60000); // Actualizar cada minuto
+        }
+        
         // Inicializar
         loadUserData();
         loadDeclarations();
+        startColombiaTimeClock();
     </script>
 </body>
 </html>

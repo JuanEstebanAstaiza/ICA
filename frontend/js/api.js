@@ -129,6 +129,15 @@ const AuthAPI = {
     },
     
     /**
+     * Obtener la hora actual de Colombia (UTC-5)
+     * Usado para sincronizar la hora del frontend con la hora oficial de Colombia
+     */
+    async getColombiaTime() {
+        const response = await fetch(`${API_BASE_URL}/auth/colombia-time`);
+        return response.json();
+    },
+    
+    /**
      * Iniciar sesión
      */
     async login(email, password) {

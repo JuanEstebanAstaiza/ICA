@@ -20,7 +20,7 @@ from reportlab.platypus import (
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 from reportlab.pdfgen import canvas as pdf_canvas
 
-from ..core.config import settings, get_pdf_path
+from ..core.config import settings, get_pdf_path, get_colombia_time
 
 
 class PDFGenerator:
@@ -108,14 +108,14 @@ class PDFGenerator:
         """
         # Determinar ruta de salida
         if not output_path:
-            year = declaration_data.get('tax_year', datetime.now().year)
+            year = declaration_data.get('tax_year', get_colombia_time().year)
             municipality = declaration_data.get('municipality', {}).get('name', 'default')
             user_id = declaration_data.get('user_id', 0)
             
             base_path = get_pdf_path(year, municipality, user_id)
             os.makedirs(base_path, exist_ok=True)
             
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            timestamp = get_colombia_time().strftime('%Y%m%d_%H%M%S')
             form_number = declaration_data.get('form_number', 'DRAFT')
             output_path = os.path.join(base_path, f"ICA_{form_number}_{timestamp}.pdf")
         
@@ -581,7 +581,7 @@ class PDFGenerator:
         
         elements.append(Paragraph('Sección F – Firmas', self.styles['SectionTitle']))
         
-        # Datos de firma
+        # Datos de firma - buscar en signature_info primero, luego en data directamente
         signature_info = data.get('signature_info', {})
         
         # Formatear fecha de firma
@@ -615,6 +615,26 @@ class PDFGenerator:
         elements.append(table1)
         elements.append(Spacer(1, 0.2*inch))
         
+        # Firma digital del declarante (imagen)
+        # Buscar en signature_info.declarant_signature_image primero, luego en data.signature_data
+        declarant_signature_image = signature_info.get('declarant_signature_image') or data.get('signature_data')
+        if declarant_signature_image and data.get('is_signed'):
+            elements.append(Paragraph('Firma Digital del Declarante:', self.styles['FieldLabel']))
+            
+            # Decodificar base64 si es necesario
+            try:
+                if declarant_signature_image.startswith('data:image'):
+                    declarant_signature_image = declarant_signature_image.split(',')[1]
+                img_data = base64.b64decode(declarant_signature_image)
+                img_buffer = BytesIO(img_data)
+                sig_img = Image(img_buffer, width=2*inch, height=1*inch)
+                elements.append(sig_img)
+            except (ValueError, TypeError, KeyError) as e:
+                # Manejar errores de decodificación base64 o formato de imagen
+                elements.append(Paragraph('[Firma digital incluida]', self.styles['Normal']))
+            
+            elements.append(Spacer(1, 0.2*inch))
+        
         # FIRMA DEL CONTADOR / REVISOR FISCAL (solo si aplica)
         requires_reviewer = signature_info.get('requires_fiscal_reviewer', False)
         accountant_name = signature_info.get('accountant_name')
@@ -639,32 +659,35 @@ class PDFGenerator:
                 ('GRID', (0, 0), (-1, -1), 0.5, colors.lightgrey),
             ]))
             elements.append(table2)
+            elements.append(Spacer(1, 0.1*inch))
+            
+            # Firma digital del contador/revisor (imagen)
+            accountant_signature_image = signature_info.get('accountant_signature_image')
+            if accountant_signature_image:
+                elements.append(Paragraph(f'Firma Digital del {title.split(" DEL ")[1]}:', self.styles['FieldLabel']))
+                
+                try:
+                    if accountant_signature_image.startswith('data:image'):
+                        accountant_signature_image = accountant_signature_image.split(',')[1]
+                    img_data = base64.b64decode(accountant_signature_image)
+                    img_buffer = BytesIO(img_data)
+                    sig_img = Image(img_buffer, width=2*inch, height=1*inch)
+                    elements.append(sig_img)
+                except (ValueError, TypeError, KeyError) as e:
+                    elements.append(Paragraph('[Firma digital incluida]', self.styles['Normal']))
+            
             elements.append(Spacer(1, 0.2*inch))
         
-        # Firma digital (imagen)
-        signature_image = data.get('signature_data')
-        if signature_image and data.get('is_signed'):
-            elements.append(Spacer(1, 0.2*inch))
-            elements.append(Paragraph('Firma Digital:', self.styles['FieldLabel']))
-            
-            # Decodificar base64 si es necesario
-            try:
-                if signature_image.startswith('data:image'):
-                    signature_image = signature_image.split(',')[1]
-                img_data = base64.b64decode(signature_image)
-                img_buffer = BytesIO(img_data)
-                sig_img = Image(img_buffer, width=2*inch, height=1*inch)
-                elements.append(sig_img)
-            except (ValueError, TypeError, KeyError) as e:
-                # Manejar errores de decodificación base64 o formato de imagen
-                elements.append(Paragraph('[Firma digital incluida]', self.styles['Normal']))
-            
-            # Información de integridad
+        # Información de integridad (si está firmado)
+        if data.get('is_signed'):
             elements.append(Spacer(1, 0.1*inch))
+            signed_at = signature_info.get('signed_at') or data.get('signed_at', 'N/A')
+            integrity_hash = data.get('integrity_hash', 'N/A')
+            hash_display = integrity_hash[:32] + '...' if integrity_hash and len(integrity_hash) > 32 else integrity_hash
             integrity_text = f"""
             <font size="8">
-            <b>Firmado el:</b> {data.get('signed_at', 'N/A')}<br/>
-            <b>Hash de integridad:</b> {data.get('integrity_hash', 'N/A')[:32]}...
+            <b>Firmado el:</b> {signed_at}<br/>
+            <b>Hash de integridad:</b> {hash_display}
             </font>
             """
             elements.append(Paragraph(integrity_text, self.styles['Normal']))
@@ -690,10 +713,10 @@ class PDFGenerator:
         if footer_text:
             elements.append(Paragraph(footer_text, self.styles['Footer']))
         
-        # Timestamp de generación
-        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        # Timestamp de generación (usando hora de Colombia)
+        timestamp = get_colombia_time().strftime('%Y-%m-%d %H:%M:%S')
         elements.append(Paragraph(
-            f'Documento generado el {timestamp}',
+            f'Documento generado el {timestamp} (Hora Colombia)',
             self.styles['Footer']
         ))
         

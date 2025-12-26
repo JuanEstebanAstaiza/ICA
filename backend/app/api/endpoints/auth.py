@@ -14,6 +14,7 @@ from ...core.security import (
     create_access_token, create_refresh_token,
     decode_token, generate_csrf_token
 )
+from ...core.config import get_colombia_time
 from ...models.models import User, UserRole, PersonType, AuditLog, Municipality, WhiteLabelConfig
 from ...schemas.schemas import (
     UserCreate, UserLogin, UserResponse, Token,
@@ -124,6 +125,23 @@ async def get_platform_municipality_info(db: Session = Depends(get_db)):
             "name": municipality.name,
             "department": municipality.department
         }
+    }
+
+
+@router.get("/colombia-time")
+async def get_colombia_time_endpoint():
+    """
+    Obtiene la fecha y hora actual en zona horaria de Colombia (UTC-5).
+    Usado para sincronizar la hora en el frontend y asegurar que las 
+    declaraciones se radiquen con la hora correcta de Colombia.
+    """
+    colombia_now = get_colombia_time()
+    return {
+        "datetime": colombia_now.isoformat(),
+        "date": colombia_now.strftime('%Y-%m-%d'),
+        "time": colombia_now.strftime('%H:%M:%S'),
+        "formatted": colombia_now.strftime('%d/%m/%Y %H:%M:%S'),
+        "timezone": "America/Bogota (UTC-5)"
     }
 
 
