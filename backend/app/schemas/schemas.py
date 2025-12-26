@@ -254,14 +254,14 @@ class MunicipalityResponse(MunicipalityBase):
 
 class WhiteLabelConfigBase(BaseModel):
     logo_path: Optional[str] = None
-    primary_color: str = Field(default="#003366", pattern=r'^#[0-9A-Fa-f]{6}$')
-    secondary_color: str = Field(default="#0066CC", pattern=r'^#[0-9A-Fa-f]{6}$')
-    accent_color: str = Field(default="#FF9900", pattern=r'^#[0-9A-Fa-f]{6}$')
-    font_family: str = Field(default="Arial, sans-serif", max_length=100)
+    primary_color: Optional[str] = Field(default="#003366", pattern=r'^#[0-9A-Fa-f]{6}$')
+    secondary_color: Optional[str] = Field(default="#0066CC", pattern=r'^#[0-9A-Fa-f]{6}$')
+    accent_color: Optional[str] = Field(default="#FF9900", pattern=r'^#[0-9A-Fa-f]{6}$')
+    font_family: Optional[str] = Field(default="Arial, sans-serif", max_length=100)
     header_text: Optional[str] = None
     footer_text: Optional[str] = None
     legal_notes: Optional[str] = None
-    form_title: str = Field(
+    form_title: Optional[str] = Field(
         default="Formulario Único Nacional de Declaración y Pago ICA",
         max_length=500
     )
@@ -274,11 +274,11 @@ class WhiteLabelConfigBase(BaseModel):
     
     # Configuración de Numeración (Consecutivo y Radicado)
     consecutivo_prefijo: Optional[str] = Field(default="", max_length=10)
-    consecutivo_actual: int = Field(default=1, ge=1)
-    consecutivo_digitos: int = Field(default=12, ge=6, le=20)
+    consecutivo_actual: Optional[int] = Field(default=1, ge=1)
+    consecutivo_digitos: Optional[int] = Field(default=12, ge=6, le=20)
     radicado_prefijo: Optional[str] = Field(default="", max_length=10)
-    radicado_actual: int = Field(default=1, ge=1)
-    radicado_digitos: int = Field(default=16, ge=6, le=20)
+    radicado_actual: Optional[int] = Field(default=1, ge=1)
+    radicado_digitos: Optional[int] = Field(default=16, ge=6, le=20)
 
 
 class WhiteLabelConfigUpdate(WhiteLabelConfigBase):
@@ -716,7 +716,7 @@ class SignatureData(BaseModel):
     accountant_name: Optional[str] = Field(None, max_length=255)
     accountant_document: Optional[str] = Field(None, max_length=50)
     accountant_professional_card: Optional[str] = Field(None, max_length=50)
-    accountant_signature_method: Optional[str] = Field(None, pattern=r'^(manuscrita|clave)?$')
+    accountant_signature_method: Optional[str] = Field(None, max_length=10)
     
     # Firma digital (base64 del canvas si es manuscrita)
     signature_image: Optional[str] = None
@@ -724,6 +724,12 @@ class SignatureData(BaseModel):
     
     # Legacy field
     professional_card_number: Optional[str] = Field(None, max_length=50)
+    
+    @validator('accountant_signature_method')
+    def validate_accountant_signature_method(cls, v):
+        if v is not None and v != '' and v not in ('manuscrita', 'clave'):
+            raise ValueError('accountant_signature_method must be "manuscrita" or "clave"')
+        return v
 
 
 class SignatureResponse(SignatureData):
