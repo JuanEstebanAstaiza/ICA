@@ -2,7 +2,6 @@
 Servicio de correo electrónico.
 Envía notificaciones y PDFs firmados a los usuarios.
 """
-import asyncio
 import smtplib
 import ssl
 import logging
