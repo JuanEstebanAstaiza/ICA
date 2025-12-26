@@ -212,6 +212,41 @@
         #municipalities-table tbody tr:hover {
             background: #f0f4f8;
         }
+        
+        /* Sistema de Pestañas */
+        .admin-tabs {
+            display: flex;
+            gap: 0;
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 1.5rem;
+        }
+        .admin-tab {
+            padding: 1rem 1.5rem;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s;
+        }
+        .admin-tab:hover {
+            color: var(--primary-color);
+            background: rgba(0, 51, 102, 0.05);
+        }
+        .admin-tab.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+            background: rgba(0, 51, 102, 0.08);
+        }
+        .admin-tab-content {
+            display: none;
+        }
+        .admin-tab-content.active {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -246,6 +281,22 @@
             
             <h1>Panel de Administración</h1>
             <p class="text-muted">Configuración marca blanca y gestión del sistema</p>
+            
+            <!-- Sistema de Pestañas -->
+            <div class="admin-tabs">
+                <button class="admin-tab active" data-tab="config" onclick="switchTab('config')">
+                    🎨 Configuración
+                </button>
+                <button class="admin-tab" data-tab="municipalities" onclick="switchTab('municipalities')">
+                    🏛️ Municipios
+                </button>
+                <button class="admin-tab" data-tab="forms" onclick="switchTab('forms')">
+                    📋 Formularios
+                </button>
+            </div>
+            
+            <!-- TAB: Configuración -->
+            <div id="tab-config" class="admin-tab-content active">
             
             <!-- Acciones rápidas -->
             <div class="row" style="margin-top: 1rem; margin-bottom: 1rem;">
@@ -665,8 +716,13 @@
                 </div>
             </div>
             
+            </div><!-- Fin TAB: Configuración -->
+            
+            <!-- TAB: Municipios -->
+            <div id="tab-municipalities" class="admin-tab-content">
+            
             <!-- Gestión de Municipios con Paginación -->
-            <div class="row" style="margin-top: 2rem;">
+            <div class="row">
                 <div class="col-12">
                     <div class="card">
                         <div class="card-header">
@@ -748,8 +804,13 @@
             </div>
         </div>
         
-        <!-- Panel de Gestión de Formularios (solo para admin_alcaldia) -->
-        <div class="row" style="margin-top: 2rem;" id="forms-management-section">
+        </div><!-- Fin TAB: Municipios -->
+        
+        <!-- TAB: Formularios -->
+        <div id="tab-forms" class="admin-tab-content">
+        
+        <!-- Panel de Gestión de Formularios -->
+        <div class="row" id="forms-management-section">
             <div class="col-12">
                 <div class="card">
                     <div class="card-header" style="background: linear-gradient(135deg, #059669, #047857); color: white;">
@@ -851,10 +912,16 @@
                                 </div>
                             </div>
                         </div>
+                        
+                        <!-- Paginación -->
+                        <div id="declarations-pagination" class="pagination" style="margin-top: 1rem;"></div>
                     </div>
                 </div>
             </div>
         </div>
+        
+        </div><!-- Fin TAB: Formularios -->
+        
     </main>
     
     <!-- Footer -->
@@ -1541,6 +1608,34 @@
             document.getElementById('loading-overlay').classList.remove('active');
         }
         
+        function showAlert(message, type = 'info') {
+            const container = document.getElementById('alert-container');
+            if (!container) return;
+            
+            const alertClass = {
+                'success': 'alert-success',
+                'danger': 'alert-danger',
+                'warning': 'alert-warning',
+                'info': 'alert-info'
+            }[type] || 'alert-info';
+            
+            const alert = document.createElement('div');
+            alert.className = `alert ${alertClass}`;
+            alert.innerHTML = `
+                <span>${message}</span>
+                <button class="alert-close" onclick="this.parentElement.remove()">×</button>
+            `;
+            
+            container.appendChild(alert);
+            
+            // Auto-remover después de 5 segundos
+            setTimeout(() => {
+                if (alert.parentElement) {
+                    alert.remove();
+                }
+            }, 5000);
+        }
+        
         async function deleteActivity(activityId) {
             if (!confirm('¿Está seguro de eliminar esta actividad?')) {
                 return;
@@ -1570,7 +1665,36 @@
             window.location.href = 'login.html';
         });
         
+        // ==================== SISTEMA DE PESTAÑAS ====================
+        
+        function switchTab(tabId) {
+            // Ocultar todas las pestañas
+            document.querySelectorAll('.admin-tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Desactivar todos los botones
+            document.querySelectorAll('.admin-tab').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Mostrar la pestaña seleccionada
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+            
+            // Activar el botón correspondiente
+            document.querySelector(`.admin-tab[data-tab="${tabId}"]`).classList.add('active');
+            
+            // Si es la pestaña de formularios, cargar las declaraciones
+            if (tabId === 'forms') {
+                loadAllDeclarations();
+            }
+        }
+        
         // ==================== GESTIÓN DE FORMULARIOS ====================
+        
+        let declarationsCurrentPage = 1;
+        const DECLARATIONS_PER_PAGE = 10;
+        let allDeclarationsData = [];
         
         async function searchDeclarations() {
             const filingNumber = document.getElementById('search-filing-number').value.trim();
@@ -1585,24 +1709,22 @@
             try {
                 showLoading();
                 
-                // Construir URL con parámetros
+                // Construir parámetros de búsqueda
                 const params = new URLSearchParams();
                 if (filingNumber) params.append('filing_number', filingNumber);
                 if (formNumber) params.append('form_number', formNumber);
                 if (document_num) params.append('document_number', document_num);
                 
-                const response = await fetch(`${API_BASE_URL}/declarations/search?${params.toString()}`, {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-                    }
-                });
-                
-                const declarations = await response.json();
-                renderDeclarationsResults(declarations);
+                // Usar fetch con la API de declaraciones
+                const declarations = await DeclarationsAPI.search(params.toString());
+                allDeclarationsData = declarations;
+                declarationsCurrentPage = 1;
+                renderDeclarationsResults();
                 
                 hideLoading();
             } catch (error) {
                 hideLoading();
+                console.error('Error searching declarations:', error);
                 showAlert('❌ Error al buscar: ' + error.message, 'danger');
             }
         }
@@ -1611,25 +1733,24 @@
             try {
                 showLoading();
                 
-                const response = await fetch(`${API_BASE_URL}/declarations/`, {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-                    }
-                });
-                
-                const declarations = await response.json();
-                renderDeclarationsResults(declarations);
+                // Usar DeclarationsAPI que maneja correctamente la autenticación
+                const declarations = await DeclarationsAPI.list();
+                allDeclarationsData = declarations;
+                declarationsCurrentPage = 1;
+                renderDeclarationsResults();
                 
                 hideLoading();
             } catch (error) {
                 hideLoading();
+                console.error('Error loading declarations:', error);
                 showAlert('❌ Error al cargar declaraciones: ' + error.message, 'danger');
             }
         }
         
-        function renderDeclarationsResults(declarations) {
+        function renderDeclarationsResults() {
             const tbody = document.getElementById('declarations-results');
             const statsDiv = document.getElementById('declarations-stats');
+            const declarations = allDeclarationsData;
             
             if (!declarations || declarations.length === 0) {
                 tbody.innerHTML = `
@@ -1640,6 +1761,7 @@
                     </tr>
                 `;
                 statsDiv.style.display = 'none';
+                renderDeclarationsPagination(0);
                 return;
             }
             
@@ -1653,8 +1775,14 @@
             document.getElementById('stat-forms-corrections').textContent = 
                 declarations.filter(d => d.correction_of_id).length;
             
-            // Renderizar tabla
-            tbody.innerHTML = declarations.map(d => {
+            // Calcular paginación
+            const totalPages = Math.ceil(declarations.length / DECLARATIONS_PER_PAGE);
+            const startIndex = (declarationsCurrentPage - 1) * DECLARATIONS_PER_PAGE;
+            const endIndex = startIndex + DECLARATIONS_PER_PAGE;
+            const pageDeclarations = declarations.slice(startIndex, endIndex);
+            
+            // Renderizar tabla con página actual
+            tbody.innerHTML = pageDeclarations.map(d => {
                 const taxpayerName = d.taxpayer?.legal_name || 'Sin nombre';
                 const taxpayerDoc = d.taxpayer?.document_number || '-';
                 const filingDate = d.filing_date 
@@ -1695,6 +1823,48 @@
                     </tr>
                 `;
             }).join('');
+            
+            // Renderizar paginación
+            renderDeclarationsPagination(totalPages);
+        }
+        
+        function renderDeclarationsPagination(totalPages) {
+            const paginationContainer = document.getElementById('declarations-pagination');
+            
+            if (!paginationContainer) return;
+            
+            if (totalPages <= 1) {
+                paginationContainer.innerHTML = '';
+                return;
+            }
+            
+            let html = `
+                <button onclick="goToDeclarationsPage(1)" ${declarationsCurrentPage === 1 ? 'disabled' : ''}>«</button>
+                <button onclick="goToDeclarationsPage(${declarationsCurrentPage - 1})" ${declarationsCurrentPage === 1 ? 'disabled' : ''}>‹</button>
+            `;
+            
+            // Mostrar números de página
+            const startPage = Math.max(1, declarationsCurrentPage - 2);
+            const endPage = Math.min(totalPages, declarationsCurrentPage + 2);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                html += `<button onclick="goToDeclarationsPage(${i})" class="${i === declarationsCurrentPage ? 'active' : ''}">${i}</button>`;
+            }
+            
+            html += `
+                <button onclick="goToDeclarationsPage(${declarationsCurrentPage + 1})" ${declarationsCurrentPage === totalPages ? 'disabled' : ''}>›</button>
+                <button onclick="goToDeclarationsPage(${totalPages})" ${declarationsCurrentPage === totalPages ? 'disabled' : ''}>»</button>
+                <span class="pagination-info">Página ${declarationsCurrentPage} de ${totalPages} (${allDeclarationsData.length} registros)</span>
+            `;
+            
+            paginationContainer.innerHTML = html;
+        }
+        
+        function goToDeclarationsPage(page) {
+            const totalPages = Math.ceil(allDeclarationsData.length / DECLARATIONS_PER_PAGE);
+            if (page < 1 || page > totalPages) return;
+            declarationsCurrentPage = page;
+            renderDeclarationsResults();
         }
         
         async function downloadDeclarationPDF(declarationId) {
@@ -1710,14 +1880,16 @@
         
         // Mostrar/ocultar sección según rol
         function setupFormManagementSection(user) {
-            const section = document.getElementById('forms-management-section');
-            if (section) {
-                // Mostrar solo para admin_alcaldia y admin_sistema
-                if (user.role === 'admin_alcaldia' || user.role === 'admin_sistema') {
-                    section.style.display = 'block';
-                } else {
-                    section.style.display = 'none';
-                }
+            const formsTab = document.querySelector('.admin-tab[data-tab="forms"]');
+            const formsSection = document.getElementById('tab-forms');
+            
+            // La pestaña de Formularios solo visible para admin_alcaldia y admin_sistema
+            if (user.role === 'admin_alcaldia' || user.role === 'admin_sistema') {
+                if (formsTab) formsTab.style.display = 'block';
+            } else {
+                if (formsTab) formsTab.style.display = 'none';
+                // Asegurarse de que no esté activa si se oculta
+                if (formsSection) formsSection.classList.remove('active');
             }
         }
         

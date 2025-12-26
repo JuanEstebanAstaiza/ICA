@@ -669,28 +669,39 @@ async def create_correction_declaration(
             document_number=t.document_number,
             verification_digit=t.verification_digit,
             legal_name=t.legal_name,
+            entity_type=t.entity_type,
             address=t.address,
+            notification_department=t.notification_department,
+            notification_municipality=t.notification_municipality,
             municipality=t.municipality,
             department=t.department,
             phone=t.phone,
             email=t.email,
             num_establishments=t.num_establishments,
-            classification=t.classification,
-            is_consortium=t.is_consortium
+            taxpayer_classification=t.taxpayer_classification
         )
         db.add(new_taxpayer)
     
-    # Copiar IncomeBase
+    # Copiar IncomeBase (todos los campos de la Sección B)
     if original.income_base:
         ib = original.income_base
         new_income = IncomeBase(
             declaration_id=correction.id,
+            # Campos principales
             row_8_total_income_country=ib.row_8_total_income_country,
             row_9_income_outside_municipality=ib.row_9_income_outside_municipality,
-            row_11_returns_rebates=ib.row_11_returns_rebates,
+            row_11_returns_rebates_discounts=ib.row_11_returns_rebates_discounts,
             row_12_exports_fixed_assets=ib.row_12_exports_fixed_assets,
-            row_13_exempt_income=ib.row_13_exempt_income,
-            row_14_other_deductions=ib.row_14_other_deductions
+            row_13_excluded_non_taxable=ib.row_13_excluded_non_taxable,
+            row_14_exempt_income=ib.row_14_exempt_income,
+            # Campos adicionales del desglose
+            row_8_ordinary_income=ib.row_8_ordinary_income,
+            row_9_extraordinary_income=ib.row_9_extraordinary_income,
+            row_11_returns=ib.row_11_returns,
+            row_12_exports=ib.row_12_exports,
+            row_13_fixed_assets_sales=ib.row_13_fixed_assets_sales,
+            row_14_excluded_income=ib.row_14_excluded_income,
+            row_15_non_taxable_income=ib.row_15_non_taxable_income
         )
         db.add(new_income)
     
@@ -698,35 +709,39 @@ async def create_correction_declaration(
     for act in original.activities:
         new_act = TaxableActivity(
             declaration_id=correction.id,
-            activity_code=act.activity_code,
-            activity_description=act.activity_description,
+            activity_type=act.activity_type,
+            ciiu_code=act.ciiu_code,
+            description=act.description,
             income=act.income,
-            rate_per_thousand=act.rate_per_thousand,
-            tax=act.tax
+            tax_rate=act.tax_rate,
+            special_rate=act.special_rate
         )
         db.add(new_act)
     
-    # Copiar TaxSettlement
+    # Copiar TaxSettlement (todos los campos de la Sección D)
     if original.settlement:
         s = original.settlement
         new_settlement = TaxSettlement(
             declaration_id=correction.id,
-            row_20_ica_tax=s.row_20_ica_tax,
-            row_21_signs_boards_tax=s.row_21_signs_boards_tax,
-            row_22_signs_boards_base=s.row_22_signs_boards_base,
-            row_23_firefighter_surcharge=s.row_23_firefighter_surcharge,
+            # Campos principales de liquidación
+            row_20_total_ica_tax=s.row_20_total_ica_tax,
+            row_21_signs_boards=s.row_21_signs_boards,
+            row_22_financial_additional_units=s.row_22_financial_additional_units,
+            row_23_bomberil_surcharge=s.row_23_bomberil_surcharge,
             row_24_security_surcharge=s.row_24_security_surcharge,
-            row_25_ley_56_surcharge=s.row_25_ley_56_surcharge,
-            row_26_other_surcharges=s.row_26_other_surcharges,
-            row_27_total_tax_plus_surcharges=s.row_27_total_tax_plus_surcharges,
-            row_28_withholdings=s.row_28_withholdings,
-            row_29_self_withholdings=s.row_29_self_withholdings,
-            row_30_advance_payments=s.row_30_advance_payments,
+            row_26_exemptions=s.row_26_exemptions,
+            row_27_withholdings_municipality=s.row_27_withholdings_municipality,
+            row_28_self_withholdings=s.row_28_self_withholdings,
+            row_29_previous_advance=s.row_29_previous_advance,
+            row_30_next_year_advance=s.row_30_next_year_advance,
             row_31_penalties=s.row_31_penalties,
             row_31_penalty_type=s.row_31_penalty_type,
-            row_32_interests=s.row_32_interests,
-            row_33_amount_due=s.row_33_amount_due,
-            row_34_balance_favor=s.row_34_balance_favor
+            row_31_penalty_other_description=s.row_31_penalty_other_description,
+            row_32_previous_balance_favor=s.row_32_previous_balance_favor,
+            # Campos adicionales
+            row_30_ica_tax=s.row_30_ica_tax,
+            row_31_signs_boards=s.row_31_signs_boards,
+            row_32_surcharge=s.row_32_surcharge
         )
         db.add(new_settlement)
     
@@ -735,11 +750,9 @@ async def create_correction_declaration(
         d = original.discounts
         new_discounts = DiscountsCredits(
             declaration_id=correction.id,
-            row_36_pronto_pago=d.row_36_pronto_pago,
-            row_37_other_discounts=d.row_37_other_discounts,
-            row_38_total_discounts=d.row_38_total_discounts,
-            row_39_voluntary_payment=d.row_39_voluntary_payment,
-            row_40_total_with_voluntary=d.row_40_total_with_voluntary
+            tax_discounts=d.tax_discounts,
+            advance_payments=d.advance_payments,
+            withholdings=d.withholdings
         )
         db.add(new_discounts)
     
@@ -748,11 +761,6 @@ async def create_correction_declaration(
         r = original.result
         new_result = DeclarationResult(
             declaration_id=correction.id,
-            total_income=r.total_income,
-            taxable_income=r.taxable_income,
-            total_tax=r.total_tax,
-            total_surcharges=r.total_surcharges,
-            total_credits=r.total_credits,
             amount_to_pay=r.amount_to_pay,
             balance_in_favor=r.balance_in_favor
         )

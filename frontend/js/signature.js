@@ -196,8 +196,16 @@ class SignatureModal {
         this.accountantCanvas = null;  // Canvas del contador/revisor
         this.onSign = options.onSign || (() => {});
         this.declarationId = options.declarationId;
+        this.getDeclarationId = options.getDeclarationId || null; // Función para obtener ID actualizado
         
         this.init();
+    }
+    
+    /**
+     * Actualiza el ID de la declaración
+     */
+    setDeclarationId(id) {
+        this.declarationId = id;
     }
     
     init() {
@@ -249,6 +257,20 @@ class SignatureModal {
     
     open() {
         if (!this.modal) return;
+        
+        // Actualizar el ID de la declaración si hay función para obtenerlo
+        if (this.getDeclarationId) {
+            const currentId = this.getDeclarationId();
+            if (currentId) {
+                this.declarationId = currentId;
+            }
+        }
+        
+        // Verificar que haya declaración antes de abrir
+        if (!this.declarationId) {
+            showAlert('⚠️ Primero debe guardar la declaración antes de firmar', 'warning');
+            return;
+        }
         
         this.modal.classList.add('active');
         

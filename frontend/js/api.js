@@ -318,6 +318,16 @@ const DeclarationsAPI = {
             headers: getHeaders()
         });
         return handleResponse(response);
+    },
+    
+    /**
+     * Buscar declaraciones con parámetros múltiples
+     */
+    async search(queryString) {
+        const response = await fetch(`${API_BASE_URL}/declarations/search?${queryString}`, {
+            headers: getHeaders()
+        });
+        return handleResponse(response);
     }
 };
 

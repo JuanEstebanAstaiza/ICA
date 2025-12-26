@@ -1582,6 +1582,7 @@
             // Inicializar modal de firma
             const signatureModal = new SignatureModal('signature-modal', 'signature-canvas', {
                 declarationId: declarationId ? parseInt(declarationId) : null,
+                getDeclarationId: () => formController.declarationId, // Obtener ID actualizado del controlador
                 onSign: (data) => {
                     console.log('Declaración firmada:', data);
                 }
@@ -1616,25 +1617,26 @@
         function applyFormulaParameters() {
             if (!formController) return;
             
-            const row20 = parseFloat(document.getElementById('row_20')?.value) || 0;
+            // Usar getValue del formController para obtener el valor correcto (sin formateo)
+            const row20 = formController.getValue('row_20');
             
             // Renglón 21: Avisos y Tableros (solo si está marcado el checkbox)
             const usesSignsBoards = document.getElementById('uses_signs_boards')?.checked || false;
-            if (usesSignsBoards) {
+            if (usesSignsBoards && formulaParameters.avisos_tableros_rate > 0) {
                 const row21 = row20 * (formulaParameters.avisos_tableros_rate / 100);
-                document.getElementById('row_21').value = row21.toFixed(2);
+                formController.setValue('row_21', row21);
             }
             
             // Renglón 23: Sobretasa bomberil
             if (formulaParameters.sobretasa_bomberil_rate > 0) {
                 const row23 = row20 * (formulaParameters.sobretasa_bomberil_rate / 100);
-                document.getElementById('row_23').value = row23.toFixed(2);
+                formController.setValue('row_23', row23);
             }
             
             // Renglón 24: Sobretasa seguridad
             if (formulaParameters.sobretasa_seguridad_rate > 0) {
                 const row24 = row20 * (formulaParameters.sobretasa_seguridad_rate / 100);
-                document.getElementById('row_24').value = row24.toFixed(2);
+                formController.setValue('row_24', row24);
             }
         }
         

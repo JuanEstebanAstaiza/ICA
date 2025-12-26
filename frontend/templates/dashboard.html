@@ -6,6 +6,43 @@
     <meta name="description" content="Sistema de Declaración ICA - Panel de Control">
     <title>Panel de Control - Sistema ICA</title>
     <link rel="stylesheet" href="../css/styles.css">
+    <style>
+        /* Paginación */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+        .pagination button {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border-color);
+            background: white;
+            cursor: pointer;
+            border-radius: var(--radius);
+            transition: all 0.2s;
+        }
+        .pagination button:hover:not(:disabled) {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .pagination button.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        .pagination-info {
+            margin: 0 1rem;
+            color: var(--text-muted);
+        }
+    </style>
 </head>
 <body>
     <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
@@ -93,27 +130,30 @@
                             📋 Mis Declaraciones
                         </div>
                         <div class="card-body">
-                            <table class="table" id="declarations-table">
-                                <thead>
-                                    <tr>
-                                        <th>No. Formulario</th>
-                                        <th>No. Radicado</th>
-                                        <th>Año</th>
-                                        <th>Tipo</th>
-                                        <th>Estado</th>
-                                        <th>Fecha</th>
-                                        <th>Acciones</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="declarations-body">
-                                    <tr>
-                                        <td colspan="7" class="text-center">
-                                            <div class="spinner" style="margin: 1rem auto;"></div>
-                                            <p class="text-muted">Cargando declaraciones...</p>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                            <div class="table-responsive">
+                                <table class="table" id="declarations-table">
+                                    <thead>
+                                        <tr>
+                                            <th>No. Formulario</th>
+                                            <th>No. Radicado</th>
+                                            <th>Año</th>
+                                            <th>Tipo</th>
+                                            <th>Estado</th>
+                                            <th>Fecha</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="declarations-body">
+                                        <tr>
+                                            <td colspan="7" class="text-center">
+                                                <div class="spinner" style="margin: 1rem auto;"></div>
+                                                <p class="text-muted">Cargando declaraciones...</p>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div id="user-declarations-pagination" class="pagination" style="margin-top: 1rem;"></div>
                         </div>
                     </div>
                 </div>
@@ -161,82 +201,139 @@
             }
         }
         
+        // Paginación de declaraciones
+        let userDeclarations = [];
+        let userCurrentPage = 1;
+        const USER_DECLARATIONS_PER_PAGE = 10;
+        
         // Cargar declaraciones
         async function loadDeclarations() {
             try {
-                const declarations = await DeclarationsAPI.list();
+                userDeclarations = await DeclarationsAPI.list();
                 
                 // Actualizar estadísticas
-                document.getElementById('stat-total').textContent = declarations.length;
+                document.getElementById('stat-total').textContent = userDeclarations.length;
                 document.getElementById('stat-draft').textContent = 
-                    declarations.filter(d => d.status === 'borrador').length;
+                    userDeclarations.filter(d => d.status === 'borrador').length;
                 document.getElementById('stat-signed').textContent = 
-                    declarations.filter(d => d.status === 'firmado').length;
+                    userDeclarations.filter(d => d.status === 'firmado').length;
                 
-                // Renderizar tabla
-                const tbody = document.getElementById('declarations-body');
-                
-                if (declarations.length === 0) {
-                    tbody.innerHTML = `
-                        <tr>
-                            <td colspan="6" class="text-center empty-state">
-                                <div class="empty-state-icon">📄</div>
-                                <p>No tiene declaraciones aún.</p>
-                                <a href="form.html" class="btn btn-primary">➕ Crear nueva declaración</a>
-                            </td>
-                        </tr>
-                    `;
-                    return;
-                }
-                
-                tbody.innerHTML = declarations.map(d => `
-                    <tr>
-                        <td><strong>${d.form_number || 'Sin número'}</strong></td>
-                        <td style="font-family: 'Roboto Mono', monospace; font-size: 0.85rem;">
-                            ${d.filing_number || '<span style="color: #9ca3af;">Pendiente</span>'}
-                        </td>
-                        <td>${d.tax_year}</td>
-                        <td>${formatDeclarationType(d.declaration_type)}</td>
-                        <td>
-                            <span class="badge badge-${d.status}">
-                                ${d.status.toUpperCase()}
-                            </span>
-                            ${d.has_been_corrected ? '<span class="badge" style="background: #f59e0b; margin-left: 4px;">Corregida</span>' : ''}
-                            ${d.correction_of_id ? '<span class="badge" style="background: #8b5cf6; margin-left: 4px;">Es corrección</span>' : ''}
-                        </td>
-                        <td>${new Date(d.created_at).toLocaleDateString('es-CO')}</td>
-                        <td>
-                            <div class="d-flex gap-1" style="flex-wrap: wrap;">
-                                <a href="form.html?id=${d.id}" class="btn btn-sm btn-primary">
-                                    ${d.is_signed ? '👁️ Ver' : '✏️ Editar'}
-                                </a>
-                                ${d.is_signed ? `
-                                    <button class="btn btn-sm btn-secondary" onclick="downloadPDF(${d.id})">
-                                        📄 PDF
-                                    </button>
-                                ` : ''}
-                                ${d.is_signed && !d.has_been_corrected && !d.correction_of_id ? `
-                                    <button class="btn btn-sm" style="background: #f59e0b; color: white;" 
-                                            onclick="createCorrection(${d.id})" 
-                                            title="Crear corrección de esta declaración (solo 1 permitida)">
-                                        🔄 Corregir
-                                    </button>
-                                ` : ''}
-                            </div>
-                        </td>
-                    </tr>
-                `).join('');
+                userCurrentPage = 1;
+                renderDeclarationsPage();
                 
             } catch (error) {
                 console.error('Error loading declarations:', error);
                 document.getElementById('declarations-body').innerHTML = `
                     <tr>
-                        <td colspan="6" class="text-center" style="color: var(--danger-color);">
+                        <td colspan="7" class="text-center" style="color: var(--danger-color);">
                             ❌ Error al cargar declaraciones
                         </td>
                     </tr>
                 `;
             }
+        }
+        
+        function renderDeclarationsPage() {
+            const tbody = document.getElementById('declarations-body');
+            
+            if (userDeclarations.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center empty-state">
+                            <div class="empty-state-icon">📄</div>
+                            <p>No tiene declaraciones aún.</p>
+                            <a href="form.html" class="btn btn-primary">➕ Crear nueva declaración</a>
+                        </td>
+                    </tr>
+                `;
+                renderUserPagination(0);
+                return;
+            }
+            
+            // Calcular paginación
+            const totalPages = Math.ceil(userDeclarations.length / USER_DECLARATIONS_PER_PAGE);
+            const startIndex = (userCurrentPage - 1) * USER_DECLARATIONS_PER_PAGE;
+            const endIndex = startIndex + USER_DECLARATIONS_PER_PAGE;
+            const pageDeclarations = userDeclarations.slice(startIndex, endIndex);
+            
+            tbody.innerHTML = pageDeclarations.map(d => `
+                <tr>
+                    <td><strong>${d.form_number || 'Sin número'}</strong></td>
+                    <td style="font-family: 'Roboto Mono', monospace; font-size: 0.85rem;">
+                        ${d.filing_number || '<span style="color: #9ca3af;">Pendiente</span>'}
+                    </td>
+                    <td>${d.tax_year}</td>
+                    <td>${formatDeclarationType(d.declaration_type)}</td>
+                    <td>
+                        <span class="badge badge-${d.status}">
+                            ${d.status.toUpperCase()}
+                        </span>
+                        ${d.has_been_corrected ? '<span class="badge" style="background: #f59e0b; margin-left: 4px;">Corregida</span>' : ''}
+                        ${d.correction_of_id ? '<span class="badge" style="background: #8b5cf6; margin-left: 4px;">Es corrección</span>' : ''}
+                    </td>
+                    <td>${new Date(d.created_at).toLocaleDateString('es-CO')}</td>
+                    <td>
+                        <div class="d-flex gap-1" style="flex-wrap: wrap;">
+                            <a href="form.html?id=${d.id}" class="btn btn-sm btn-primary">
+                                ${d.is_signed ? '👁️ Ver' : '✏️ Editar'}
+                            </a>
+                            ${d.is_signed ? `
+                                <button class="btn btn-sm btn-secondary" onclick="downloadPDF(${d.id})">
+                                    📄 PDF
+                                </button>
+                            ` : ''}
+                            ${d.is_signed && !d.has_been_corrected && !d.correction_of_id ? `
+                                <button class="btn btn-sm" style="background: #f59e0b; color: white;" 
+                                        onclick="createCorrection(${d.id})" 
+                                        title="Crear corrección de esta declaración (solo 1 permitida)">
+                                    🔄 Corregir
+                                </button>
+                            ` : ''}
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+            
+            renderUserPagination(totalPages);
+        }
+        
+        function renderUserPagination(totalPages) {
+            const paginationContainer = document.getElementById('user-declarations-pagination');
+            
+            if (!paginationContainer) return;
+            
+            if (totalPages <= 1) {
+                paginationContainer.innerHTML = '';
+                return;
+            }
+            
+            let html = `
+                <button onclick="goToUserPage(1)" ${userCurrentPage === 1 ? 'disabled' : ''}>«</button>
+                <button onclick="goToUserPage(${userCurrentPage - 1})" ${userCurrentPage === 1 ? 'disabled' : ''}>‹</button>
+            `;
+            
+            // Mostrar números de página
+            const startPage = Math.max(1, userCurrentPage - 2);
+            const endPage = Math.min(totalPages, userCurrentPage + 2);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                html += `<button onclick="goToUserPage(${i})" class="${i === userCurrentPage ? 'active' : ''}">${i}</button>`;
+            }
+            
+            html += `
+                <button onclick="goToUserPage(${userCurrentPage + 1})" ${userCurrentPage === totalPages ? 'disabled' : ''}>›</button>
+                <button onclick="goToUserPage(${totalPages})" ${userCurrentPage === totalPages ? 'disabled' : ''}>»</button>
+                <span class="pagination-info">Página ${userCurrentPage} de ${totalPages} (${userDeclarations.length} declaraciones)</span>
+            `;
+            
+            paginationContainer.innerHTML = html;
+        }
+        
+        function goToUserPage(page) {
+            const totalPages = Math.ceil(userDeclarations.length / USER_DECLARATIONS_PER_PAGE);
+            if (page < 1 || page > totalPages) return;
+            userCurrentPage = page;
+            renderDeclarationsPage();
         }
         
         function formatDeclarationType(type) {
