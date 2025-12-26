@@ -682,8 +682,11 @@ class PDFGenerator:
         if data.get('is_signed'):
             elements.append(Spacer(1, 0.1*inch))
             signed_at = signature_info.get('signed_at') or data.get('signed_at', 'N/A')
-            integrity_hash = data.get('integrity_hash', 'N/A')
-            hash_display = integrity_hash[:32] + '...' if integrity_hash and len(integrity_hash) > 32 else integrity_hash
+            integrity_hash = data.get('integrity_hash', '')
+            if integrity_hash and integrity_hash != 'N/A' and len(integrity_hash) > 32:
+                hash_display = integrity_hash[:32] + '...'
+            else:
+                hash_display = integrity_hash or 'N/A'
             integrity_text = f"""
             <font size="8">
             <b>Firmado el:</b> {signed_at}<br/>
