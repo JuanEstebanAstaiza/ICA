@@ -46,11 +46,40 @@ async function handleResponse(response) {
     }
     
     if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || 'Error en la solicitud');
+        // Intentar parsear la respuesta como JSON, pero manejar el caso donde no sea JSON válido
+        let errorMessage = 'Error en la solicitud';
+        try {
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                const error = await response.json();
+                errorMessage = error.detail || error.message || errorMessage;
+            } else {
+                // Si no es JSON, leer como texto
+                const errorText = await response.text();
+                errorMessage = errorText || `Error del servidor (${response.status})`;
+            }
+        } catch {
+            // Si falla el parsing, usar mensaje genérico con código de estado
+            errorMessage = `Error del servidor (${response.status})`;
+        }
+        throw new Error(errorMessage);
     }
     
-    return response.json();
+    // Para respuestas exitosas, intentar parsear como JSON
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+        return response.json();
+    }
+    
+    // Si no es JSON según content-type, intentar parsear como JSON de todos modos
+    // (algunos servidores no envían content-type correcto)
+    const text = await response.text();
+    try {
+        return JSON.parse(text);
+    } catch {
+        // Retornar texto si no es JSON válido
+        return text;
+    }
 }
 
 /**
@@ -125,7 +154,7 @@ const AuthAPI = {
      */
     async getPlatformMunicipality() {
         const response = await fetch(`${API_BASE_URL}/auth/platform-municipality`);
-        return response.json();
+        return handleResponse(response);
     },
     
     /**
@@ -134,7 +163,7 @@ const AuthAPI = {
      */
     async getColombiaTime() {
         const response = await fetch(`${API_BASE_URL}/auth/colombia-time`);
-        return response.json();
+        return handleResponse(response);
     },
     
     /**
@@ -153,8 +182,20 @@ const AuthAPI = {
         
         // Manejar errores de login sin intentar refresh token
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.detail || 'Credenciales incorrectas');
+            let errorMessage = 'Credenciales incorrectas';
+            try {
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    const error = await response.json();
+                    errorMessage = error.detail || errorMessage;
+                } else {
+                    const errorText = await response.text();
+                    errorMessage = errorText || `Error del servidor (${response.status})`;
+                }
+            } catch {
+                errorMessage = `Error del servidor (${response.status})`;
+            }
+            throw new Error(errorMessage);
         }
         
         const data = await response.json();
