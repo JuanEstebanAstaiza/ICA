@@ -1063,12 +1063,14 @@ async def create_backup(
 
 async def create_json_backup(db: Session, backups_path: str, timestamp: str, current_user: User):
     """
-    Crea un backup en formato JSON de las tablas principales.
+    Crea un backup completo en formato JSON de las tablas principales.
     Usado como fallback cuando pg_dump no está disponible.
+    Este backup es hotswap-ready (puede restaurarse sin intervención técnica).
     """
     from ...models.models import (
         ICADeclaration, Taxpayer, IncomeBase, TaxableActivity,
-        TaxSettlement, PaymentSection, SignatureInfo
+        TaxSettlement, PaymentSection, SignatureInfo, Municipality,
+        WhiteLabelConfig, TaxActivity, FormulaParameters
     )
     
     backup_filename = f"ica_backup_{timestamp}.json"
@@ -1079,20 +1081,88 @@ async def create_json_backup(db: Session, backups_path: str, timestamp: str, cur
         declarations = db.query(ICADeclaration).filter(
             ICADeclaration.municipality_id == current_user.municipality_id
         ).all()
+        municipalities = db.query(Municipality).filter(
+            Municipality.id == current_user.municipality_id
+        ).all()
     else:
         declarations = db.query(ICADeclaration).all()
+        municipalities = db.query(Municipality).all()
     
     # Construir datos del backup
     backup_data = {
         "backup_info": {
             "created_at": get_colombia_time().isoformat(),
             "created_by": current_user.email,
-            "version": "1.0",
-            "total_declarations": len(declarations)
+            "version": "2.0",
+            "type": "complete",
+            "total_declarations": len(declarations),
+            "total_municipalities": len(municipalities)
         },
+        "municipalities": [],
         "declarations": []
     }
     
+    # Backup de municipios y configuraciones
+    for muni in municipalities:
+        muni_data = {
+            "id": muni.id,
+            "code": muni.code,
+            "name": muni.name,
+            "department": muni.department,
+            "is_active": muni.is_active
+        }
+        
+        # Configuración marca blanca
+        if muni.config:
+            muni_data["white_label_config"] = {
+                "primary_color": muni.config.primary_color,
+                "secondary_color": muni.config.secondary_color,
+                "accent_color": muni.config.accent_color,
+                "font_family": muni.config.font_family,
+                "header_text": muni.config.header_text,
+                "footer_text": muni.config.footer_text,
+                "legal_notes": muni.config.legal_notes,
+                "form_title": muni.config.form_title,
+                "app_name": muni.config.app_name,
+                "watermark_text": muni.config.watermark_text,
+                "consecutivo_prefijo": muni.config.consecutivo_prefijo,
+                "consecutivo_actual": muni.config.consecutivo_actual,
+                "consecutivo_digitos": muni.config.consecutivo_digitos,
+                "radicado_prefijo": muni.config.radicado_prefijo,
+                "radicado_actual": muni.config.radicado_actual,
+                "radicado_digitos": muni.config.radicado_digitos
+            }
+        
+        # Parámetros de fórmulas
+        if muni.formula_parameters:
+            muni_data["formula_parameters"] = {
+                "avisos_tableros_porcentaje": muni.formula_parameters.avisos_tableros_porcentaje,
+                "sobretasa_bomberil_porcentaje": muni.formula_parameters.sobretasa_bomberil_porcentaje,
+                "sobretasa_seguridad_porcentaje": muni.formula_parameters.sobretasa_seguridad_porcentaje,
+                "ley_56_tarifa_por_kw": muni.formula_parameters.ley_56_tarifa_por_kw,
+                "anticipo_ano_siguiente_porcentaje": muni.formula_parameters.anticipo_ano_siguiente_porcentaje,
+                "descuento_pronto_pago_porcentaje": muni.formula_parameters.descuento_pronto_pago_porcentaje,
+                "descuento_pronto_pago_dias": muni.formula_parameters.descuento_pronto_pago_dias,
+                "interes_mora_mensual": muni.formula_parameters.interes_mora_mensual
+            }
+        
+        # Actividades económicas
+        activities = db.query(TaxActivity).filter(
+            TaxActivity.municipality_id == muni.id,
+            TaxActivity.is_active == True
+        ).all()
+        muni_data["tax_activities"] = [
+            {
+                "ciiu_code": act.ciiu_code,
+                "description": act.description,
+                "tax_rate": act.tax_rate
+            }
+            for act in activities
+        ]
+        
+        backup_data["municipalities"].append(muni_data)
+    
+    # Backup de declaraciones
     for dec in declarations:
         dec_data = {
             "id": dec.id,
@@ -1104,7 +1174,8 @@ async def create_json_backup(db: Session, backups_path: str, timestamp: str, cur
             "is_signed": dec.is_signed,
             "signed_at": dec.signed_at.isoformat() if dec.signed_at else None,
             "created_at": dec.created_at.isoformat() if dec.created_at else None,
-            "municipality_id": dec.municipality_id
+            "municipality_id": dec.municipality_id,
+            "user_id": dec.user_id
         }
         
         # Agregar datos del contribuyente
@@ -1113,9 +1184,15 @@ async def create_json_backup(db: Session, backups_path: str, timestamp: str, cur
                 "legal_name": dec.taxpayer.legal_name,
                 "document_type": dec.taxpayer.document_type,
                 "document_number": dec.taxpayer.document_number,
+                "verification_digit": dec.taxpayer.verification_digit,
                 "email": dec.taxpayer.email,
                 "phone": dec.taxpayer.phone,
-                "address": dec.taxpayer.address
+                "address": dec.taxpayer.address,
+                "department": dec.taxpayer.department,
+                "municipality": dec.taxpayer.municipality,
+                "entity_type": dec.taxpayer.entity_type,
+                "num_establishments": dec.taxpayer.num_establishments,
+                "taxpayer_classification": dec.taxpayer.taxpayer_classification
             }
         
         # Agregar base de ingresos
@@ -1133,13 +1210,63 @@ async def create_json_backup(db: Session, backups_path: str, timestamp: str, cur
         if dec.activities:
             dec_data["activities"] = [
                 {
+                    "activity_type": act.activity_type,
                     "ciiu_code": act.ciiu_code,
                     "description": act.description,
                     "income": act.income,
-                    "tax_rate": act.tax_rate
+                    "tax_rate": act.tax_rate,
+                    "special_rate": act.special_rate
                 }
                 for act in dec.activities
             ]
+        
+        # Agregar liquidación
+        if dec.settlement:
+            dec_data["settlement"] = {
+                "row_20_total_ica_tax": dec.settlement.row_20_total_ica_tax,
+                "row_21_signs_boards": dec.settlement.row_21_signs_boards,
+                "row_22_financial_additional_units": dec.settlement.row_22_financial_additional_units,
+                "row_23_bomberil_surcharge": dec.settlement.row_23_bomberil_surcharge,
+                "row_24_security_surcharge": dec.settlement.row_24_security_surcharge,
+                "row_26_exemptions": dec.settlement.row_26_exemptions,
+                "row_27_withholdings_municipality": dec.settlement.row_27_withholdings_municipality,
+                "row_28_self_withholdings": dec.settlement.row_28_self_withholdings,
+                "row_29_previous_advance": dec.settlement.row_29_previous_advance,
+                "row_30_next_year_advance": dec.settlement.row_30_next_year_advance,
+                "row_31_penalties": dec.settlement.row_31_penalties,
+                "row_32_previous_balance_favor": dec.settlement.row_32_previous_balance_favor
+            }
+        
+        # Agregar sección de pago
+        if dec.payment_section:
+            dec_data["payment_section"] = {
+                "row_36_early_payment_discount": dec.payment_section.row_36_early_payment_discount,
+                "row_37_late_interest": dec.payment_section.row_37_late_interest,
+                "row_39_voluntary_payment": dec.payment_section.row_39_voluntary_payment,
+                "row_39_voluntary_destination": dec.payment_section.row_39_voluntary_destination
+            }
+        
+        # Agregar información de firma
+        if dec.signature_info:
+            dec_data["signature_info"] = {
+                "declarant_name": dec.signature_info.declarant_name,
+                "declarant_document": dec.signature_info.declarant_document,
+                "declarant_signature_method": dec.signature_info.declarant_signature_method,
+                "declarant_oath_accepted": dec.signature_info.declarant_oath_accepted,
+                "declaration_date": dec.signature_info.declaration_date.isoformat() if dec.signature_info.declaration_date else None,
+                "requires_fiscal_reviewer": dec.signature_info.requires_fiscal_reviewer,
+                "accountant_name": dec.signature_info.accountant_name,
+                "accountant_document": dec.signature_info.accountant_document,
+                "accountant_professional_card": dec.signature_info.accountant_professional_card,
+                "signed_at": dec.signature_info.signed_at.isoformat() if dec.signature_info.signed_at else None
+            }
+        
+        # Agregar resultado
+        if dec.result:
+            dec_data["result"] = {
+                "amount_to_pay": dec.result.amount_to_pay,
+                "balance_in_favor": dec.result.balance_in_favor
+            }
         
         backup_data["declarations"].append(dec_data)
     
@@ -1150,14 +1277,16 @@ async def create_json_backup(db: Session, backups_path: str, timestamp: str, cur
     file_size = os.path.getsize(backup_path)
     
     return {
-        "message": "Backup JSON creado exitosamente",
+        "message": "Backup JSON completo creado exitosamente",
         "filename": backup_filename,
         "path": backup_path,
         "size_bytes": file_size,
         "size_mb": round(file_size / (1024 * 1024), 2),
         "created_at": get_colombia_time().isoformat(),
         "type": "json",
-        "declarations_count": len(declarations)
+        "declarations_count": len(declarations),
+        "municipalities_count": len(municipalities),
+        "hotswap_ready": True
     }
 
 
@@ -1239,6 +1368,184 @@ async def upload_backup(
         "uploaded_at": get_colombia_time().isoformat(),
         "note": "Para restaurar un backup SQL, use el comando: psql -U usuario -d base_datos -f archivo.sql"
     }
+
+
+@router.post("/backups/{filename}/restore")
+async def restore_json_backup(
+    filename: str,
+    current_user: User = Depends(require_role([UserRole.ADMIN_SISTEMA])),
+    db: Session = Depends(get_db)
+):
+    """
+    Restaura un backup JSON (hotswap).
+    Solo el administrador del sistema puede restaurar backups.
+    
+    IMPORTANTE: Esta operación restaura las declaraciones del backup JSON
+    sin necesidad de intervención técnica. Ideal para cambios en caliente.
+    
+    - Solo restaura declaraciones que no existen en la base de datos actual
+    - No sobrescribe declaraciones existentes
+    - Registra el proceso en logs de auditoría
+    """
+    from ...models.models import (
+        ICADeclaration, Taxpayer, IncomeBase, TaxableActivity,
+        TaxSettlement, DeclarationResult, DeclarationType, FormStatus
+    )
+    
+    # Solo permitir restauración de archivos JSON
+    if not filename.endswith('.json'):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Solo se pueden restaurar backups JSON. Los backups SQL requieren intervención técnica."
+        )
+    
+    backups_path = os.path.join(settings.ASSETS_STORAGE_PATH, "backups")
+    filepath = os.path.join(backups_path, filename)
+    
+    # Validar que el archivo existe y está en la carpeta de backups
+    if not os.path.exists(filepath) or not filepath.startswith(backups_path):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Backup no encontrado"
+        )
+    
+    try:
+        # Leer archivo JSON
+        with open(filepath, 'r', encoding='utf-8') as f:
+            backup_data = json.load(f)
+        
+        # Validar estructura del backup
+        if 'backup_info' not in backup_data or 'declarations' not in backup_data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Formato de backup JSON inválido"
+            )
+        
+        restored_count = 0
+        skipped_count = 0
+        errors = []
+        
+        for dec_data in backup_data.get('declarations', []):
+            try:
+                # Verificar si la declaración ya existe (por form_number)
+                existing = db.query(ICADeclaration).filter(
+                    ICADeclaration.form_number == dec_data.get('form_number')
+                ).first()
+                
+                if existing:
+                    skipped_count += 1
+                    continue
+                
+                # Crear nueva declaración
+                declaration_type = DeclarationType(dec_data.get('declaration_type', 'inicial'))
+                status_value = FormStatus(dec_data.get('status', 'borrador'))
+                
+                declaration = ICADeclaration(
+                    form_number=dec_data.get('form_number'),
+                    filing_number=dec_data.get('filing_number'),
+                    tax_year=dec_data.get('tax_year'),
+                    declaration_type=declaration_type,
+                    status=status_value,
+                    is_signed=dec_data.get('is_signed', False),
+                    municipality_id=dec_data.get('municipality_id'),
+                    user_id=current_user.id  # Asignar al usuario que restaura
+                )
+                
+                db.add(declaration)
+                db.flush()  # Obtener ID
+                
+                # Restaurar contribuyente
+                taxpayer_data = dec_data.get('taxpayer', {})
+                if taxpayer_data:
+                    taxpayer = Taxpayer(
+                        declaration_id=declaration.id,
+                        legal_name=taxpayer_data.get('legal_name', ''),
+                        document_type=taxpayer_data.get('document_type', ''),
+                        document_number=taxpayer_data.get('document_number', ''),
+                        email=taxpayer_data.get('email'),
+                        phone=taxpayer_data.get('phone'),
+                        address=taxpayer_data.get('address')
+                    )
+                    db.add(taxpayer)
+                
+                # Restaurar base de ingresos
+                income_data = dec_data.get('income_base', {})
+                if income_data:
+                    income_base = IncomeBase(
+                        declaration_id=declaration.id,
+                        row_8_total_income_country=income_data.get('row_8', 0),
+                        row_9_income_outside_municipality=income_data.get('row_9', 0),
+                        row_11_returns_rebates_discounts=income_data.get('row_11', 0),
+                        row_12_exports_fixed_assets=income_data.get('row_12', 0),
+                        row_13_excluded_non_taxable=income_data.get('row_13', 0),
+                        row_14_exempt_income=income_data.get('row_14', 0)
+                    )
+                    db.add(income_base)
+                
+                # Restaurar actividades
+                for act_data in dec_data.get('activities', []):
+                    activity = TaxableActivity(
+                        declaration_id=declaration.id,
+                        ciiu_code=act_data.get('ciiu_code', ''),
+                        description=act_data.get('description', ''),
+                        income=act_data.get('income', 0),
+                        tax_rate=act_data.get('tax_rate', 0)
+                    )
+                    db.add(activity)
+                
+                # Crear settlement vacío
+                settlement = TaxSettlement(declaration_id=declaration.id)
+                db.add(settlement)
+                
+                # Crear result vacío
+                result = DeclarationResult(declaration_id=declaration.id)
+                db.add(result)
+                
+                restored_count += 1
+                
+            except Exception as e:
+                errors.append(f"Error en declaración {dec_data.get('form_number', 'unknown')}: {str(e)}")
+                continue
+        
+        # Commit todos los cambios
+        db.commit()
+        
+        # Log de auditoría
+        from ...models.models import AuditLog
+        audit_log = AuditLog(
+            user_id=current_user.id,
+            action="RESTORE_BACKUP",
+            entity_type="Backup",
+            new_values={
+                'filename': filename,
+                'restored_count': restored_count,
+                'skipped_count': skipped_count,
+                'errors_count': len(errors)
+            }
+        )
+        db.add(audit_log)
+        db.commit()
+        
+        return {
+            "message": "Restauración completada",
+            "filename": filename,
+            "restored_count": restored_count,
+            "skipped_count": skipped_count,
+            "errors": errors if errors else None,
+            "restored_at": get_colombia_time().isoformat()
+        }
+        
+    except json.JSONDecodeError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El archivo no es un JSON válido"
+        )
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al restaurar backup: {str(e)}"
+        )
 
 
 @router.delete("/backups/{filename}")

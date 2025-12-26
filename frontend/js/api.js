@@ -629,6 +629,17 @@ const AdminAPI = {
             headers: getHeaders()
         });
         return handleResponse(response);
+    },
+    
+    /**
+     * Restaurar un backup JSON (hotswap)
+     */
+    async restoreBackup(filename) {
+        const response = await fetch(`${API_BASE_URL}/admin/backups/${encodeURIComponent(filename)}/restore`, {
+            method: 'POST',
+            headers: getHeaders()
+        });
+        return handleResponse(response);
     }
 };
 

@@ -15,7 +15,8 @@ from ...db.database import get_db
 from ...models.models import (
     User, UserRole, ICADeclaration, DeclarationType, FormStatus,
     Taxpayer, IncomeBase, TaxableActivity, TaxSettlement,
-    DiscountsCredits, DeclarationResult, AuditLog, Municipality
+    DiscountsCredits, DeclarationResult, AuditLog, Municipality,
+    SignatureInfo
 )
 from ...schemas.schemas import (
     ICADeclarationCreate, ICADeclarationUpdate, ICADeclarationResponse,
@@ -531,8 +532,6 @@ async def sign_declaration(
     declaration.status = FormStatus.FIRMADO
     
     # Crear o actualizar SignatureInfo con todos los datos del firmante
-    from app.models.models import SignatureInfo
-    
     # Eliminar firma anterior si existe
     if declaration.signature_info:
         db.delete(declaration.signature_info)

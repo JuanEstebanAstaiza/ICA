@@ -986,11 +986,20 @@
                             </div>
                             
                             <!-- Información adicional -->
+                            <div class="alert" style="margin-top: 1rem; background: #d1fae5; border-left: 4px solid #10b981;">
+                                <strong>✅ Backups Hotswap (JSON):</strong>
+                                <ul style="margin: 0.5rem 0 0 1rem; padding: 0;">
+                                    <li>Los backups JSON son <strong>completos</strong> y pueden restaurarse sin intervención técnica.</li>
+                                    <li>Use el botón 🔄 para restaurar declaraciones directamente desde la interfaz.</li>
+                                    <li>La restauración <strong>NO sobrescribe</strong> declaraciones existentes.</li>
+                                    <li>Incluyen: declaraciones, contribuyentes, actividades, liquidación y firmas.</li>
+                                </ul>
+                            </div>
+                            
                             <div class="alert" style="margin-top: 1rem; background: #fef3c7; border-left: 4px solid #f59e0b;">
-                                <strong>⚠️ Nota Importante:</strong>
+                                <strong>⚠️ Backups SQL:</strong>
                                 <ul style="margin: 0.5rem 0 0 1rem; padding: 0;">
                                     <li>Los backups SQL contienen toda la información de la base de datos.</li>
-                                    <li>Los backups JSON contienen solo las declaraciones y datos principales.</li>
                                     <li>Para restaurar un backup SQL, contacte al administrador del sistema.</li>
                                     <li>Se recomienda mantener al menos 3 backups recientes.</li>
                                 </ul>
@@ -2009,6 +2018,13 @@
                         ? '<span class="badge" style="background: #3b82f6; color: white;">SQL</span>'
                         : '<span class="badge" style="background: #10b981; color: white;">JSON</span>';
                     
+                    // Botón de restaurar solo para JSON
+                    const restoreButton = backup.type === 'json' 
+                        ? `<button class="btn btn-sm btn-success" onclick="restoreBackup('${backup.filename}')" title="Restaurar (Hotswap)">
+                               🔄
+                           </button>`
+                        : '';
+                    
                     return `
                         <tr>
                             <td style="font-family: 'Roboto Mono', monospace; font-size: 0.85rem;">
@@ -2019,6 +2035,7 @@
                             <td>${date}</td>
                             <td>
                                 <div class="d-flex gap-1">
+                                    ${restoreButton}
                                     <button class="btn btn-sm btn-primary" onclick="downloadBackup('${backup.filename}')" title="Descargar">
                                         📥
                                     </button>
@@ -2124,6 +2141,32 @@
             } catch (error) {
                 hideLoading();
                 showAlert('❌ Error al eliminar backup: ' + error.message, 'danger');
+            }
+        }
+        
+        async function restoreBackup(filename) {
+            if (!confirm(`¿Está seguro de restaurar el backup "${filename}"?\n\nEsta acción importará las declaraciones del backup que no existan en la base de datos actual.\n\nNOTA: Las declaraciones existentes NO serán sobrescritas.`)) {
+                return;
+            }
+            
+            try {
+                showLoading();
+                const result = await AdminAPI.restoreBackup(filename);
+                hideLoading();
+                
+                let message = `✅ ${result.message}\n`;
+                message += `📋 Declaraciones restauradas: ${result.restored_count}\n`;
+                message += `⏭️ Declaraciones omitidas (ya existentes): ${result.skipped_count}`;
+                
+                if (result.errors && result.errors.length > 0) {
+                    message += `\n⚠️ Errores: ${result.errors.length}`;
+                }
+                
+                showAlert(message, 'success');
+                
+            } catch (error) {
+                hideLoading();
+                showAlert('❌ Error al restaurar backup: ' + error.message, 'danger');
             }
         }
         
