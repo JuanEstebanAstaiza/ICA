@@ -261,6 +261,7 @@ class ICADeclaration(Base):
     
     # Corrección (si aplica)
     correction_of_id = Column(Integer, ForeignKey("ica_declarations.id"))
+    has_been_corrected = Column(Boolean, default=False)  # True si ya se generó una corrección de esta declaración
     
     # Firma digital
     is_signed = Column(Boolean, default=False)

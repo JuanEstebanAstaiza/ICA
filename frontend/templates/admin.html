@@ -747,6 +747,114 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Panel de Gestión de Formularios (solo para admin_alcaldia) -->
+        <div class="row" style="margin-top: 2rem;" id="forms-management-section">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header" style="background: linear-gradient(135deg, #059669, #047857); color: white;">
+                        📋 Gestión de Formularios Radicados
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info mb-3">
+                            <strong>🔍 Búsqueda de Declaraciones:</strong> Busque formularios por número de radicado, 
+                            número de formulario o documento del contribuyente.
+                        </div>
+                        
+                        <!-- Barra de búsqueda -->
+                        <div class="row mb-3">
+                            <div class="col-4">
+                                <div class="form-group">
+                                    <label for="search-filing-number" class="form-label">No. Radicado</label>
+                                    <input type="text" id="search-filing-number" class="form-control" 
+                                           placeholder="Buscar por radicado...">
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="form-group">
+                                    <label for="search-form-number" class="form-label">No. Formulario</label>
+                                    <input type="text" id="search-form-number" class="form-control" 
+                                           placeholder="Buscar por formulario...">
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="form-group">
+                                    <label for="search-document" class="form-label">Documento</label>
+                                    <input type="text" id="search-document" class="form-control" 
+                                           placeholder="Documento contribuyente...">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <button type="button" class="btn btn-primary" onclick="searchDeclarations()">
+                                    🔍 Buscar
+                                </button>
+                                <button type="button" class="btn btn-secondary" onclick="loadAllDeclarations()">
+                                    📋 Ver Todos
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Tabla de resultados -->
+                        <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                            <table class="table table-hover">
+                                <thead style="position: sticky; top: 0; background: white;">
+                                    <tr>
+                                        <th>No. Radicado</th>
+                                        <th>No. Formulario</th>
+                                        <th>Contribuyente</th>
+                                        <th>Documento</th>
+                                        <th>Año</th>
+                                        <th>Estado</th>
+                                        <th>Fecha Radicado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="declarations-results">
+                                    <tr>
+                                        <td colspan="8" class="text-center text-muted">
+                                            Use los filtros de búsqueda o haga clic en "Ver Todos"
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Estadísticas -->
+                        <div id="declarations-stats" class="mt-3" style="display: none;">
+                            <div class="row">
+                                <div class="col-3">
+                                    <div class="stat-card" style="background: #dbeafe; padding: 1rem; border-radius: 0.5rem; text-align: center;">
+                                        <div style="font-size: 1.5rem; font-weight: bold;" id="stat-forms-total">0</div>
+                                        <div style="font-size: 0.875rem; color: #1e40af;">Total</div>
+                                    </div>
+                                </div>
+                                <div class="col-3">
+                                    <div class="stat-card" style="background: #dcfce7; padding: 1rem; border-radius: 0.5rem; text-align: center;">
+                                        <div style="font-size: 1.5rem; font-weight: bold;" id="stat-forms-signed">0</div>
+                                        <div style="font-size: 0.875rem; color: #166534;">Firmados</div>
+                                    </div>
+                                </div>
+                                <div class="col-3">
+                                    <div class="stat-card" style="background: #fef3c7; padding: 1rem; border-radius: 0.5rem; text-align: center;">
+                                        <div style="font-size: 1.5rem; font-weight: bold;" id="stat-forms-draft">0</div>
+                                        <div style="font-size: 0.875rem; color: #92400e;">Borradores</div>
+                                    </div>
+                                </div>
+                                <div class="col-3">
+                                    <div class="stat-card" style="background: #f3e8ff; padding: 1rem; border-radius: 0.5rem; text-align: center;">
+                                        <div style="font-size: 1.5rem; font-weight: bold;" id="stat-forms-corrections">0</div>
+                                        <div style="font-size: 0.875rem; color: #7c3aed;">Correcciones</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </main>
     
     <!-- Footer -->
@@ -1129,6 +1237,10 @@
                         setupFixedMunicipality(user);
                     }, 500);
                 }
+                
+                // Configurar sección de gestión de formularios
+                setupFormManagementSection(user);
+                
             } catch (error) {
                 console.error('Error loading user:', error);
             }
@@ -1457,6 +1569,157 @@
             localStorage.removeItem('selectedMunicipality');
             window.location.href = 'login.html';
         });
+        
+        // ==================== GESTIÓN DE FORMULARIOS ====================
+        
+        async function searchDeclarations() {
+            const filingNumber = document.getElementById('search-filing-number').value.trim();
+            const formNumber = document.getElementById('search-form-number').value.trim();
+            const document_num = document.getElementById('search-document').value.trim();
+            
+            if (!filingNumber && !formNumber && !document_num) {
+                showAlert('⚠️ Ingrese al menos un criterio de búsqueda', 'warning');
+                return;
+            }
+            
+            try {
+                showLoading();
+                
+                // Construir URL con parámetros
+                const params = new URLSearchParams();
+                if (filingNumber) params.append('filing_number', filingNumber);
+                if (formNumber) params.append('form_number', formNumber);
+                if (document_num) params.append('document_number', document_num);
+                
+                const response = await fetch(`${API_BASE_URL}/declarations/search?${params.toString()}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    }
+                });
+                
+                const declarations = await response.json();
+                renderDeclarationsResults(declarations);
+                
+                hideLoading();
+            } catch (error) {
+                hideLoading();
+                showAlert('❌ Error al buscar: ' + error.message, 'danger');
+            }
+        }
+        
+        async function loadAllDeclarations() {
+            try {
+                showLoading();
+                
+                const response = await fetch(`${API_BASE_URL}/declarations/`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    }
+                });
+                
+                const declarations = await response.json();
+                renderDeclarationsResults(declarations);
+                
+                hideLoading();
+            } catch (error) {
+                hideLoading();
+                showAlert('❌ Error al cargar declaraciones: ' + error.message, 'danger');
+            }
+        }
+        
+        function renderDeclarationsResults(declarations) {
+            const tbody = document.getElementById('declarations-results');
+            const statsDiv = document.getElementById('declarations-stats');
+            
+            if (!declarations || declarations.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="text-center text-muted">
+                            No se encontraron declaraciones con los criterios especificados
+                        </td>
+                    </tr>
+                `;
+                statsDiv.style.display = 'none';
+                return;
+            }
+            
+            // Mostrar estadísticas
+            statsDiv.style.display = 'block';
+            document.getElementById('stat-forms-total').textContent = declarations.length;
+            document.getElementById('stat-forms-signed').textContent = 
+                declarations.filter(d => d.is_signed).length;
+            document.getElementById('stat-forms-draft').textContent = 
+                declarations.filter(d => d.status === 'borrador').length;
+            document.getElementById('stat-forms-corrections').textContent = 
+                declarations.filter(d => d.correction_of_id).length;
+            
+            // Renderizar tabla
+            tbody.innerHTML = declarations.map(d => {
+                const taxpayerName = d.taxpayer?.legal_name || 'Sin nombre';
+                const taxpayerDoc = d.taxpayer?.document_number || '-';
+                const filingDate = d.filing_date 
+                    ? new Date(d.filing_date).toLocaleDateString('es-CO', {
+                        year: 'numeric', month: '2-digit', day: '2-digit',
+                        hour: '2-digit', minute: '2-digit'
+                    })
+                    : '-';
+                
+                return `
+                    <tr>
+                        <td style="font-family: 'Roboto Mono', monospace; font-size: 0.85rem;">
+                            ${d.filing_number || '<span style="color: #9ca3af;">Pendiente</span>'}
+                        </td>
+                        <td style="font-size: 0.85rem;">${d.form_number || '-'}</td>
+                        <td>${taxpayerName}</td>
+                        <td>${taxpayerDoc}</td>
+                        <td>${d.tax_year}</td>
+                        <td>
+                            <span class="badge badge-${d.status}">
+                                ${d.status.toUpperCase()}
+                            </span>
+                            ${d.correction_of_id ? '<span class="badge" style="background: #8b5cf6; margin-left: 2px; font-size: 0.7rem;">Corrección</span>' : ''}
+                        </td>
+                        <td style="font-size: 0.85rem;">${filingDate}</td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <a href="form.html?id=${d.id}&preview=true" class="btn btn-sm btn-primary" target="_blank" title="Ver formulario">
+                                    👁️
+                                </a>
+                                ${d.is_signed ? `
+                                    <button class="btn btn-sm btn-secondary" onclick="downloadDeclarationPDF(${d.id})" title="Descargar PDF">
+                                        📄
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        async function downloadDeclarationPDF(declarationId) {
+            try {
+                showLoading();
+                await DeclarationsAPI.downloadPDF(declarationId);
+                hideLoading();
+            } catch (error) {
+                hideLoading();
+                showAlert('❌ Error al descargar PDF: ' + error.message, 'danger');
+            }
+        }
+        
+        // Mostrar/ocultar sección según rol
+        function setupFormManagementSection(user) {
+            const section = document.getElementById('forms-management-section');
+            if (section) {
+                // Mostrar solo para admin_alcaldia y admin_sistema
+                if (user.role === 'admin_alcaldia' || user.role === 'admin_sistema') {
+                    section.style.display = 'block';
+                } else {
+                    section.style.display = 'none';
+                }
+            }
+        }
         
         // ==================== INICIALIZACIÓN ====================
         loadUserData();

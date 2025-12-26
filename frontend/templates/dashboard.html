@@ -97,16 +97,17 @@
                                 <thead>
                                     <tr>
                                         <th>No. Formulario</th>
-                                        <th>Año Gravable</th>
+                                        <th>No. Radicado</th>
+                                        <th>Año</th>
                                         <th>Tipo</th>
                                         <th>Estado</th>
-                                        <th>Fecha Creación</th>
+                                        <th>Fecha</th>
                                         <th>Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody id="declarations-body">
                                     <tr>
-                                        <td colspan="6" class="text-center">
+                                        <td colspan="7" class="text-center">
                                             <div class="spinner" style="margin: 1rem auto;"></div>
                                             <p class="text-muted">Cargando declaraciones...</p>
                                         </td>
@@ -191,22 +192,34 @@
                 tbody.innerHTML = declarations.map(d => `
                     <tr>
                         <td><strong>${d.form_number || 'Sin número'}</strong></td>
+                        <td style="font-family: 'Roboto Mono', monospace; font-size: 0.85rem;">
+                            ${d.filing_number || '<span style="color: #9ca3af;">Pendiente</span>'}
+                        </td>
                         <td>${d.tax_year}</td>
                         <td>${formatDeclarationType(d.declaration_type)}</td>
                         <td>
                             <span class="badge badge-${d.status}">
                                 ${d.status.toUpperCase()}
                             </span>
+                            ${d.has_been_corrected ? '<span class="badge" style="background: #f59e0b; margin-left: 4px;">Corregida</span>' : ''}
+                            ${d.correction_of_id ? '<span class="badge" style="background: #8b5cf6; margin-left: 4px;">Es corrección</span>' : ''}
                         </td>
                         <td>${new Date(d.created_at).toLocaleDateString('es-CO')}</td>
                         <td>
-                            <div class="d-flex gap-1">
+                            <div class="d-flex gap-1" style="flex-wrap: wrap;">
                                 <a href="form.html?id=${d.id}" class="btn btn-sm btn-primary">
                                     ${d.is_signed ? '👁️ Ver' : '✏️ Editar'}
                                 </a>
                                 ${d.is_signed ? `
                                     <button class="btn btn-sm btn-secondary" onclick="downloadPDF(${d.id})">
                                         📄 PDF
+                                    </button>
+                                ` : ''}
+                                ${d.is_signed && !d.has_been_corrected && !d.correction_of_id ? `
+                                    <button class="btn btn-sm" style="background: #f59e0b; color: white;" 
+                                            onclick="createCorrection(${d.id})" 
+                                            title="Crear corrección de esta declaración (solo 1 permitida)">
+                                        🔄 Corregir
                                     </button>
                                 ` : ''}
                             </div>
@@ -242,6 +255,40 @@
             } catch (error) {
                 hideLoading();
                 alert('Error al descargar PDF: ' + error.message);
+            }
+        }
+        
+        async function createCorrection(declarationId) {
+            // Confirmar antes de crear la corrección
+            const confirmed = confirm(
+                '⚠️ CREAR CORRECCIÓN DE DECLARACIÓN\n\n' +
+                '• Se creará una copia de la declaración original\n' +
+                '• Podrá editar los valores que necesite corregir\n' +
+                '• Al firmar, se generará un NUEVO número de radicado\n' +
+                '• Solo puede realizar 1 corrección por declaración original\n\n' +
+                '¿Desea continuar?'
+            );
+            
+            if (!confirmed) return;
+            
+            try {
+                showLoading();
+                const correction = await DeclarationsAPI.createCorrection(declarationId);
+                hideLoading();
+                
+                // Mostrar popup de éxito
+                alert(
+                    '✅ CORRECCIÓN CREADA EXITOSAMENTE\n\n' +
+                    'Número de formulario: ' + correction.form_number + '\n\n' +
+                    'Será redirigido al formulario para realizar las correcciones necesarias.'
+                );
+                
+                // Redirigir al formulario de corrección
+                window.location.href = `form.html?id=${correction.id}`;
+                
+            } catch (error) {
+                hideLoading();
+                alert('❌ Error al crear corrección: ' + error.message);
             }
         }
         

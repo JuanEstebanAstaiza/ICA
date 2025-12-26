@@ -849,11 +849,12 @@ class ICAFormController {
             showLoading();
             
             const data = this.collectFormData();
+            let isNew = false;
             
             if (this.declarationId) {
                 await DeclarationsAPI.update(this.declarationId, data);
-                showAlert('Declaración guardada correctamente', 'success');
             } else {
+                isNew = true;
                 const result = await DeclarationsAPI.create({
                     tax_year: parseInt(data.tax_year) || new Date().getFullYear(),
                     declaration_type: data.declaration_type || 'inicial',
@@ -865,14 +866,115 @@ class ICAFormController {
                 
                 // Actualizar URL
                 window.history.pushState({}, '', `?id=${this.declarationId}`);
-                showAlert('Declaración creada correctamente', 'success');
             }
             
             hideLoading();
+            
+            // Mostrar popup de éxito visible
+            this.showSaveSuccessPopup(isNew);
+            
         } catch (error) {
             hideLoading();
             showAlert('Error al guardar: ' + error.message, 'danger');
         }
+    }
+    
+    /**
+     * Muestra popup de éxito al guardar
+     */
+    showSaveSuccessPopup(isNew) {
+        // Crear overlay
+        const overlay = document.createElement('div');
+        overlay.id = 'save-success-popup';
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            animation: fadeIn 0.3s ease;
+        `;
+        
+        // Crear popup
+        const popup = document.createElement('div');
+        popup.style.cssText = `
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            padding: 2.5rem;
+            border-radius: 1.25rem;
+            text-align: center;
+            max-width: 420px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            animation: scaleIn 0.4s ease;
+        `;
+        
+        const title = isNew ? '¡Declaración Creada!' : '¡Declaración Guardada!';
+        const message = isNew 
+            ? 'Su nueva declaración ha sido creada exitosamente. Ahora puede continuar llenando los campos y firmarla cuando esté lista.'
+            : 'Los cambios en su declaración han sido guardados correctamente.';
+        const icon = isNew ? '📄' : '💾';
+        
+        popup.innerHTML = `
+            <div style="font-size: 3.5rem; margin-bottom: 1rem;">${icon}</div>
+            <h2 style="font-size: 1.5rem; margin-bottom: 0.75rem; font-weight: bold;">${title}</h2>
+            <p style="font-size: 0.95rem; opacity: 0.95; margin-bottom: 1.5rem; line-height: 1.5;">
+                ${message}
+            </p>
+            <button id="btn-close-save-popup" style="
+                background: white;
+                color: #1d4ed8;
+                border: none;
+                padding: 0.875rem 2rem;
+                border-radius: 0.625rem;
+                font-size: 1rem;
+                font-weight: bold;
+                cursor: pointer;
+                transition: transform 0.2s;
+            ">
+                ✓ Entendido
+            </button>
+        `;
+        
+        overlay.appendChild(popup);
+        document.body.appendChild(overlay);
+        
+        // Agregar estilos de animación si no existen
+        if (!document.getElementById('popup-animations')) {
+            const style = document.createElement('style');
+            style.id = 'popup-animations';
+            style.textContent = `
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes scaleIn {
+                    from { transform: scale(0.8); opacity: 0; }
+                    to { transform: scale(1); opacity: 1; }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
+        // Cerrar popup
+        const closePopup = () => {
+            overlay.style.animation = 'fadeIn 0.2s ease reverse';
+            setTimeout(() => overlay.remove(), 200);
+        };
+        
+        document.getElementById('btn-close-save-popup').addEventListener('click', closePopup);
+        
+        // También cerrar con click en overlay
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) closePopup();
+        });
+        
+        // Auto-cerrar después de 4 segundos
+        setTimeout(closePopup, 4000);
     }
     
     validateForm() {

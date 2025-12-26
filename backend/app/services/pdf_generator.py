@@ -18,6 +18,7 @@ from reportlab.platypus import (
     Image, PageBreak, HRFlowable
 )
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+from reportlab.pdfgen import canvas as pdf_canvas
 
 from ..core.config import settings, get_pdf_path
 
@@ -35,6 +36,7 @@ class PDFGenerator:
         self.config = white_label_config or {}
         self.styles = getSampleStyleSheet()
         self._setup_custom_styles()
+        self.watermark_text = self.config.get('watermark_text', '')
     
     def _setup_custom_styles(self):
         """Configura estilos personalizados."""
@@ -117,7 +119,7 @@ class PDFGenerator:
             form_number = declaration_data.get('form_number', 'DRAFT')
             output_path = os.path.join(base_path, f"ICA_{form_number}_{timestamp}.pdf")
         
-        # Crear documento
+        # Crear documento con marca de agua
         doc = SimpleDocTemplate(
             output_path,
             pagesize=letter,
@@ -126,6 +128,25 @@ class PDFGenerator:
             topMargin=1.5*cm,
             bottomMargin=1.5*cm
         )
+        
+        # Configurar marca de agua
+        watermark = self.watermark_text
+        
+        def add_watermark(canvas, doc):
+            """Agrega marca de agua diagonal en cada página."""
+            if watermark:
+                canvas.saveState()
+                canvas.setFont('Helvetica-Bold', 50)
+                canvas.setFillColor(colors.Color(0.85, 0.85, 0.85, alpha=0.3))  # Gris claro semitransparente
+                
+                # Posicionar en el centro de la página
+                page_width, page_height = letter
+                canvas.translate(page_width / 2, page_height / 2)
+                canvas.rotate(45)  # Rotación diagonal
+                
+                # Dibujar texto centrado
+                canvas.drawCentredString(0, 0, watermark)
+                canvas.restoreState()
         
         # Construir contenido
         elements = []
@@ -168,8 +189,11 @@ class PDFGenerator:
         # Footer con notas legales
         elements.extend(self._build_footer())
         
-        # Generar PDF
-        doc.build(elements)
+        # Generar PDF con marca de agua
+        if watermark:
+            doc.build(elements, onFirstPage=add_watermark, onLaterPages=add_watermark)
+        else:
+            doc.build(elements)
         
         return output_path
     

@@ -11,7 +11,8 @@ class SignatureCanvas {
             throw new Error(`Canvas element with id '${canvasId}' not found`);
         }
         
-        this.ctx = this.canvas.getContext('2d');
+        // Usar willReadFrequently para mejor rendimiento
+        this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
         this.isDrawing = false;
         this.lastX = 0;
         this.lastY = 0;
@@ -192,6 +193,7 @@ class SignatureModal {
         this.modal = document.getElementById(modalId);
         this.canvasId = canvasId;
         this.signatureCanvas = null;
+        this.accountantCanvas = null;  // Canvas del contador/revisor
         this.onSign = options.onSign || (() => {});
         this.declarationId = options.declarationId;
         
@@ -209,6 +211,12 @@ class SignatureModal {
         const clearBtn = document.getElementById('btn-clear-signature');
         if (clearBtn) {
             clearBtn.addEventListener('click', () => this.clear());
+        }
+        
+        // Botón limpiar firma contador
+        const clearAccountantBtn = document.getElementById('btn-clear-accountant-signature');
+        if (clearAccountantBtn) {
+            clearAccountantBtn.addEventListener('click', () => this.clearAccountant());
         }
         
         const signBtn = document.getElementById('btn-confirm-signature');
@@ -229,6 +237,14 @@ class SignatureModal {
                 }
             });
         }
+        
+        // Inicializar canvas del contador cuando se seleccione
+        const reviewerTypeSelect = document.getElementById('reviewer_type');
+        if (reviewerTypeSelect) {
+            reviewerTypeSelect.addEventListener('change', () => {
+                setTimeout(() => this.initAccountantCanvas(), 150);
+            });
+        }
     }
     
     open() {
@@ -244,7 +260,28 @@ class SignatureModal {
                 this.signatureCanvas.setCanvasSize();
                 this.signatureCanvas.clear();
             }
+            
+            // Inicializar canvas del contador si está visible
+            this.initAccountantCanvas();
         }, 100);
+    }
+    
+    initAccountantCanvas() {
+        const accountantFields = document.getElementById('accountant-fields');
+        const accountantCanvasEl = document.getElementById('accountant-signature-canvas');
+        
+        if (accountantFields && accountantFields.style.display !== 'none' && accountantCanvasEl) {
+            if (!this.accountantCanvas) {
+                try {
+                    this.accountantCanvas = new SignatureCanvas('accountant-signature-canvas');
+                } catch (e) {
+                    console.warn('No se pudo inicializar canvas del contador:', e);
+                }
+            } else {
+                this.accountantCanvas.setCanvasSize();
+                this.accountantCanvas.clear();
+            }
+        }
     }
     
     close() {
@@ -255,6 +292,12 @@ class SignatureModal {
     clear() {
         if (this.signatureCanvas) {
             this.signatureCanvas.clear();
+        }
+    }
+    
+    clearAccountant() {
+        if (this.accountantCanvas) {
+            this.accountantCanvas.clear();
         }
     }
     
@@ -326,12 +369,10 @@ class SignatureModal {
             };
             
             // Capturar firma del contador/revisor si existe
-            const accountantCanvas = document.getElementById('accountant-signature-canvas');
-            if (requiresReviewer && accountantCanvas) {
+            if (requiresReviewer && this.accountantCanvas) {
                 try {
-                    const accountantCtx = accountantCanvas.getContext('2d');
-                    if (accountantCtx) {
-                        signatureData.accountant_signature_image = accountantCanvas.toDataURL();
+                    if (!this.accountantCanvas.isEmpty()) {
+                        signatureData.accountant_signature_image = this.accountantCanvas.toDataURL();
                     }
                 } catch (e) {
                     console.warn('No se pudo capturar firma del contador:', e);
@@ -342,23 +383,14 @@ class SignatureModal {
             if (this.declarationId) {
                 const result = await DeclarationsAPI.sign(this.declarationId, signatureData);
                 
-                // Mostrar número de radicado si se generó
-                if (result.filing_number) {
-                    showAlert(`✅ Declaración firmada correctamente. Número de Radicado: ${result.filing_number}`, 'success');
-                } else {
-                    showAlert('✅ Declaración firmada correctamente', 'success');
-                }
+                // Cerrar modal de firma
+                this.close();
+                
+                // Mostrar popup de éxito muy visible
+                this.showSuccessPopup(result);
                 
                 // Callback
                 this.onSign(result);
-                
-                // Cerrar modal
-                this.close();
-                
-                // Recargar página para mostrar estado firmado
-                setTimeout(() => {
-                    window.location.reload();
-                }, 2000);
             } else {
                 showAlert('Error: No hay declaración seleccionada', 'danger');
             }
@@ -368,6 +400,101 @@ class SignatureModal {
             hideLoading();
             showAlert('Error al firmar: ' + error.message, 'danger');
         }
+    }
+    
+    /**
+     * Muestra un popup de éxito muy visible después de firmar
+     */
+    showSuccessPopup(result) {
+        // Crear overlay
+        const overlay = document.createElement('div');
+        overlay.id = 'success-popup-overlay';
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            animation: fadeIn 0.3s ease;
+        `;
+        
+        // Crear popup
+        const popup = document.createElement('div');
+        popup.style.cssText = `
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            padding: 3rem;
+            border-radius: 1.5rem;
+            text-align: center;
+            max-width: 500px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+            animation: scaleIn 0.4s ease;
+        `;
+        
+        const filingNumber = result.filing_number || 'Pendiente';
+        const signedAt = result.signed_at ? new Date(result.signed_at).toLocaleString() : new Date().toLocaleString();
+        
+        popup.innerHTML = `
+            <div style="font-size: 4rem; margin-bottom: 1rem;">✅</div>
+            <h2 style="font-size: 1.75rem; margin-bottom: 1rem; font-weight: bold;">¡Declaración Firmada Exitosamente!</h2>
+            <div style="background: rgba(255,255,255,0.2); padding: 1.5rem; border-radius: 1rem; margin: 1.5rem 0;">
+                <p style="margin: 0.5rem 0; font-size: 1.1rem;"><strong>📋 Número de Radicado:</strong></p>
+                <p style="font-size: 1.5rem; font-weight: bold; font-family: 'Roboto Mono', monospace; margin: 0.5rem 0; background: rgba(0,0,0,0.2); padding: 0.5rem; border-radius: 0.5rem;">${filingNumber}</p>
+                <p style="margin: 0.5rem 0; font-size: 0.9rem; opacity: 0.9;">📅 Fecha: ${signedAt}</p>
+            </div>
+            <p style="font-size: 0.95rem; opacity: 0.9; margin-bottom: 1.5rem;">
+                Su declaración ha sido firmada y radicada. Puede descargar el PDF como comprobante.
+            </p>
+            <button id="btn-close-success-popup" style="
+                background: white;
+                color: #059669;
+                border: none;
+                padding: 1rem 2.5rem;
+                border-radius: 0.75rem;
+                font-size: 1.1rem;
+                font-weight: bold;
+                cursor: pointer;
+                transition: transform 0.2s;
+            ">
+                Aceptar y Continuar
+            </button>
+        `;
+        
+        overlay.appendChild(popup);
+        document.body.appendChild(overlay);
+        
+        // Agregar estilos de animación
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            @keyframes scaleIn {
+                from { transform: scale(0.8); opacity: 0; }
+                to { transform: scale(1); opacity: 1; }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Cerrar popup y recargar
+        document.getElementById('btn-close-success-popup').addEventListener('click', () => {
+            overlay.remove();
+            window.location.reload();
+        });
+        
+        // También cerrar con click en overlay
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                overlay.remove();
+                window.location.reload();
+            }
+        });
     }
 }
 

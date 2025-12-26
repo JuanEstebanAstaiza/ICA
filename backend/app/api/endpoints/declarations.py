@@ -27,6 +27,7 @@ from ...services.calculation_engine import (
 )
 from ...services.pdf_generator import PDFGenerator
 from ...core.security import generate_integrity_hash
+from ...core.config import get_colombia_time
 from .auth import get_current_active_user, require_role
 
 router = APIRouter(prefix="/declarations", tags=["Declaraciones ICA"])
@@ -34,7 +35,7 @@ router = APIRouter(prefix="/declarations", tags=["Declaraciones ICA"])
 
 def generate_form_number(municipality_code: str, year: int) -> str:
     """Genera número único de formulario."""
-    timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+    timestamp = get_colombia_time().strftime('%Y%m%d%H%M%S')
     unique_id = str(uuid.uuid4())[:8].upper()
     return f"ICA-{municipality_code}-{year}-{timestamp}-{unique_id}"
 
@@ -49,10 +50,17 @@ async def create_declaration(
     """
     Crea una nueva declaración ICA.
     Sección 1 del formulario: Metadatos Generales.
+    Si el usuario tiene un municipio asignado, se usa ese municipio.
     """
+    # Determinar el municipio a usar
+    # Si el usuario tiene municipio asignado, usar ese (prioritario)
+    municipality_id = data.municipality_id
+    if current_user.municipality_id:
+        municipality_id = current_user.municipality_id
+    
     # Verificar que el municipio existe
     municipality = db.query(Municipality).filter(
-        Municipality.id == data.municipality_id
+        Municipality.id == municipality_id
     ).first()
     
     if not municipality:
@@ -64,12 +72,12 @@ async def create_declaration(
     # Generar número de formulario
     form_number = generate_form_number(municipality.code, data.tax_year)
     
-    # Crear declaración
+    # Crear declaración con el municipio correcto
     declaration = ICADeclaration(
         tax_year=data.tax_year,
         declaration_type=DeclarationType(data.declaration_type.value),
         user_id=current_user.id,
-        municipality_id=data.municipality_id,
+        municipality_id=municipality_id,  # Usar el municipio determinado (del usuario si existe)
         form_number=form_number,
         correction_of_id=data.correction_of_id,
         status=FormStatus.BORRADOR
@@ -151,6 +159,52 @@ async def list_declarations(
     declarations = query.order_by(
         ICADeclaration.created_at.desc()
     ).offset(skip).limit(limit).all()
+    
+    return declarations
+
+
+@router.get("/search", response_model=List[ICADeclarationResponse])
+async def search_declarations(
+    filing_number: Optional[str] = Query(None, description="Buscar por número de radicado"),
+    form_number: Optional[str] = Query(None, description="Buscar por número de formulario"),
+    document_number: Optional[str] = Query(None, description="Buscar por documento del contribuyente"),
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Busca declaraciones por diferentes criterios.
+    Para administradores de alcaldía: busca en todas las de su municipio.
+    Para declarantes: busca solo en sus propias declaraciones.
+    """
+    query = db.query(ICADeclaration)
+    
+    # Filtrar según rol
+    if current_user.role == UserRole.DECLARANTE:
+        query = query.filter(ICADeclaration.user_id == current_user.id)
+    elif current_user.role == UserRole.ADMIN_ALCALDIA:
+        query = query.filter(
+            ICADeclaration.municipality_id == current_user.municipality_id
+        )
+    # ADMIN_SISTEMA puede buscar en todas
+    
+    # Aplicar filtros de búsqueda
+    if filing_number:
+        query = query.filter(ICADeclaration.filing_number.ilike(f"%{filing_number}%"))
+    
+    if form_number:
+        query = query.filter(ICADeclaration.form_number.ilike(f"%{form_number}%"))
+    
+    if document_number:
+        # Buscar por documento del contribuyente (join con Taxpayer)
+        query = query.join(Taxpayer).filter(
+            Taxpayer.document_number.ilike(f"%{document_number}%")
+        )
+    
+    # Ordenar por fecha de radicado descendente (más reciente primero)
+    declarations = query.order_by(
+        ICADeclaration.filing_date.desc().nullslast(),
+        ICADeclaration.created_at.desc()
+    ).limit(100).all()
     
     return declarations
 
@@ -441,7 +495,8 @@ async def sign_declaration(
         )
     
     # Generar hash de integridad
-    declaration_content = f"{declaration.id}-{declaration.form_number}-{current_user.id}-{datetime.utcnow().isoformat()}"
+    colombia_now = get_colombia_time()
+    declaration_content = f"{declaration.id}-{declaration.form_number}-{current_user.id}-{colombia_now.isoformat()}"
     integrity_hash = generate_integrity_hash(declaration_content)
     
     # Generar número de radicado usando configuración del municipio
@@ -460,20 +515,20 @@ async def sign_declaration(
         config.radicado_actual = numero + 1
     else:
         # Si no hay configuración, generar uno genérico
-        filing_number = f"RAD-{declaration.id}-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+        filing_number = f"RAD-{declaration.id}-{colombia_now.strftime('%Y%m%d%H%M%S')}"
     
     # Actualizar declaración
     declaration.is_signed = True
     declaration.signature_data = signature_data.signature_image
-    declaration.signed_at = datetime.utcnow()
-    declaration.filing_date = datetime.utcnow()  # Fecha de presentación
+    declaration.signed_at = colombia_now
+    declaration.filing_date = colombia_now  # Fecha de presentación
     declaration.filing_number = filing_number  # Número de radicado
     declaration.signed_by_user_id = current_user.id
     declaration.integrity_hash = integrity_hash
     declaration.status = FormStatus.FIRMADO
     
     # Crear o actualizar SignatureInfo con todos los datos del firmante
-    from ..models.models import SignatureInfo
+    from app.models.models import SignatureInfo
     
     # Eliminar firma anterior si existe
     if declaration.signature_info:
@@ -495,7 +550,7 @@ async def sign_declaration(
         accountant_signature_method=signature_data.accountant_signature_method,
         accountant_signature_image=signature_data.accountant_signature_image,
         document_hash=integrity_hash,
-        signed_at=datetime.utcnow(),
+        signed_at=colombia_now,
         ip_address=request.client.host if request.client else None,
         user_agent=request.headers.get("user-agent"),
         integrity_verified=True
@@ -528,6 +583,205 @@ async def sign_declaration(
         "filing_number": filing_number,
         "integrity_hash": integrity_hash
     }
+
+
+@router.post("/{declaration_id}/correct", response_model=ICADeclarationResponse)
+async def create_correction_declaration(
+    declaration_id: int,
+    request: Request,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Crea una corrección de una declaración firmada.
+    - Solo el propietario puede corregir su declaración
+    - La declaración original debe estar firmada
+    - Solo se permite 1 corrección por declaración original
+    - Los datos se copian pero el formulario queda en estado borrador
+    - Se genera un nuevo número de radicado al firmar la corrección
+    """
+    # Obtener declaración original
+    original = db.query(ICADeclaration).filter(
+        ICADeclaration.id == declaration_id
+    ).first()
+    
+    if not original:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Declaración no encontrada"
+        )
+    
+    # Verificar que sea el propietario
+    if original.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Solo el propietario puede corregir la declaración"
+        )
+    
+    # Verificar que esté firmada
+    if not original.is_signed:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Solo se pueden corregir declaraciones firmadas"
+        )
+    
+    # Verificar que no haya sido corregida anteriormente
+    if original.has_been_corrected:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Esta declaración ya ha sido corregida. Solo se permite 1 corrección por formulario."
+        )
+    
+    # Verificar que la declaración original no sea ya una corrección que haya sido corregida
+    # (No se permite corregir una corrección)
+    if original.correction_of_id:
+        # Es una corrección, verificar que no pueda corregirse de nuevo
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No se puede corregir una declaración que ya es una corrección. Debe crear un nuevo formulario."
+        )
+    
+    # Generar número de formulario para la corrección
+    municipality = original.municipality
+    form_number = generate_form_number(municipality.code, original.tax_year)
+    
+    # Crear nueva declaración como corrección
+    correction = ICADeclaration(
+        tax_year=original.tax_year,
+        declaration_type=DeclarationType.CORRECCION,
+        user_id=current_user.id,
+        municipality_id=original.municipality_id,
+        form_number=form_number,
+        correction_of_id=original.id,  # Referencia al original
+        status=FormStatus.BORRADOR,
+        is_signed=False
+    )
+    
+    db.add(correction)
+    db.flush()  # Para obtener el ID
+    
+    # Copiar Taxpayer
+    if original.taxpayer:
+        t = original.taxpayer
+        new_taxpayer = Taxpayer(
+            declaration_id=correction.id,
+            document_type=t.document_type,
+            document_number=t.document_number,
+            verification_digit=t.verification_digit,
+            legal_name=t.legal_name,
+            address=t.address,
+            municipality=t.municipality,
+            department=t.department,
+            phone=t.phone,
+            email=t.email,
+            num_establishments=t.num_establishments,
+            classification=t.classification,
+            is_consortium=t.is_consortium
+        )
+        db.add(new_taxpayer)
+    
+    # Copiar IncomeBase
+    if original.income_base:
+        ib = original.income_base
+        new_income = IncomeBase(
+            declaration_id=correction.id,
+            row_8_total_income_country=ib.row_8_total_income_country,
+            row_9_income_outside_municipality=ib.row_9_income_outside_municipality,
+            row_11_returns_rebates=ib.row_11_returns_rebates,
+            row_12_exports_fixed_assets=ib.row_12_exports_fixed_assets,
+            row_13_exempt_income=ib.row_13_exempt_income,
+            row_14_other_deductions=ib.row_14_other_deductions
+        )
+        db.add(new_income)
+    
+    # Copiar actividades
+    for act in original.activities:
+        new_act = TaxableActivity(
+            declaration_id=correction.id,
+            activity_code=act.activity_code,
+            activity_description=act.activity_description,
+            income=act.income,
+            rate_per_thousand=act.rate_per_thousand,
+            tax=act.tax
+        )
+        db.add(new_act)
+    
+    # Copiar TaxSettlement
+    if original.settlement:
+        s = original.settlement
+        new_settlement = TaxSettlement(
+            declaration_id=correction.id,
+            row_20_ica_tax=s.row_20_ica_tax,
+            row_21_signs_boards_tax=s.row_21_signs_boards_tax,
+            row_22_signs_boards_base=s.row_22_signs_boards_base,
+            row_23_firefighter_surcharge=s.row_23_firefighter_surcharge,
+            row_24_security_surcharge=s.row_24_security_surcharge,
+            row_25_ley_56_surcharge=s.row_25_ley_56_surcharge,
+            row_26_other_surcharges=s.row_26_other_surcharges,
+            row_27_total_tax_plus_surcharges=s.row_27_total_tax_plus_surcharges,
+            row_28_withholdings=s.row_28_withholdings,
+            row_29_self_withholdings=s.row_29_self_withholdings,
+            row_30_advance_payments=s.row_30_advance_payments,
+            row_31_penalties=s.row_31_penalties,
+            row_31_penalty_type=s.row_31_penalty_type,
+            row_32_interests=s.row_32_interests,
+            row_33_amount_due=s.row_33_amount_due,
+            row_34_balance_favor=s.row_34_balance_favor
+        )
+        db.add(new_settlement)
+    
+    # Copiar DiscountsCredits
+    if original.discounts:
+        d = original.discounts
+        new_discounts = DiscountsCredits(
+            declaration_id=correction.id,
+            row_36_pronto_pago=d.row_36_pronto_pago,
+            row_37_other_discounts=d.row_37_other_discounts,
+            row_38_total_discounts=d.row_38_total_discounts,
+            row_39_voluntary_payment=d.row_39_voluntary_payment,
+            row_40_total_with_voluntary=d.row_40_total_with_voluntary
+        )
+        db.add(new_discounts)
+    
+    # Copiar resultado
+    if original.result:
+        r = original.result
+        new_result = DeclarationResult(
+            declaration_id=correction.id,
+            total_income=r.total_income,
+            taxable_income=r.taxable_income,
+            total_tax=r.total_tax,
+            total_surcharges=r.total_surcharges,
+            total_credits=r.total_credits,
+            amount_to_pay=r.amount_to_pay,
+            balance_in_favor=r.balance_in_favor
+        )
+        db.add(new_result)
+    
+    # Marcar la declaración original como corregida
+    original.has_been_corrected = True
+    
+    # Log de auditoría
+    audit_log = AuditLog(
+        user_id=current_user.id,
+        declaration_id=original.id,
+        action="CORRECTION_CREATED",
+        entity_type="ICADeclaration",
+        entity_id=correction.id,
+        new_values={
+            'correction_id': correction.id,
+            'original_id': original.id,
+            'form_number': form_number
+        },
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent")
+    )
+    db.add(audit_log)
+    
+    db.commit()
+    db.refresh(correction)
+    
+    return correction
 
 
 @router.post("/{declaration_id}/generate-pdf")
@@ -564,7 +818,8 @@ async def generate_pdf(
             'header_text': config.header_text,
             'footer_text': config.footer_text,
             'legal_notes': config.legal_notes,
-            'form_title': config.form_title
+            'form_title': config.form_title,
+            'watermark_text': config.watermark_text  # Marca de agua
         }
     
     # Preparar datos para el PDF
@@ -757,7 +1012,7 @@ async def generate_pdf(
     
     # Actualizar declaración con ruta del PDF
     declaration.pdf_path = pdf_path
-    declaration.pdf_generated_at = datetime.utcnow()
+    declaration.pdf_generated_at = get_colombia_time()
     
     # Log de auditoría
     audit_log = AuditLog(

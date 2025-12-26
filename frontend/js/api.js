@@ -296,6 +296,28 @@ const DeclarationsAPI = {
         a.click();
         window.URL.revokeObjectURL(url);
         a.remove();
+    },
+    
+    /**
+     * Crear corrección de una declaración firmada
+     * Solo se permite 1 corrección por declaración original
+     */
+    async createCorrection(declarationId) {
+        const response = await fetch(`${API_BASE_URL}/declarations/${declarationId}/correct`, {
+            method: 'POST',
+            headers: getHeaders()
+        });
+        return handleResponse(response);
+    },
+    
+    /**
+     * Buscar declaraciones por número de radicado
+     */
+    async searchByFilingNumber(filingNumber) {
+        const response = await fetch(`${API_BASE_URL}/declarations/search?filing_number=${encodeURIComponent(filingNumber)}`, {
+            headers: getHeaders()
+        });
+        return handleResponse(response);
     }
 };
 

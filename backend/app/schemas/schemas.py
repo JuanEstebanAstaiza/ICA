@@ -767,6 +767,10 @@ class ICADeclarationResponse(BaseModel):
     user_id: int
     municipality_id: int
     
+    # Corrección
+    correction_of_id: Optional[int] = None  # ID de la declaración original si es corrección
+    has_been_corrected: bool = False  # True si ya se generó una corrección
+    
     is_signed: bool
     signed_at: Optional[datetime]
     integrity_hash: Optional[str]

@@ -5,6 +5,17 @@ Basado en el documento: Documents/formulario-ICA.md
 from pydantic_settings import BaseSettings
 from typing import Optional
 import os
+from datetime import timezone, timedelta
+
+
+# Zona horaria de Colombia (UTC-5)
+COLOMBIA_TZ = timezone(timedelta(hours=-5))
+
+
+def get_colombia_time():
+    """Obtiene la fecha/hora actual en zona horaria de Colombia."""
+    from datetime import datetime
+    return datetime.now(COLOMBIA_TZ)
 
 
 class Settings(BaseSettings):
@@ -16,6 +27,9 @@ class Settings(BaseSettings):
     APP_NAME: str = "Formulario Único Nacional ICA"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = False
+    
+    # Timezone
+    TIMEZONE: str = "America/Bogota"  # Colombia
     
     # Server
     HOST: str = "0.0.0.0"
