@@ -911,3 +911,359 @@ async def create_formula_parameters(
     db.refresh(params)
     
     return params
+
+
+# ===================== BACKUP MANAGEMENT =====================
+
+import json
+import subprocess
+from datetime import datetime
+from fastapi.responses import FileResponse
+from ...core.config import get_colombia_time
+
+
+@router.get("/backups")
+async def list_backups(
+    current_user: User = Depends(require_role([
+        UserRole.ADMIN_ALCALDIA, 
+        UserRole.ADMIN_SISTEMA
+    ])),
+    db: Session = Depends(get_db)
+):
+    """
+    Lista los backups disponibles.
+    Los backups se almacenan en la carpeta de assets del sistema.
+    """
+    backups_path = os.path.join(settings.ASSETS_STORAGE_PATH, "backups")
+    os.makedirs(backups_path, exist_ok=True)
+    
+    backups = []
+    try:
+        for filename in os.listdir(backups_path):
+            if filename.endswith('.sql') or filename.endswith('.json'):
+                filepath = os.path.join(backups_path, filename)
+                stat = os.stat(filepath)
+                backups.append({
+                    "filename": filename,
+                    "size_bytes": stat.st_size,
+                    "size_mb": round(stat.st_size / (1024 * 1024), 2),
+                    "created_at": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                    "type": "sql" if filename.endswith('.sql') else "json"
+                })
+    except Exception as e:
+        pass
+    
+    # Ordenar por fecha de creación descendente
+    backups.sort(key=lambda x: x['created_at'], reverse=True)
+    
+    return {"backups": backups, "path": backups_path}
+
+
+@router.post("/backups/create")
+async def create_backup(
+    current_user: User = Depends(require_role([
+        UserRole.ADMIN_ALCALDIA, 
+        UserRole.ADMIN_SISTEMA
+    ])),
+    db: Session = Depends(get_db)
+):
+    """
+    Crea un backup de la base de datos.
+    El backup se guarda como archivo SQL en el servidor.
+    
+    NOTA: Para sistemas on-premise, se recomienda también
+    configurar backups automáticos a nivel de sistema operativo.
+    """
+    from ...core.config import settings
+    
+    backups_path = os.path.join(settings.ASSETS_STORAGE_PATH, "backups")
+    os.makedirs(backups_path, exist_ok=True)
+    
+    # Generar nombre de archivo con timestamp de Colombia
+    timestamp = get_colombia_time().strftime('%Y%m%d_%H%M%S')
+    backup_filename = f"ica_backup_{timestamp}.sql"
+    backup_path = os.path.join(backups_path, backup_filename)
+    
+    # Extraer credenciales de DATABASE_URL
+    db_url = settings.DATABASE_URL
+    
+    try:
+        # Parsear DATABASE_URL
+        # Formato: postgresql://user:password@host:port/database
+        POSTGRESQL_PREFIX = 'postgresql://'
+        if db_url.startswith(POSTGRESQL_PREFIX):
+            db_url = db_url[len(POSTGRESQL_PREFIX):]  # Remove prefix
+        
+        # Validate and parse URL components
+        if '@' not in db_url or '/' not in db_url:
+            # Invalid URL format, fallback to JSON backup
+            return await create_json_backup(db, backups_path, timestamp, current_user)
+        
+        user_pass, host_db = db_url.split('@', 1)
+        
+        if ':' not in user_pass:
+            return await create_json_backup(db, backups_path, timestamp, current_user)
+        
+        db_user, db_password = user_pass.split(':', 1)
+        host_port, db_name = host_db.split('/', 1)
+        
+        if ':' in host_port:
+            db_host, db_port = host_port.split(':', 1)
+        else:
+            db_host = host_port
+            db_port = '5432'
+        
+        # Validate parsed components (no shell metacharacters)
+        import re
+        safe_pattern = re.compile(r'^[a-zA-Z0-9_.\-]+$')
+        if not all(safe_pattern.match(c) for c in [db_host, db_port, db_user, db_name] if c):
+            return await create_json_backup(db, backups_path, timestamp, current_user)
+        
+        # Establecer variable de entorno para contraseña
+        env = os.environ.copy()
+        env['PGPASSWORD'] = db_password
+        
+        # Ejecutar pg_dump with validated parameters
+        cmd = [
+            'pg_dump',
+            '-h', db_host,
+            '-p', db_port,
+            '-U', db_user,
+            '-d', db_name,
+            '-f', backup_path,
+            '--no-owner',
+            '--no-privileges'
+        ]
+        
+        result = subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=300)
+        
+        if result.returncode != 0:
+            # Si pg_dump falla, crear backup JSON de tablas principales
+            return await create_json_backup(db, backups_path, timestamp, current_user)
+        
+        # Obtener tamaño del archivo
+        file_size = os.path.getsize(backup_path)
+        
+        return {
+            "message": "Backup creado exitosamente",
+            "filename": backup_filename,
+            "path": backup_path,
+            "size_bytes": file_size,
+            "size_mb": round(file_size / (1024 * 1024), 2),
+            "created_at": get_colombia_time().isoformat(),
+            "type": "sql"
+        }
+        
+    except subprocess.TimeoutExpired:
+        return await create_json_backup(db, backups_path, timestamp, current_user)
+    except Exception as e:
+        # Fallback a backup JSON
+        return await create_json_backup(db, backups_path, timestamp, current_user)
+
+
+async def create_json_backup(db: Session, backups_path: str, timestamp: str, current_user: User):
+    """
+    Crea un backup en formato JSON de las tablas principales.
+    Usado como fallback cuando pg_dump no está disponible.
+    """
+    from ...models.models import (
+        ICADeclaration, Taxpayer, IncomeBase, TaxableActivity,
+        TaxSettlement, PaymentSection, SignatureInfo
+    )
+    
+    backup_filename = f"ica_backup_{timestamp}.json"
+    backup_path = os.path.join(backups_path, backup_filename)
+    
+    # Filtrar por municipio si es admin de alcaldía
+    if current_user.role == UserRole.ADMIN_ALCALDIA:
+        declarations = db.query(ICADeclaration).filter(
+            ICADeclaration.municipality_id == current_user.municipality_id
+        ).all()
+    else:
+        declarations = db.query(ICADeclaration).all()
+    
+    # Construir datos del backup
+    backup_data = {
+        "backup_info": {
+            "created_at": get_colombia_time().isoformat(),
+            "created_by": current_user.email,
+            "version": "1.0",
+            "total_declarations": len(declarations)
+        },
+        "declarations": []
+    }
+    
+    for dec in declarations:
+        dec_data = {
+            "id": dec.id,
+            "form_number": dec.form_number,
+            "filing_number": dec.filing_number,
+            "tax_year": dec.tax_year,
+            "declaration_type": dec.declaration_type.value if dec.declaration_type else None,
+            "status": dec.status.value if dec.status else None,
+            "is_signed": dec.is_signed,
+            "signed_at": dec.signed_at.isoformat() if dec.signed_at else None,
+            "created_at": dec.created_at.isoformat() if dec.created_at else None,
+            "municipality_id": dec.municipality_id
+        }
+        
+        # Agregar datos del contribuyente
+        if dec.taxpayer:
+            dec_data["taxpayer"] = {
+                "legal_name": dec.taxpayer.legal_name,
+                "document_type": dec.taxpayer.document_type,
+                "document_number": dec.taxpayer.document_number,
+                "email": dec.taxpayer.email,
+                "phone": dec.taxpayer.phone,
+                "address": dec.taxpayer.address
+            }
+        
+        # Agregar base de ingresos
+        if dec.income_base:
+            dec_data["income_base"] = {
+                "row_8": dec.income_base.row_8_total_income_country,
+                "row_9": dec.income_base.row_9_income_outside_municipality,
+                "row_11": dec.income_base.row_11_returns_rebates_discounts,
+                "row_12": dec.income_base.row_12_exports_fixed_assets,
+                "row_13": dec.income_base.row_13_excluded_non_taxable,
+                "row_14": dec.income_base.row_14_exempt_income
+            }
+        
+        # Agregar actividades
+        if dec.activities:
+            dec_data["activities"] = [
+                {
+                    "ciiu_code": act.ciiu_code,
+                    "description": act.description,
+                    "income": act.income,
+                    "tax_rate": act.tax_rate
+                }
+                for act in dec.activities
+            ]
+        
+        backup_data["declarations"].append(dec_data)
+    
+    # Guardar archivo JSON
+    with open(backup_path, 'w', encoding='utf-8') as f:
+        json.dump(backup_data, f, ensure_ascii=False, indent=2)
+    
+    file_size = os.path.getsize(backup_path)
+    
+    return {
+        "message": "Backup JSON creado exitosamente",
+        "filename": backup_filename,
+        "path": backup_path,
+        "size_bytes": file_size,
+        "size_mb": round(file_size / (1024 * 1024), 2),
+        "created_at": get_colombia_time().isoformat(),
+        "type": "json",
+        "declarations_count": len(declarations)
+    }
+
+
+@router.get("/backups/{filename}/download")
+async def download_backup(
+    filename: str,
+    current_user: User = Depends(require_role([
+        UserRole.ADMIN_ALCALDIA, 
+        UserRole.ADMIN_SISTEMA
+    ])),
+    db: Session = Depends(get_db)
+):
+    """
+    Descarga un archivo de backup.
+    """
+    backups_path = os.path.join(settings.ASSETS_STORAGE_PATH, "backups")
+    filepath = os.path.join(backups_path, filename)
+    
+    # Validar que el archivo existe y está en la carpeta de backups
+    if not os.path.exists(filepath) or not filepath.startswith(backups_path):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Backup no encontrado"
+        )
+    
+    media_type = "application/sql" if filename.endswith('.sql') else "application/json"
+    
+    return FileResponse(
+        path=filepath,
+        filename=filename,
+        media_type=media_type
+    )
+
+
+@router.post("/backups/upload")
+async def upload_backup(
+    file: UploadFile = File(...),
+    current_user: User = Depends(require_role([UserRole.ADMIN_SISTEMA])),
+    db: Session = Depends(get_db)
+):
+    """
+    Sube un archivo de backup al servidor.
+    Solo el administrador del sistema puede subir backups.
+    
+    NOTA: La restauración de backups SQL debe hacerse manualmente
+    desde la línea de comandos por seguridad.
+    """
+    # Validar tipo de archivo
+    if not file.filename.endswith('.sql') and not file.filename.endswith('.json'):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Tipo de archivo no permitido. Use archivos .sql o .json"
+        )
+    
+    backups_path = os.path.join(settings.ASSETS_STORAGE_PATH, "backups")
+    os.makedirs(backups_path, exist_ok=True)
+    
+    # Generar nombre único para evitar sobrescritura
+    timestamp = get_colombia_time().strftime('%Y%m%d_%H%M%S')
+    original_name = os.path.splitext(file.filename)[0]
+    extension = os.path.splitext(file.filename)[1]
+    new_filename = f"{original_name}_uploaded_{timestamp}{extension}"
+    filepath = os.path.join(backups_path, new_filename)
+    
+    # Guardar archivo
+    with open(filepath, "wb") as f:
+        content = await file.read()
+        f.write(content)
+    
+    file_size = os.path.getsize(filepath)
+    
+    return {
+        "message": "Backup subido exitosamente",
+        "original_filename": file.filename,
+        "saved_filename": new_filename,
+        "path": filepath,
+        "size_bytes": file_size,
+        "size_mb": round(file_size / (1024 * 1024), 2),
+        "uploaded_at": get_colombia_time().isoformat(),
+        "note": "Para restaurar un backup SQL, use el comando: psql -U usuario -d base_datos -f archivo.sql"
+    }
+
+
+@router.delete("/backups/{filename}")
+async def delete_backup(
+    filename: str,
+    current_user: User = Depends(require_role([UserRole.ADMIN_SISTEMA])),
+    db: Session = Depends(get_db)
+):
+    """
+    Elimina un archivo de backup.
+    Solo el administrador del sistema puede eliminar backups.
+    """
+    backups_path = os.path.join(settings.ASSETS_STORAGE_PATH, "backups")
+    filepath = os.path.join(backups_path, filename)
+    
+    # Validar que el archivo existe y está en la carpeta de backups
+    if not os.path.exists(filepath) or not filepath.startswith(backups_path):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Backup no encontrado"
+        )
+    
+    os.remove(filepath)
+    
+    return {
+        "message": f"Backup {filename} eliminado correctamente",
+        "deleted_at": get_colombia_time().isoformat()
+    }

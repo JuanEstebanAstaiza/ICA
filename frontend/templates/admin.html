@@ -293,6 +293,9 @@
                 <button class="admin-tab" data-tab="forms" onclick="switchTab('forms')">
                     📋 Formularios
                 </button>
+                <button class="admin-tab" data-tab="backups" onclick="switchTab('backups')">
+                    💾 Backups
+                </button>
             </div>
             
             <!-- TAB: Configuración -->
@@ -413,12 +416,21 @@
                                             <div class="form-group">
                                                 <label class="form-label">Vista Previa Radicado</label>
                                                 <div class="serial-preview" id="radicado-preview">0000000000000001</div>
-                                            </div>
+                                             </div>
                                         </div>
                                     </div>
                                 </div>
                                 
                                 <div class="form-group" style="margin-top: 1.5rem;">
+                                    <label for="wl-app-name" class="form-label">Nombre de la Aplicación</label>
+                                    <input type="text" id="wl-app-name" class="form-control" 
+                                           value="Sistema ICA"
+                                           placeholder="Ej: Alcaldía de Medellín - Sistema ICA"
+                                           maxlength="255">
+                                    <small class="form-text">Este nombre aparecerá en el encabezado de la aplicación web.</small>
+                                </div>
+                                
+                                <div class="form-group" style="margin-top: 1rem;">
                                     <label for="wl-form-title" class="form-label">Título del Formulario</label>
                                     <input type="text" id="wl-form-title" class="form-control" 
                                            value="Formulario Único Nacional de Declaración y Pago ICA">
@@ -485,6 +497,7 @@
                                 <div class="form-group">
                                     <label for="wl-logo" class="form-label">Logo Institucional</label>
                                     <input type="file" id="wl-logo" class="form-control" accept="image/*">
+                                    <small class="form-text">El logo aparecerá en el encabezado de la web y en los PDFs generados.</small>
                                 </div>
                                 
                                 <button type="submit" class="btn btn-primary">
@@ -921,6 +934,72 @@
         </div>
         
         </div><!-- Fin TAB: Formularios -->
+        
+        <!-- TAB: Backups -->
+        <div id="tab-backups" class="admin-tab-content">
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header" style="background: linear-gradient(135deg, #7c3aed, #6d28d9); color: white;">
+                            💾 Gestión de Backups
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-info mb-3">
+                                <strong>📌 Información:</strong> Los backups permiten crear copias de seguridad de los datos 
+                                del sistema. Se recomienda crear backups periódicos para garantizar la persistencia de la información.
+                            </div>
+                            
+                            <!-- Acciones de backup -->
+                            <div class="d-flex gap-2 mb-3">
+                                <button type="button" class="btn btn-primary" onclick="createBackup()">
+                                    ➕ Crear Backup
+                                </button>
+                                <label class="btn btn-secondary" style="cursor: pointer;">
+                                    📤 Subir Backup
+                                    <input type="file" id="backup-file-upload" accept=".sql,.json" style="display: none;" onchange="uploadBackupFile(this)">
+                                </label>
+                                <button type="button" class="btn btn-ghost" onclick="loadBackupsList()">
+                                    🔄 Actualizar Lista
+                                </button>
+                            </div>
+                            
+                            <!-- Lista de backups -->
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Nombre del Archivo</th>
+                                            <th>Tipo</th>
+                                            <th>Tamaño</th>
+                                            <th>Fecha de Creación</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="backups-list">
+                                        <tr>
+                                            <td colspan="5" class="text-center text-muted">
+                                                Cargando backups...
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- Información adicional -->
+                            <div class="alert" style="margin-top: 1rem; background: #fef3c7; border-left: 4px solid #f59e0b;">
+                                <strong>⚠️ Nota Importante:</strong>
+                                <ul style="margin: 0.5rem 0 0 1rem; padding: 0;">
+                                    <li>Los backups SQL contienen toda la información de la base de datos.</li>
+                                    <li>Los backups JSON contienen solo las declaraciones y datos principales.</li>
+                                    <li>Para restaurar un backup SQL, contacte al administrador del sistema.</li>
+                                    <li>Se recomienda mantener al menos 3 backups recientes.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div><!-- Fin TAB: Backups -->
         
     </main>
     
@@ -1381,6 +1460,7 @@
             try {
                 const config = await AdminAPI.getWhiteLabelConfig(municipalityId);
                 
+                document.getElementById('wl-app-name').value = config.app_name || 'Sistema ICA';
                 document.getElementById('wl-form-title').value = config.form_title || '';
                 document.getElementById('wl-primary-color').value = config.primary_color || '#003366';
                 document.getElementById('wl-secondary-color').value = config.secondary_color || '#0066CC';
@@ -1528,6 +1608,7 @@
                 showLoading();
                 
                 const config = {
+                    app_name: document.getElementById('wl-app-name').value,
                     form_title: document.getElementById('wl-form-title').value,
                     primary_color: document.getElementById('wl-primary-color').value,
                     secondary_color: document.getElementById('wl-secondary-color').value,
@@ -1687,6 +1768,11 @@
             // Si es la pestaña de formularios, cargar las declaraciones
             if (tabId === 'forms') {
                 loadAllDeclarations();
+            }
+            
+            // Si es la pestaña de backups, cargar la lista de backups
+            if (tabId === 'backups') {
+                loadBackupsList();
             }
         }
         
@@ -1890,6 +1976,154 @@
                 if (formsTab) formsTab.style.display = 'none';
                 // Asegurarse de que no esté activa si se oculta
                 if (formsSection) formsSection.classList.remove('active');
+            }
+        }
+        
+        // ==================== GESTIÓN DE BACKUPS ====================
+        
+        async function loadBackupsList() {
+            const tbody = document.getElementById('backups-list');
+            
+            try {
+                const result = await AdminAPI.listBackups();
+                const backups = result.backups || [];
+                
+                if (backups.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">
+                                No hay backups disponibles. Cree uno usando el botón "Crear Backup".
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                tbody.innerHTML = backups.map(backup => {
+                    const date = new Date(backup.created_at).toLocaleString('es-CO', {
+                        year: 'numeric', month: '2-digit', day: '2-digit',
+                        hour: '2-digit', minute: '2-digit'
+                    });
+                    const typeIcon = backup.type === 'sql' ? '🗄️' : '📄';
+                    const typeBadge = backup.type === 'sql' 
+                        ? '<span class="badge" style="background: #3b82f6; color: white;">SQL</span>'
+                        : '<span class="badge" style="background: #10b981; color: white;">JSON</span>';
+                    
+                    return `
+                        <tr>
+                            <td style="font-family: 'Roboto Mono', monospace; font-size: 0.85rem;">
+                                ${typeIcon} ${backup.filename}
+                            </td>
+                            <td>${typeBadge}</td>
+                            <td>${backup.size_mb} MB</td>
+                            <td>${date}</td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    <button class="btn btn-sm btn-primary" onclick="downloadBackup('${backup.filename}')" title="Descargar">
+                                        📥
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteBackup('${backup.filename}')" title="Eliminar">
+                                        🗑️
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+                
+            } catch (error) {
+                console.error('Error loading backups:', error);
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center text-danger">
+                            Error al cargar backups: ${error.message}
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+        
+        async function createBackup() {
+            if (!confirm('¿Desea crear un nuevo backup de la base de datos?')) {
+                return;
+            }
+            
+            try {
+                showLoading();
+                const result = await AdminAPI.createBackup();
+                hideLoading();
+                
+                showAlert(`✅ ${result.message}. Archivo: ${result.filename} (${result.size_mb} MB)`, 'success');
+                loadBackupsList();
+                
+            } catch (error) {
+                hideLoading();
+                showAlert('❌ Error al crear backup: ' + error.message, 'danger');
+            }
+        }
+        
+        async function downloadBackup(filename) {
+            try {
+                showLoading();
+                await AdminAPI.downloadBackup(filename);
+                hideLoading();
+                showAlert('✅ Backup descargado correctamente', 'success');
+            } catch (error) {
+                hideLoading();
+                showAlert('❌ Error al descargar backup: ' + error.message, 'danger');
+            }
+        }
+        
+        async function uploadBackupFile(input) {
+            if (!input.files || input.files.length === 0) {
+                return;
+            }
+            
+            const file = input.files[0];
+            
+            if (!file.name.endsWith('.sql') && !file.name.endsWith('.json')) {
+                showAlert('❌ Solo se permiten archivos .sql o .json', 'danger');
+                input.value = '';
+                return;
+            }
+            
+            if (!confirm(`¿Desea subir el archivo "${file.name}"?`)) {
+                input.value = '';
+                return;
+            }
+            
+            try {
+                showLoading();
+                const result = await AdminAPI.uploadBackup(file);
+                hideLoading();
+                
+                showAlert(`✅ ${result.message}. Guardado como: ${result.saved_filename}`, 'success');
+                loadBackupsList();
+                
+            } catch (error) {
+                hideLoading();
+                showAlert('❌ Error al subir backup: ' + error.message, 'danger');
+            }
+            
+            input.value = '';
+        }
+        
+        async function deleteBackup(filename) {
+            if (!confirm(`¿Está seguro de eliminar el backup "${filename}"?\n\nEsta acción no se puede deshacer.`)) {
+                return;
+            }
+            
+            try {
+                showLoading();
+                await AdminAPI.deleteBackup(filename);
+                hideLoading();
+                
+                showAlert('✅ Backup eliminado correctamente', 'success');
+                loadBackupsList();
+                
+            } catch (error) {
+                hideLoading();
+                showAlert('❌ Error al eliminar backup: ' + error.message, 'danger');
             }
         }
         

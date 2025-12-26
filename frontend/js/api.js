@@ -552,6 +552,83 @@ const AdminAPI = {
             headers: getHeaders()
         });
         return handleResponse(response);
+    },
+    
+    // ==================== BACKUP MANAGEMENT ====================
+    
+    /**
+     * Listar backups disponibles
+     */
+    async listBackups() {
+        const response = await fetch(`${API_BASE_URL}/admin/backups`, {
+            headers: getHeaders()
+        });
+        return handleResponse(response);
+    },
+    
+    /**
+     * Crear un nuevo backup
+     */
+    async createBackup() {
+        const response = await fetch(`${API_BASE_URL}/admin/backups/create`, {
+            method: 'POST',
+            headers: getHeaders()
+        });
+        return handleResponse(response);
+    },
+    
+    /**
+     * Descargar un backup
+     */
+    async downloadBackup(filename) {
+        const response = await fetch(`${API_BASE_URL}/admin/backups/${encodeURIComponent(filename)}/download`, {
+            headers: getHeaders()
+        });
+        
+        if (!response.ok) {
+            throw new Error('Error al descargar el backup');
+        }
+        
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        a.remove();
+    },
+    
+    /**
+     * Subir un backup
+     */
+    async uploadBackup(file) {
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        const headers = {};
+        if (accessToken) {
+            headers['Authorization'] = `Bearer ${accessToken}`;
+        }
+        
+        const response = await fetch(`${API_BASE_URL}/admin/backups/upload`, {
+            method: 'POST',
+            headers: headers,
+            body: formData
+        });
+        return handleResponse(response);
+    },
+    
+    /**
+     * Eliminar un backup
+     */
+    async deleteBackup(filename) {
+        const response = await fetch(`${API_BASE_URL}/admin/backups/${encodeURIComponent(filename)}`, {
+            method: 'DELETE',
+            headers: getHeaders()
+        });
+        return handleResponse(response);
     }
 };
 

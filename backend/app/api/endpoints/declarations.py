@@ -2,6 +2,7 @@
 Endpoints para declaraciones ICA.
 Basado en: Documents/formulario-ICA.md
 """
+import logging
 from datetime import datetime
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
@@ -29,6 +30,8 @@ from ...services.pdf_generator import PDFGenerator
 from ...core.security import generate_integrity_hash
 from ...core.config import get_colombia_time
 from .auth import get_current_active_user, require_role
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/declarations", tags=["Declaraciones ICA"])
 
@@ -1037,10 +1040,29 @@ async def generate_pdf(
     
     db.commit()
     
+    # Enviar PDF por correo electrónico si está firmado
+    email_sent = False
+    if declaration.is_signed and declaration.taxpayer and declaration.taxpayer.email:
+        try:
+            from ...services.email_service import email_service
+            email_sent = email_service.send_signed_form_email(
+                to_email=declaration.taxpayer.email,
+                full_name=declaration.taxpayer.legal_name or "Contribuyente",
+                form_number=declaration.form_number or "",
+                filing_number=declaration.filing_number or "",
+                tax_year=declaration.tax_year,
+                amount_to_pay=declaration_data['result'].get('amount_to_pay', 0),
+                pdf_path=pdf_path,
+                municipality_name=municipality.name if municipality else None
+            )
+        except Exception as e:
+            logger.warning(f"Error sending signed form email: {e}")
+    
     return {
         "message": "PDF generado correctamente",
         "pdf_path": pdf_path,
-        "generated_at": declaration.pdf_generated_at
+        "generated_at": declaration.pdf_generated_at,
+        "email_sent": email_sent
     }
 
 

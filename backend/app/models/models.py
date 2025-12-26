@@ -168,6 +168,9 @@ class WhiteLabelConfig(Base):
     # Configuración del formulario
     form_title = Column(String(500), default="Formulario Único Nacional de Declaración y Pago ICA")
     
+    # Nombre de la aplicación personalizado (ej: "Alcaldía de Medellín - Sistema ICA")
+    app_name = Column(String(255), default="Sistema ICA")
+    
     # Marca de agua para PDF (prevención de fraudes)
     watermark_text = Column(String(255), default="")  # Nombre de la alcaldía como marca de agua
     

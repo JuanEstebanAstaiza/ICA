@@ -65,6 +65,16 @@ class Settings(BaseSettings):
     RATE_LIMIT_REQUESTS: int = 100
     RATE_LIMIT_PERIOD: int = 60
     
+    # Email configuration (SMTP)
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM_EMAIL: str = ""
+    SMTP_FROM_NAME: str = "Sistema ICA"
+    SMTP_TLS: bool = True
+    EMAIL_ENABLED: bool = False  # Set to True when SMTP is configured
+    
     class Config:
         env_file = ".env"
         case_sensitive = True
