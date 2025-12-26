@@ -636,12 +636,13 @@ class PDFGenerator:
             elements.append(Spacer(1, 0.2*inch))
         
         # FIRMA DEL CONTADOR / REVISOR FISCAL (solo si aplica)
-        requires_reviewer = signature_info.get('requires_fiscal_reviewer', False)
+        # Se muestra esta sección si hay datos del contador/revisor (accountant_name)
+        requires_fiscal_reviewer = signature_info.get('requires_fiscal_reviewer', False)
         accountant_name = signature_info.get('accountant_name')
         
-        if requires_reviewer and accountant_name:
-            # Determinar si es contador o revisor fiscal
-            title = "FIRMA DEL REVISOR FISCAL" if requires_reviewer else "FIRMA DEL CONTADOR"
+        if accountant_name:
+            # Determinar si es contador público o revisor fiscal basado en requires_fiscal_reviewer
+            title = "FIRMA DEL REVISOR FISCAL" if requires_fiscal_reviewer else "FIRMA DEL CONTADOR PÚBLICO"
             elements.append(Paragraph(f'<b>{title}</b>', self.styles['Normal']))
             elements.append(Spacer(1, 0.1*inch))
             
