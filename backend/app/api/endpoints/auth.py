@@ -271,6 +271,22 @@ async def register_persona_natural(
     db.add(audit_log)
     db.commit()
     
+    # Enviar correo de bienvenida
+    try:
+        from ...services.email_service import email_service
+        municipality_name = platform_municipality.name if platform_municipality else None
+        email_service.send_registration_email(
+            to_email=new_user.email,
+            full_name=new_user.full_name,
+            person_type="natural",
+            document_type=new_user.document_type,
+            document_number=new_user.document_number,
+            municipality_name=municipality_name
+        )
+    except Exception as e:
+        # No fallar el registro si el email falla
+        print(f"⚠️ Error sending registration email: {e}")
+    
     return new_user
 
 
@@ -359,6 +375,24 @@ async def register_persona_juridica(
     )
     db.add(audit_log)
     db.commit()
+    
+    # Enviar correo de bienvenida
+    try:
+        from ...services.email_service import email_service
+        municipality_name = platform_municipality.name if platform_municipality else None
+        email_service.send_registration_email(
+            to_email=new_user.email,
+            full_name=new_user.full_name,
+            person_type="juridica",
+            document_type=new_user.document_type,
+            document_number=new_user.document_number,
+            company_name=new_user.company_name,
+            nit=new_user.nit,
+            municipality_name=municipality_name
+        )
+    except Exception as e:
+        # No fallar el registro si el email falla
+        print(f"⚠️ Error sending registration email: {e}")
     
     return new_user
 

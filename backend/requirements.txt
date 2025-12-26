@@ -28,6 +28,9 @@ python-dotenv==1.0.1
 # Redis (optional for caching)
 redis==5.0.1
 
+# Email
+aiosmtplib==3.0.1
+
 # Testing
 pytest==8.0.0
 pytest-asyncio==0.23.5

@@ -266,6 +266,9 @@ class WhiteLabelConfigBase(BaseModel):
         max_length=500
     )
     
+    # Nombre de la aplicación personalizado (ej: "Alcaldía de Medellín - Sistema ICA")
+    app_name: Optional[str] = Field(default="Sistema ICA", max_length=255)
+    
     # Marca de agua para PDF (prevención de fraudes)
     watermark_text: Optional[str] = Field(default="", max_length=255)
     
