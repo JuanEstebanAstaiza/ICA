@@ -2,6 +2,7 @@
 Endpoints de autenticación.
 Sistema de login institucional con JWT y Argon2.
 """
+import logging
 from datetime import datetime, timedelta
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Request
@@ -20,6 +21,8 @@ from ...schemas.schemas import (
     UserCreate, UserLogin, UserResponse, Token,
     UserRegisterNatural, UserRegisterJuridica, PersonTypeEnum
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["Autenticación"])
 
@@ -285,7 +288,7 @@ async def register_persona_natural(
         )
     except Exception as e:
         # No fallar el registro si el email falla
-        print(f"⚠️ Error sending registration email: {e}")
+        logger.warning(f"Error sending registration email: {e}")
     
     return new_user
 
@@ -392,7 +395,7 @@ async def register_persona_juridica(
         )
     except Exception as e:
         # No fallar el registro si el email falla
-        print(f"⚠️ Error sending registration email: {e}")
+        logger.warning(f"Error sending registration email: {e}")
     
     return new_user
 

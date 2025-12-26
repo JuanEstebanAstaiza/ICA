@@ -990,24 +990,40 @@ async def create_backup(
     try:
         # Parsear DATABASE_URL
         # Formato: postgresql://user:password@host:port/database
-        if db_url.startswith('postgresql://'):
-            db_url = db_url[13:]  # Remove 'postgresql://'
+        POSTGRESQL_PREFIX = 'postgresql://'
+        if db_url.startswith(POSTGRESQL_PREFIX):
+            db_url = db_url[len(POSTGRESQL_PREFIX):]  # Remove prefix
         
-        user_pass, host_db = db_url.split('@')
-        db_user, db_password = user_pass.split(':')
-        host_port, db_name = host_db.split('/')
+        # Validate and parse URL components
+        if '@' not in db_url or '/' not in db_url:
+            # Invalid URL format, fallback to JSON backup
+            return await create_json_backup(db, backups_path, timestamp, current_user)
+        
+        user_pass, host_db = db_url.split('@', 1)
+        
+        if ':' not in user_pass:
+            return await create_json_backup(db, backups_path, timestamp, current_user)
+        
+        db_user, db_password = user_pass.split(':', 1)
+        host_port, db_name = host_db.split('/', 1)
         
         if ':' in host_port:
-            db_host, db_port = host_port.split(':')
+            db_host, db_port = host_port.split(':', 1)
         else:
             db_host = host_port
             db_port = '5432'
+        
+        # Validate parsed components (no shell metacharacters)
+        import re
+        safe_pattern = re.compile(r'^[a-zA-Z0-9_.\-]+$')
+        if not all(safe_pattern.match(c) for c in [db_host, db_port, db_user, db_name] if c):
+            return await create_json_backup(db, backups_path, timestamp, current_user)
         
         # Establecer variable de entorno para contraseña
         env = os.environ.copy()
         env['PGPASSWORD'] = db_password
         
-        # Ejecutar pg_dump
+        # Ejecutar pg_dump with validated parameters
         cmd = [
             'pg_dump',
             '-h', db_host,

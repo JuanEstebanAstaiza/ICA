@@ -2,6 +2,7 @@
 Endpoints para declaraciones ICA.
 Basado en: Documents/formulario-ICA.md
 """
+import logging
 from datetime import datetime
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
@@ -29,6 +30,8 @@ from ...services.pdf_generator import PDFGenerator
 from ...core.security import generate_integrity_hash
 from ...core.config import get_colombia_time
 from .auth import get_current_active_user, require_role
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/declarations", tags=["Declaraciones ICA"])
 
@@ -1053,7 +1056,7 @@ async def generate_pdf(
                 municipality_name=municipality.name if municipality else None
             )
         except Exception as e:
-            print(f"⚠️ Error sending signed form email: {e}")
+            logger.warning(f"Error sending signed form email: {e}")
     
     return {
         "message": "PDF generado correctamente",

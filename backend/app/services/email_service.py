@@ -5,6 +5,7 @@ Envía notificaciones y PDFs firmados a los usuarios.
 import asyncio
 import smtplib
 import ssl
+import logging
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
@@ -12,6 +13,9 @@ from typing import Optional, List
 import os
 
 from ..core.config import settings, get_colombia_time
+
+# Configure logger
+logger = logging.getLogger(__name__)
 
 
 class EmailService:
@@ -85,7 +89,7 @@ class EmailService:
             True si se envió correctamente, False en caso contrario
         """
         if not self.is_configured():
-            print("⚠️ Email service not configured. Skipping email send.")
+            logger.warning("Email service not configured. Skipping email send.")
             return False
         
         try:
@@ -105,11 +109,11 @@ class EmailService:
                     server.login(self.user, self.password)
                     server.send_message(message)
             
-            print(f"✅ Email sent successfully to {to_email}")
+            logger.info(f"Email sent successfully to {to_email}")
             return True
             
         except Exception as e:
-            print(f"❌ Error sending email to {to_email}: {str(e)}")
+            logger.error(f"Error sending email to {to_email}: {str(e)}")
             return False
     
     def send_registration_email(
@@ -293,7 +297,7 @@ class EmailService:
                     'content_type': 'application/pdf'
                 })
             except Exception as e:
-                print(f"⚠️ Could not read PDF file: {e}")
+                logger.warning(f"Could not read PDF file: {e}")
         
         return self.send_email(to_email, subject, html_content, attachments)
 
