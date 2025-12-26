@@ -1440,6 +1440,9 @@ async def restore_json_backup(
                 declaration_type = DeclarationType(dec_data.get('declaration_type', 'inicial'))
                 status_value = FormStatus(dec_data.get('status', 'borrador'))
                 
+                # Preservar el user_id original del backup si existe, sino usar el usuario actual
+                original_user_id = dec_data.get('user_id')
+                
                 declaration = ICADeclaration(
                     form_number=dec_data.get('form_number'),
                     filing_number=dec_data.get('filing_number'),
@@ -1448,7 +1451,7 @@ async def restore_json_backup(
                     status=status_value,
                     is_signed=dec_data.get('is_signed', False),
                     municipality_id=dec_data.get('municipality_id'),
-                    user_id=current_user.id  # Asignar al usuario que restaura
+                    user_id=original_user_id if original_user_id else current_user.id
                 )
                 
                 db.add(declaration)
@@ -1459,12 +1462,12 @@ async def restore_json_backup(
                 if taxpayer_data:
                     taxpayer = Taxpayer(
                         declaration_id=declaration.id,
-                        legal_name=taxpayer_data.get('legal_name', ''),
-                        document_type=taxpayer_data.get('document_type', ''),
-                        document_number=taxpayer_data.get('document_number', ''),
-                        email=taxpayer_data.get('email'),
-                        phone=taxpayer_data.get('phone'),
-                        address=taxpayer_data.get('address')
+                        legal_name=taxpayer_data.get('legal_name') or '',
+                        document_type=taxpayer_data.get('document_type') or '',
+                        document_number=taxpayer_data.get('document_number') or '',
+                        email=taxpayer_data.get('email') or '',
+                        phone=taxpayer_data.get('phone') or '',
+                        address=taxpayer_data.get('address') or ''
                     )
                     db.add(taxpayer)
                 
@@ -1504,7 +1507,7 @@ async def restore_json_backup(
                 restored_count += 1
                 
             except Exception as e:
-                errors.append(f"Error en declaración {dec_data.get('form_number', 'unknown')}: {str(e)}")
+                errors.append(f"Error en declaración {dec_data.get('form_number', 'desconocido')}: {str(e)}")
                 continue
         
         # Commit todos los cambios

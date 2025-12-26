@@ -716,7 +716,7 @@ class SignatureData(BaseModel):
     accountant_name: Optional[str] = Field(None, max_length=255)
     accountant_document: Optional[str] = Field(None, max_length=50)
     accountant_professional_card: Optional[str] = Field(None, max_length=50)
-    accountant_signature_method: Optional[str] = Field(None, max_length=20)
+    accountant_signature_method: Optional[str] = Field(None, max_length=10)
     
     # Firma digital (base64 del canvas si es manuscrita)
     signature_image: Optional[str] = None
