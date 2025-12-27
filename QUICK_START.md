@@ -99,6 +99,72 @@ SELECT email, full_name, role FROM users;
 \q
 ```
 
+## 🔄 Reinicio Completo (Eliminar Contenedores y Volúmenes)
+
+Si necesitas empezar desde cero, sigue estos pasos para eliminar todos los contenedores, volúmenes y reconstruir el sistema:
+
+### Opción 1: Reinicio Rápido (mantiene imágenes)
+```bash
+# Detener y eliminar contenedores + volúmenes
+docker compose down -v
+
+# Reconstruir y levantar servicios
+docker compose up -d --build
+
+# Ejecutar seed de datos
+docker compose exec backend python scripts/seed_data.py
+```
+
+### Opción 2: Limpieza Total (elimina todo)
+```bash
+# Detener contenedores
+docker compose down
+
+# Eliminar contenedores (fuerza)
+docker rm -f ica_postgres ica_redis ica_backend ica_frontend 2>/dev/null || true
+
+# Eliminar volúmenes específicos del proyecto
+docker volume rm ica_postgres_data ica_redis_data ica_pdf_storage ica_assets_storage 2>/dev/null || true
+
+# Si los volúmenes tienen otro nombre, listarlos y eliminar:
+docker volume ls | grep ica
+# Eliminar manualmente: docker volume rm <nombre_volumen>
+
+# Reconstruir imágenes desde cero
+docker compose build --no-cache
+
+# Levantar servicios
+docker compose up -d
+
+# Esperar a que los servicios estén saludables (30-60 segundos)
+sleep 30
+
+# Verificar estado
+docker compose ps
+
+# Ejecutar seed de datos iniciales
+docker compose exec backend python scripts/seed_data.py
+```
+
+### Opción 3: Script de Un Solo Comando
+```bash
+# Limpiar todo y reconstruir
+docker compose down -v && docker compose build --no-cache && docker compose up -d && sleep 30 && docker compose exec backend python scripts/seed_data.py
+```
+
+### Verificar que todo funciona correctamente
+```bash
+# Verificar servicios
+docker compose ps
+
+# Verificar health check del backend
+curl http://localhost:8000/health
+
+# Verificar logs si hay problemas
+docker compose logs backend
+docker compose logs postgres
+```
+
 ## ❌ Troubleshooting
 
 ### Problema: No puedo acceder al frontend
@@ -122,6 +188,14 @@ docker compose restart backend
 ### Problema: Las contraseñas no funcionan
 ```bash
 # Recrear usuarios de prueba
+docker compose exec backend python scripts/seed_data.py
+```
+
+### Problema: Error 500 en API white-label
+```bash
+# Este error suele ocurrir por datos inconsistentes en la base de datos.
+# Solución: Reiniciar desde cero siguiendo la sección "Reinicio Completo"
+docker compose down -v && docker compose up -d --build
 docker compose exec backend python scripts/seed_data.py
 ```
 
