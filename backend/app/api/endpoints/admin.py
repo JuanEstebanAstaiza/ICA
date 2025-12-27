@@ -240,10 +240,21 @@ async def update_white_label_config(
     
     config = municipality.config
     if not config:
-        config = WhiteLabelConfig()
-        db.add(config)
-        db.commit()
-        municipality.config_id = config.id
+        try:
+            config = WhiteLabelConfig()
+            db.add(config)
+            db.flush()  # Flush to get the config.id
+            
+            municipality.config_id = config.id
+            db.commit()
+            db.refresh(config)
+        except Exception as e:
+            db.rollback()
+            logger.error(f"Error al crear configuración marca blanca para municipio {municipality_id}: {type(e).__name__}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Error al crear la configuración"
+            )
     
     # Actualizar campos
     for key, value in data.dict(exclude_unset=True).items():
