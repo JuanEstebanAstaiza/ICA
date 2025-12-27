@@ -187,14 +187,16 @@ async def get_white_label_config(
             
             municipality.config_id = config.id
             db.commit()
-            # Return the config object directly to avoid relationship caching issues
+            # Early return: Return the config object directly to avoid SQLAlchemy
+            # relationship caching issues where municipality.config might still be None
+            # after setting config_id and committing
             return config
         except Exception as e:
             db.rollback()
-            logger.error(f"Error al crear configuración marca blanca para municipio {municipality_id}: {str(e)}")
+            logger.error(f"Error al crear configuración marca blanca para municipio {municipality_id}: {type(e).__name__}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Error al crear la configuración: {str(e)}"
+                detail="Error al crear la configuración"
             )
     
     return municipality.config
@@ -254,10 +256,10 @@ async def update_white_label_config(
         db.refresh(config)
     except Exception as e:
         db.rollback()
-        logger.error(f"Error al actualizar configuración marca blanca para municipio {municipality_id}: {str(e)}")
+        logger.error(f"Error al actualizar configuración marca blanca para municipio {municipality_id}: {type(e).__name__}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al guardar la configuración: {str(e)}"
+            detail="Error al guardar la configuración"
         )
     
     return config

@@ -582,10 +582,10 @@ async def sign_declaration(
         db.commit()
     except Exception as e:
         db.rollback()
-        logger.error(f"Error al firmar declaración {declaration_id}: {str(e)}")
+        logger.error(f"Error al firmar declaración {declaration_id}: {type(e).__name__}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al guardar la firma: {str(e)}"
+            detail="Error al guardar la firma"
         )
     
     return {
