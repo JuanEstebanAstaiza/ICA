@@ -479,8 +479,11 @@ async def list_users(
 ):
     """
     Lista usuarios según permisos del administrador.
+    Incluye información del municipio asociado.
     """
-    query = db.query(User)
+    from sqlalchemy.orm import joinedload
+    
+    query = db.query(User).options(joinedload(User.municipality))
     
     if current_user.role == UserRole.ADMIN_ALCALDIA:
         query = query.filter(User.municipality_id == current_user.municipality_id)
@@ -494,7 +497,9 @@ async def list_users(
             "full_name": u.full_name,
             "role": u.role.value,
             "is_active": u.is_active,
-            "municipality_id": u.municipality_id
+            "municipality_id": u.municipality_id,
+            "municipality_name": u.municipality.name if u.municipality else None,
+            "municipality_department": u.municipality.department if u.municipality else None
         }
         for u in users
     ]
@@ -671,6 +676,8 @@ async def delete_user(
     
     ADVERTENCIA: Esta acción es irreversible.
     Las declaraciones del usuario NO se eliminan (se mantienen para auditoría).
+    Si el usuario tiene declaraciones asociadas, se debe usar la opción de desactivar
+    en su lugar o eliminar primero las declaraciones.
     """
     user = db.query(User).filter(User.id == user_id).first()
     
@@ -694,18 +701,61 @@ async def delete_user(
             detail="No puede eliminar a otro super administrador"
         )
     
+    # Verificar si el usuario tiene declaraciones
+    from ...models.models import ICADeclaration
+    declarations_count = db.query(ICADeclaration).filter(
+        ICADeclaration.user_id == user_id
+    ).count()
+    
+    if declarations_count > 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"No se puede eliminar el usuario porque tiene {declarations_count} declaración(es) asociada(s). "
+                   f"Primero elimine las declaraciones usando 'Limpiar Datos del Municipio' o desactive el usuario en su lugar."
+        )
+    
     # Guardar info para el mensaje
     user_email = user.email
     user_name = user.full_name
     
-    # Eliminar el usuario
-    db.delete(user)
-    db.commit()
-    
-    return {
-        "message": f"Usuario {user_name} ({user_email}) eliminado correctamente",
-        "deleted_user_id": user_id
-    }
+    try:
+        # Limpiar referencias en audit_logs (set user_id to NULL)
+        from ...models.models import AuditLog
+        db.query(AuditLog).filter(AuditLog.user_id == user_id).update(
+            {AuditLog.user_id: None},
+            synchronize_session='fetch'
+        )
+        
+        # Limpiar referencias en white_label_configs (updated_by)
+        from ...models.models import WhiteLabelConfig
+        db.query(WhiteLabelConfig).filter(WhiteLabelConfig.updated_by == user_id).update(
+            {WhiteLabelConfig.updated_by: None},
+            synchronize_session='fetch'
+        )
+        
+        # Limpiar referencias en formula_parameters (updated_by)
+        from ...models.models import FormulaParameters
+        db.query(FormulaParameters).filter(FormulaParameters.updated_by == user_id).update(
+            {FormulaParameters.updated_by: None},
+            synchronize_session='fetch'
+        )
+        
+        # Eliminar el usuario
+        db.delete(user)
+        db.commit()
+        
+        return {
+            "message": f"Usuario {user_name} ({user_email}) eliminado correctamente",
+            "deleted_user_id": user_id
+        }
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error al eliminar usuario {user_id}: {type(e).__name__}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al eliminar el usuario: {str(e)}"
+        )
 
 
 @router.delete("/municipalities/{municipality_id}/clean")

@@ -608,8 +608,14 @@
             
             select.innerHTML = '<option value="">Seleccione un admin...</option>';
             admins.forEach(admin => {
-                const muni = allMunicipalities.find(m => m.id === admin.municipality_id);
-                const muniName = muni ? ` - ${muni.name}` : '';
+                // Use municipality info from API response if available, otherwise try to find from allMunicipalities
+                let muniName = '';
+                if (admin.municipality_name) {
+                    muniName = ` - ${admin.municipality_name}`;
+                } else if (admin.municipality_id) {
+                    const muni = allMunicipalities.find(m => m.id === admin.municipality_id);
+                    muniName = muni ? ` - ${muni.name}` : '';
+                }
                 select.innerHTML += `<option value="${admin.id}">${admin.full_name}${muniName}</option>`;
             });
         }
@@ -619,16 +625,30 @@
             select.innerHTML = '<option value="">Seleccione un municipio...</option>';
             
             // Solo mostrar municipios que tienen admin asignado
-            const adminMuniIds = allUsers
-                .filter(u => u.role === 'admin_alcaldia' && u.municipality_id)
-                .map(u => u.municipality_id);
+            // Use municipality info from API response if available
+            const adminMunis = allUsers
+                .filter(u => u.role === 'admin_alcaldia' && (u.municipality_id || u.municipality_name))
+                .map(u => ({
+                    id: u.municipality_id,
+                    name: u.municipality_name,
+                    department: u.municipality_department
+                }));
             
-            const uniqueMuniIds = [...new Set(adminMuniIds)];
+            // Get unique municipalities
+            const uniqueMunis = [];
+            const seenIds = new Set();
+            adminMunis.forEach(m => {
+                if (m.id && !seenIds.has(m.id)) {
+                    seenIds.add(m.id);
+                    // Try to get full info from allMunicipalities, fallback to API data
+                    const fullMuni = allMunicipalities.find(am => am.id === m.id);
+                    uniqueMunis.push(fullMuni || m);
+                }
+            });
             
-            uniqueMuniIds.forEach(muniId => {
-                const muni = allMunicipalities.find(m => m.id === muniId);
-                if (muni) {
-                    select.innerHTML += `<option value="${muni.id}">${muni.name} - ${muni.department}</option>`;
+            uniqueMunis.forEach(muni => {
+                if (muni && muni.id) {
+                    select.innerHTML += `<option value="${muni.id}">${muni.name} - ${muni.department || ''}</option>`;
                 }
             });
         }
@@ -759,8 +779,14 @@
             }
             
             tbody.innerHTML = filteredUsers.map(user => {
-                const municipality = allMunicipalities.find(m => m.id === user.municipality_id);
-                const municipalityName = municipality ? `${municipality.name} (${municipality.department})` : '-';
+                // Use municipality info from API response if available, otherwise try to find from allMunicipalities
+                let municipalityName = '-';
+                if (user.municipality_name) {
+                    municipalityName = `${user.municipality_name} (${user.municipality_department || ''})`;
+                } else if (user.municipality_id) {
+                    const municipality = allMunicipalities.find(m => m.id === user.municipality_id);
+                    municipalityName = municipality ? `${municipality.name} (${municipality.department})` : '-';
+                }
                 
                 return `
                     <tr>

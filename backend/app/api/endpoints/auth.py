@@ -36,6 +36,8 @@ def get_current_user(
     """
     Dependency para obtener el usuario actual desde el token JWT.
     """
+    from sqlalchemy.orm import joinedload
+    
     payload = decode_token(token)
     user_id = payload.get("sub")
     
@@ -45,7 +47,10 @@ def get_current_user(
             detail="Token inválido"
         )
     
-    user = db.query(User).filter(User.id == int(user_id)).first()
+    # Eagerly load the municipality relationship to avoid lazy loading issues
+    user = db.query(User).options(
+        joinedload(User.municipality)
+    ).filter(User.id == int(user_id)).first()
     
     if not user or not user.is_active:
         raise HTTPException(

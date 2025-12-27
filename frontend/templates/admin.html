@@ -1403,11 +1403,24 @@
         
         // Configurar municipio fijo para ADMIN_ALCALDIA
         function setupFixedMunicipality(user) {
-            // Buscar el municipio del usuario en la lista
-            const municipality = allMunicipalities.find(m => m.id === user.municipality_id);
+            // Buscar el municipio del usuario - first check if it's in user.municipality (from API)
+            // Otherwise try to find from allMunicipalities
+            let municipality = user.municipality;
+            
+            if (!municipality && user.municipality_id) {
+                municipality = allMunicipalities.find(m => m.id === user.municipality_id);
+            }
             
             if (!municipality) {
-                console.error('Municipio del usuario no encontrado');
+                console.error('Municipio del usuario no encontrado. municipality_id:', user.municipality_id);
+                // Show error message to user
+                const alertContainer = document.getElementById('alert-container');
+                alertContainer.innerHTML = `
+                    <div class="alert alert-warning" style="margin-bottom: 1rem;">
+                        <strong>⚠️ Advertencia:</strong> No se pudo cargar la información del municipio asociado a su cuenta.
+                        Por favor, contacte al administrador del sistema.
+                    </div>
+                `;
                 return;
             }
             
