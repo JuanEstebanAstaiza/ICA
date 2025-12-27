@@ -4,14 +4,15 @@ Endpoints para administración de alcaldías y configuración marca blanca.
 import logging
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 import os
 import uuid
 
 from ...db.database import get_db
 from ...models.models import (
-    User, UserRole, Municipality, WhiteLabelConfig, TaxActivity, FormulaParameters
+    User, UserRole, Municipality, WhiteLabelConfig, TaxActivity, FormulaParameters,
+    ICADeclaration, AuditLog
 )
 from ...schemas.schemas import (
     MunicipalityCreate, MunicipalityResponse,
@@ -481,8 +482,6 @@ async def list_users(
     Lista usuarios según permisos del administrador.
     Incluye información del municipio asociado.
     """
-    from sqlalchemy.orm import joinedload
-    
     query = db.query(User).options(joinedload(User.municipality))
     
     if current_user.role == UserRole.ADMIN_ALCALDIA:
@@ -702,7 +701,6 @@ async def delete_user(
         )
     
     # Verificar si el usuario tiene declaraciones
-    from ...models.models import ICADeclaration
     declarations_count = db.query(ICADeclaration).filter(
         ICADeclaration.user_id == user_id
     ).count()
@@ -720,21 +718,18 @@ async def delete_user(
     
     try:
         # Limpiar referencias en audit_logs (set user_id to NULL)
-        from ...models.models import AuditLog
         db.query(AuditLog).filter(AuditLog.user_id == user_id).update(
             {AuditLog.user_id: None},
             synchronize_session='fetch'
         )
         
         # Limpiar referencias en white_label_configs (updated_by)
-        from ...models.models import WhiteLabelConfig
         db.query(WhiteLabelConfig).filter(WhiteLabelConfig.updated_by == user_id).update(
             {WhiteLabelConfig.updated_by: None},
             synchronize_session='fetch'
         )
         
         # Limpiar referencias en formula_parameters (updated_by)
-        from ...models.models import FormulaParameters
         db.query(FormulaParameters).filter(FormulaParameters.updated_by == user_id).update(
             {FormulaParameters.updated_by: None},
             synchronize_session='fetch'

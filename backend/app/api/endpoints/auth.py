@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from ...db.database import get_db
 from ...core.security import (
@@ -36,8 +36,6 @@ def get_current_user(
     """
     Dependency para obtener el usuario actual desde el token JWT.
     """
-    from sqlalchemy.orm import joinedload
-    
     payload = decode_token(token)
     user_id = payload.get("sub")
     
