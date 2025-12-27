@@ -535,6 +535,7 @@ async def sign_declaration(
     # Eliminar firma anterior si existe
     if declaration.signature_info:
         db.delete(declaration.signature_info)
+        db.flush()  # Ensure the deletion is processed before adding new record
     
     # Crear nueva información de firma
     signature_info = SignatureInfo(
@@ -577,7 +578,15 @@ async def sign_declaration(
     )
     db.add(audit_log)
     
-    db.commit()
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error al firmar declaración {declaration_id}: {type(e).__name__}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error al guardar la firma"
+        )
     
     return {
         "message": "Declaración firmada correctamente",

@@ -727,7 +727,10 @@ class SignatureData(BaseModel):
     
     @validator('accountant_signature_method')
     def validate_accountant_signature_method(cls, v):
-        if v is not None and v != '' and v not in ('manuscrita', 'clave'):
+        # Convert empty string to None
+        if v == '':
+            return None
+        if v is not None and v not in ('manuscrita', 'clave'):
             raise ValueError('accountant_signature_method must be "manuscrita" or "clave"')
         return v
 
