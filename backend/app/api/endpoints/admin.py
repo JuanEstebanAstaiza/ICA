@@ -715,6 +715,8 @@ async def delete_user(
     # Guardar info para el mensaje
     user_email = user.email
     user_name = user.full_name
+    user_municipality_id = user.municipality_id
+    user_role = user.role
     
     try:
         # Limpiar referencias en audit_logs (set user_id to NULL)
@@ -735,14 +737,36 @@ async def delete_user(
             synchronize_session='fetch'
         )
         
+        # Si es un admin_alcaldia con municipio asignado, limpiar el municipality_id
+        # de todos los usuarios declarantes asociados a ese municipio
+        # Esto evita problemas con la generación de PDF cuando se elimina el admin
+        # y se crea uno nuevo con un municipio diferente
+        declarantes_updated = 0
+        if user_role == UserRole.ADMIN_ALCALDIA and user_municipality_id is not None:
+            declarantes_updated = db.query(User).filter(
+                User.municipality_id == user_municipality_id,
+                User.role == UserRole.DECLARANTE
+            ).update(
+                {User.municipality_id: None},
+                synchronize_session=False
+            )
+            logger.info(f"Se limpiaron {declarantes_updated} declarantes del municipio {user_municipality_id}")
+        
         # Eliminar el usuario
         db.delete(user)
         db.commit()
         
-        return {
+        response_data = {
             "message": f"Usuario {user_name} ({user_email}) eliminado correctamente",
             "deleted_user_id": user_id
         }
+        
+        # Si se limpiaron declarantes, incluir esa información
+        if declarantes_updated > 0:
+            response_data["declarantes_updated"] = declarantes_updated
+            response_data["note"] = f"Se limpiaron {declarantes_updated} declarantes asociados al municipio del administrador eliminado"
+        
+        return response_data
         
     except Exception as e:
         db.rollback()
