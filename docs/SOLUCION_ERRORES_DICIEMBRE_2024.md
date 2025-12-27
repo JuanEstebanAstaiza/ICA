@@ -151,6 +151,59 @@ if (!municipality && user.municipality_id) {
 
 ---
 
+## Modelo Single-Tenant (Un solo Municipio)
+
+Esta plataforma opera bajo un modelo **single-tenant** (un solo inquilino), lo cual significa:
+
+### Características del Modelo
+
+1. **El municipio de la plataforma depende 100% del administrador de alcaldía**:
+   - La función `get_platform_municipality()` determina el municipio de la plataforma
+   - Primero busca un municipio con configuración de marca blanca activa
+   - Si no existe, usa el municipio del primer administrador de alcaldía encontrado
+
+2. **Todos los usuarios registrados heredan el municipio de la plataforma**:
+   - Cuando un usuario se registra (persona natural o jurídica), automáticamente se le asigna el municipio de la plataforma
+   - No hay opción para que los usuarios elijan otro municipio durante el registro
+
+3. **Las declaraciones están vinculadas al municipio del usuario**:
+   - Cada declaración ICA se crea bajo el municipio del usuario que la genera
+   - Esto garantiza que todas las declaraciones pertenezcan al municipio configurado
+
+### Código Clave
+
+```python
+# backend/app/api/endpoints/auth.py
+
+def get_platform_municipality(db: Session) -> Municipality:
+    """
+    Obtiene el municipio configurado para la plataforma.
+    Como la plataforma no soporta multitenancy, debe haber solo un municipio activo
+    con configuración de marca blanca.
+    """
+    # Buscar el municipio con configuración activa
+    municipality = db.query(Municipality).join(
+        WhiteLabelConfig, Municipality.config_id == WhiteLabelConfig.id
+    ).filter(Municipality.is_active == True).first()
+    
+    if not municipality:
+        # Si no hay ninguno con configuración, buscar cualquier admin de alcaldía
+        # y usar su municipio
+        admin = db.query(User).filter(
+            User.role == UserRole.ADMIN_ALCALDIA,
+            User.municipality_id.isnot(None)
+        ).first()
+        
+        if admin:
+            municipality = db.query(Municipality).filter(
+                Municipality.id == admin.municipality_id
+            ).first()
+    
+    return municipality
+```
+
+---
+
 ## Flujo Correcto para Cambiar Municipio de Plataforma
 
 Si necesita cambiar el municipio asociado a la plataforma, siga estos pasos:
