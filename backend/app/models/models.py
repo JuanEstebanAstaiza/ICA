@@ -136,7 +136,7 @@ class Municipality(Base):
     
     # Relaciones
     users = relationship("User", back_populates="municipality")
-    config = relationship("WhiteLabelConfig", back_populates="municipality")
+    config = relationship("WhiteLabelConfig", back_populates="municipality", uselist=False)
     declarations = relationship("ICADeclaration", back_populates="municipality")
     activities = relationship("TaxActivity", back_populates="municipality")
     formula_parameters = relationship("FormulaParameters", back_populates="municipality", uselist=False)
