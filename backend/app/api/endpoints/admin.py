@@ -1,6 +1,7 @@
 """
 Endpoints para administración de alcaldías y configuración marca blanca.
 """
+import logging
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
@@ -21,6 +22,8 @@ from ...schemas.schemas import (
 from ...core.config import settings
 from ...core.security import get_password_hash
 from .auth import get_current_active_user, require_role
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/admin", tags=["Administración"])
 
@@ -176,14 +179,23 @@ async def get_white_label_config(
     
     # Si no tiene configuración, crearla automáticamente
     if not municipality.config:
-        config = WhiteLabelConfig()
-        db.add(config)
-        db.commit()
-        db.refresh(config)
-        
-        municipality.config_id = config.id
-        db.commit()
-        db.refresh(municipality)
+        try:
+            config = WhiteLabelConfig()
+            db.add(config)
+            db.commit()
+            db.refresh(config)
+            
+            municipality.config_id = config.id
+            db.commit()
+            # Return the config object directly to avoid relationship caching issues
+            return config
+        except Exception as e:
+            db.rollback()
+            logger.error(f"Error al crear configuración marca blanca para municipio {municipality_id}: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Error al crear la configuración: {str(e)}"
+            )
     
     return municipality.config
 
@@ -237,8 +249,16 @@ async def update_white_label_config(
     
     config.updated_by = current_user.id
     
-    db.commit()
-    db.refresh(config)
+    try:
+        db.commit()
+        db.refresh(config)
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error al actualizar configuración marca blanca para municipio {municipality_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al guardar la configuración: {str(e)}"
+        )
     
     return config
 
