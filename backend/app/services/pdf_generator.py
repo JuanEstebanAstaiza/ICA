@@ -680,7 +680,7 @@ class PDFGenerator:
         return elements
     
     def _build_signature_section(self, data: dict) -> list:
-        """Construye Sección F - Firma del Declarante y Contador/Revisor Fiscal - Versión compacta."""
+        """Construye Sección F - Firma del Declarante y Contador/Revisor Fiscal con imágenes de firma."""
         elements = []
         
         # Datos de firma - buscar en signature_info primero, luego en data directamente
@@ -700,35 +700,69 @@ class PDFGenerator:
         accountant_name = signature_info.get('accountant_name')
         requires_fiscal_reviewer = signature_info.get('requires_fiscal_reviewer', False)
         
-        # Construir datos de firma en formato ultra compacto (una sola fila)
+        # Construir datos de firma en formato con espacio para imágenes
         declarant_name = signature_info.get('declarant_name', '________')
         declarant_doc = signature_info.get('declarant_document', '________')
         
-        if accountant_name:
-            # Si hay contador/revisor, mostrar ambas firmas en formato compacto
-            title = "REV.FISCAL" if requires_fiscal_reviewer else "CONTADOR"
-            data_table = [
-                ['DECLARANTE:', declarant_name, 'Doc:', declarant_doc, title + ':', accountant_name, 'T.P.:', signature_info.get('accountant_professional_card', '________')],
-            ]
-            table = Table(data_table, colWidths=[0.8*inch, 1.3*inch, 0.4*inch, 0.9*inch, 0.7*inch, 1.3*inch, 0.4*inch, 0.9*inch])
-        else:
-            # Solo firma del declarante en una línea
-            data_table = [
-                ['FIRMA DECLARANTE:', declarant_name, 'Doc:', declarant_doc, 'Fecha:', declaration_date or '________'],
-            ]
-            table = Table(data_table, colWidths=[1.1*inch, 1.8*inch, 0.4*inch, 1.2*inch, 0.5*inch, 1.0*inch])
+        # Obtener imágenes de firma (Base64)
+        declarant_signature_img = self._get_signature_image(signature_info.get('declarant_signature_image'))
+        accountant_signature_img = self._get_signature_image(signature_info.get('accountant_signature_image')) if accountant_name else None
         
-        table.setStyle(TableStyle([
-            ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
-            ('FONTNAME', (2, 0), (2, 0), 'Helvetica-Bold'),
-            ('FONTNAME', (4, 0), (4, 0), 'Helvetica-Bold'),
-            ('FONTNAME', (6, 0), (6, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 5),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.lightgrey),
-            ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.95, 0.95, 0.95)),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
-            ('TOPPADDING', (0, 0), (-1, -1), 1),
-        ]))
+        if accountant_name:
+            # Si hay contador/revisor, mostrar ambas firmas lado a lado con imágenes
+            title = "REV.FISCAL" if requires_fiscal_reviewer else "CONTADOR"
+            
+            # Fila de datos
+            data_row = ['DECLARANTE:', declarant_name, 'Doc:', declarant_doc, title + ':', accountant_name, 'T.P.:', signature_info.get('accountant_professional_card', '________')]
+            
+            # Fila de firmas (imágenes)
+            signature_row = ['Firma:', declarant_signature_img or '(Sin firma)', '', '', 'Firma:', accountant_signature_img or '(Sin firma)', '', '']
+            
+            data_table = [data_row, signature_row]
+            table = Table(data_table, colWidths=[0.8*inch, 1.3*inch, 0.4*inch, 0.9*inch, 0.7*inch, 1.3*inch, 0.4*inch, 0.9*inch])
+            
+            table.setStyle(TableStyle([
+                # Encabezados en negrita
+                ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
+                ('FONTNAME', (2, 0), (2, 0), 'Helvetica-Bold'),
+                ('FONTNAME', (4, 0), (4, 0), 'Helvetica-Bold'),
+                ('FONTNAME', (6, 0), (6, 0), 'Helvetica-Bold'),
+                ('FONTNAME', (0, 1), (0, 1), 'Helvetica-Bold'),
+                ('FONTNAME', (4, 1), (4, 1), 'Helvetica-Bold'),
+                # Tamaños de fuente
+                ('FONTSIZE', (0, 0), (-1, 0), 5),
+                ('FONTSIZE', (0, 1), (0, 1), 5),
+                ('FONTSIZE', (4, 1), (4, 1), 5),
+                # Bordes y fondo
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.lightgrey),
+                ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.95, 0.95, 0.95)),
+                # Padding
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
+                ('TOPPADDING', (0, 0), (-1, -1), 1),
+                # Alineación vertical para imágenes
+                ('VALIGN', (0, 1), (-1, 1), 'MIDDLE'),
+            ]))
+        else:
+            # Solo firma del declarante con imagen
+            data_row = ['FIRMA DECLARANTE:', declarant_name, 'Doc:', declarant_doc, 'Fecha:', declaration_date or '________']
+            signature_row = ['Firma:', declarant_signature_img or '(Sin firma)', '', '', '', '']
+            
+            data_table = [data_row, signature_row]
+            table = Table(data_table, colWidths=[1.1*inch, 1.8*inch, 0.4*inch, 1.2*inch, 0.5*inch, 1.0*inch])
+            
+            table.setStyle(TableStyle([
+                ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
+                ('FONTNAME', (2, 0), (2, 0), 'Helvetica-Bold'),
+                ('FONTNAME', (4, 0), (4, 0), 'Helvetica-Bold'),
+                ('FONTNAME', (0, 1), (0, 1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 5),
+                ('FONTSIZE', (0, 1), (0, 1), 5),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.lightgrey),
+                ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.95, 0.95, 0.95)),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
+                ('TOPPADDING', (0, 0), (-1, -1), 1),
+                ('VALIGN', (0, 1), (-1, 1), 'MIDDLE'),
+            ]))
         
         elements.append(table)
         
@@ -744,6 +778,40 @@ class PDFGenerator:
             elements.append(Paragraph(integrity_text, self.styles['Footer']))
         
         return elements
+    
+    def _get_signature_image(self, base64_data: str) -> Optional[Image]:
+        """
+        Convierte una imagen Base64 a un objeto Image de ReportLab.
+        
+        Args:
+            base64_data: String con la imagen en formato Base64 (data:image/png;base64,...)
+            
+        Returns:
+            Objeto Image de ReportLab o None si no se puede procesar
+        """
+        if not base64_data:
+            return None
+        
+        try:
+            # Remover el prefijo "data:image/png;base64," si existe
+            if ',' in base64_data:
+                base64_data = base64_data.split(',', 1)[1]
+            
+            # Decodificar Base64
+            image_data = base64.b64decode(base64_data)
+            
+            # Crear BytesIO para ReportLab
+            image_buffer = BytesIO(image_data)
+            
+            # Crear objeto Image con dimensiones apropiadas para la firma
+            img = Image(image_buffer, width=1.5*inch, height=0.6*inch)
+            
+            return img
+        except Exception as e:
+            # Si hay error al procesar la imagen, retornar None
+            # El PDF mostrará "(Sin firma)" en su lugar
+            print(f"Error al procesar imagen de firma: {e}")
+            return None
     
     def _build_footer(self) -> list:
         """Construye el pie de página."""
