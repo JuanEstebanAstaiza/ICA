@@ -462,7 +462,7 @@ class PDFGenerator:
         
         # Título del anexo
         elements.append(Paragraph('ANEXO – Actividades Gravadas Adicionales', self.styles['FormTitle']))
-        elements.append(Spacer(1, 0.2*inch))
+        elements.append(Spacer(1, 0.02*inch))
         
         # Subtítulo con información
         elements.append(Paragraph(
@@ -471,9 +471,9 @@ class PDFGenerator:
         ))
         
         def fmt(value):
-            return f"${value:,.2f}" if value else "$0.00"
+            return f"${value:,.0f}" if value else "$0"
         
-        data = [['#', 'Código CIIU', 'Descripción', 'Ingresos', 'Tarifa (‰)', 'Impuesto']]
+        data = [['#', 'Código', 'Descripción', 'Ingresos', 'Tarifa‰', 'Impuesto']]
         
         subtotal_tax = 0
         for i, act in enumerate(additional_activities, start=start_index + 1):
@@ -482,7 +482,7 @@ class PDFGenerator:
             data.append([
                 str(i),
                 act.get('ciiu_code', ''),
-                act.get('description', '')[:35],  # Truncar descripción
+                act.get('description', '')[:30],  # Truncar descripción
                 fmt(act.get('income', 0)),
                 f"{act.get('tax_rate', 0):.2f}",
                 fmt(tax)
@@ -491,24 +491,24 @@ class PDFGenerator:
         # Fila de subtotal de actividades adicionales
         data.append(['', '', 'SUBTOTAL ACTIVIDADES ADICIONALES', '', '', fmt(subtotal_tax)])
         
-        table = Table(data, colWidths=[0.4*inch, 0.9*inch, 2.3*inch, 1.2*inch, 0.9*inch, 1.1*inch])
+        table = Table(data, colWidths=[0.4*inch, 0.7*inch, 2.8*inch, 1.2*inch, 0.8*inch, 1.2*inch])
         table.setStyle(TableStyle([
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.2, 0.2, 0.4)),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('FONTSIZE', (0, 0), (-1, -1), 6),
             ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
             ('ALIGN', (0, 0), (0, -1), 'CENTER'),
             ('ALIGN', (3, 0), (-1, -1), 'RIGHT'),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
+            ('TOPPADDING', (0, 0), (-1, -1), 1),
             # Fila de subtotal
             ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
             ('BACKGROUND', (0, -1), (-1, -1), colors.Color(0.9, 0.95, 0.9)),
         ]))
         
         elements.append(table)
-        elements.append(Spacer(1, 0.3*inch))
+        elements.append(Spacer(1, 0.02*inch))
         
         # Nota informativa
         elements.append(Paragraph(
