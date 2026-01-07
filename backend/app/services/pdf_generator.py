@@ -49,39 +49,39 @@ class PDFGenerator:
         self.styles.add(ParagraphStyle(
             name='FormTitle',
             parent=self.styles['Heading1'],
-            fontSize=16,
+            fontSize=10,
             textColor=colors.Color(r/255, g/255, b/255),
             alignment=TA_CENTER,
-            spaceAfter=20
+            spaceAfter=4
         ))
         
         self.styles.add(ParagraphStyle(
             name='SectionTitle',
             parent=self.styles['Heading2'],
-            fontSize=12,
+            fontSize=8,
             textColor=colors.Color(r/255, g/255, b/255),
-            spaceBefore=15,
-            spaceAfter=10
+            spaceBefore=2,
+            spaceAfter=2
         ))
         
         self.styles.add(ParagraphStyle(
             name='FieldLabel',
             parent=self.styles['Normal'],
-            fontSize=9,
+            fontSize=6,
             textColor=colors.grey
         ))
         
         self.styles.add(ParagraphStyle(
             name='FieldValue',
             parent=self.styles['Normal'],
-            fontSize=10,
+            fontSize=7,
             fontName='Helvetica-Bold'
         ))
         
         self.styles.add(ParagraphStyle(
             name='Footer',
             parent=self.styles['Normal'],
-            fontSize=8,
+            fontSize=5,
             textColor=colors.grey,
             alignment=TA_CENTER
         ))
@@ -120,13 +120,14 @@ class PDFGenerator:
             output_path = os.path.join(base_path, f"ICA_{form_number}_{timestamp}.pdf")
         
         # Crear documento con marca de agua
+        # Usar márgenes reducidos para que el formulario quepa en una página
         doc = SimpleDocTemplate(
             output_path,
             pagesize=letter,
-            rightMargin=1*cm,
-            leftMargin=1*cm,
-            topMargin=1.5*cm,
-            bottomMargin=1.5*cm
+            rightMargin=0.5*cm,
+            leftMargin=0.5*cm,
+            topMargin=0.5*cm,
+            bottomMargin=0.5*cm
         )
         
         # Configurar marca de agua
@@ -160,7 +161,7 @@ class PDFGenerator:
             'Formulario Único Nacional de Declaración y Pago ICA'
         )
         elements.append(Paragraph(form_title, self.styles['FormTitle']))
-        elements.append(Spacer(1, 0.3*inch))
+        elements.append(Spacer(1, 0.02*inch))
         
         # Metadatos
         elements.extend(self._build_metadata_section(declaration_data))
@@ -171,8 +172,10 @@ class PDFGenerator:
         # Sección B - Base Gravable
         elements.extend(self._build_income_section(declaration_data.get('income_base', {})))
         
-        # Sección C - Actividades
-        elements.extend(self._build_activities_section(declaration_data.get('activities', [])))
+        # Sección C - Actividades (máximo 3 en primera página)
+        activities = declaration_data.get('activities', [])
+        max_activities_first_page = 3
+        elements.extend(self._build_activities_section(activities, max_activities=max_activities_first_page))
         
         # Sección D - Liquidación
         elements.extend(self._build_settlement_section(declaration_data.get('settlement', {})))
@@ -189,6 +192,11 @@ class PDFGenerator:
         # Footer con notas legales
         elements.extend(self._build_footer())
         
+        # Si hay más de 3 actividades, agregar página de anexo
+        if len(activities) > max_activities_first_page:
+            elements.append(PageBreak())
+            elements.extend(self._build_activities_annex_section(activities, start_index=max_activities_first_page))
+        
         # Generar PDF con marca de agua
         if watermark:
             doc.build(elements, onFirstPage=add_watermark, onLaterPages=add_watermark)
@@ -204,7 +212,7 @@ class PDFGenerator:
         # Logo si existe
         logo_path = self.config.get('logo_path')
         if logo_path and os.path.exists(logo_path):
-            logo = Image(logo_path, width=2*inch, height=1*inch)
+            logo = Image(logo_path, width=1.5*inch, height=0.6*inch)
             elements.append(logo)
         
         # Texto de encabezado
@@ -218,9 +226,9 @@ class PDFGenerator:
             muni_text = f"<b>{municipality.get('name', '')}</b> - {municipality.get('department', '')}"
             elements.append(Paragraph(muni_text, self.styles['Normal']))
         
-        elements.append(Spacer(1, 0.2*inch))
-        elements.append(HRFlowable(width="100%", thickness=2, color=colors.grey))
-        elements.append(Spacer(1, 0.2*inch))
+        elements.append(Spacer(1, 0.02*inch))
+        elements.append(HRFlowable(width="100%", thickness=1, color=colors.grey))
+        elements.append(Spacer(1, 0.02*inch))
         
         return elements
     
@@ -239,24 +247,24 @@ class PDFGenerator:
             except:
                 pass
         
+        # Layout compacto en 2 columnas
         metadata = [
-            ['Año Gravable:', str(data.get('tax_year', ''))],
-            ['Tipo de Declaración:', data.get('declaration_type', '').replace('_', ' ').title()],
-            ['Número de Formulario:', data.get('form_number', '')],
-            ['Número de Radicado:', data.get('filing_number', 'Pendiente')],
-            ['Fecha de Presentación:', filing_date or 'No presentada'],
-            ['Estado:', data.get('status', '').title()],
+            ['Año Gravable:', str(data.get('tax_year', '')), 'Tipo:', data.get('declaration_type', '').replace('_', ' ').title()],
+            ['No. Formulario:', data.get('form_number', ''), 'No. Radicado:', data.get('filing_number', 'Pendiente')],
+            ['Fecha:', filing_date or 'No presentada', 'Estado:', data.get('status', '').title()],
         ]
         
-        table = Table(metadata, colWidths=[2.5*inch, 4*inch])
+        table = Table(metadata, colWidths=[1.3*inch, 2.2*inch, 1.3*inch, 2.2*inch])
         table.setStyle(TableStyle([
             ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 10),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('FONTNAME', (2, 0), (2, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 7),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
+            ('TOPPADDING', (0, 0), (-1, -1), 1),
         ]))
         
         elements.append(table)
-        elements.append(Spacer(1, 0.3*inch))
+        elements.append(Spacer(1, 0.02*inch))
         
         return elements
     
@@ -267,31 +275,35 @@ class PDFGenerator:
         elements.append(Paragraph('Sección A – Información del Contribuyente', self.styles['SectionTitle']))
         
         data = [
-            ['Tipo de Documento:', taxpayer.get('document_type', ''),
-             'Número:', taxpayer.get('document_number', '')],
-            ['DV:', taxpayer.get('verification_digit', ''),
-             'Razón Social:', taxpayer.get('legal_name', '')],
+            ['Tipo Doc:', taxpayer.get('document_type', ''),
+             'Número:', taxpayer.get('document_number', ''),
+             'DV:', taxpayer.get('verification_digit', '')],
+            ['Razón Social:', taxpayer.get('legal_name', ''), '', '', '', ''],
             ['Dirección:', taxpayer.get('address', ''),
-             'Municipio:', taxpayer.get('municipality', '')],
-            ['Departamento:', taxpayer.get('department', ''),
-             'Teléfono:', taxpayer.get('phone', '')],
-            ['Correo Electrónico:', taxpayer.get('email', ''), '', ''],
+             'Municipio:', taxpayer.get('municipality', ''), '', ''],
+            ['Depto:', taxpayer.get('department', ''),
+             'Tel:', taxpayer.get('phone', ''),
+             'Email:', taxpayer.get('email', '')],
         ]
         
-        table = Table(data, colWidths=[1.5*inch, 2*inch, 1.5*inch, 2*inch])
+        table = Table(data, colWidths=[0.9*inch, 1.8*inch, 0.9*inch, 1.5*inch, 0.6*inch, 1.3*inch])
         table.setStyle(TableStyle([
             ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
             ('FONTNAME', (2, 0), (2, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('FONTNAME', (4, 0), (4, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 7),
             ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
             ('BACKGROUND', (0, 0), (0, -1), colors.Color(0.95, 0.95, 0.95)),
             ('BACKGROUND', (2, 0), (2, -1), colors.Color(0.95, 0.95, 0.95)),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BACKGROUND', (4, 0), (4, -1), colors.Color(0.95, 0.95, 0.95)),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
+            ('TOPPADDING', (0, 0), (-1, -1), 1),
+            # Span para razón social
+            ('SPAN', (1, 1), (5, 1)),
         ]))
         
         elements.append(table)
-        elements.append(Spacer(1, 0.3*inch))
+        elements.append(Spacer(1, 0.02*inch))
         
         return elements
     
@@ -319,28 +331,28 @@ class PDFGenerator:
             r15 = r10 - (r11 + r12 + r13 + r14)
         
         data = [
-            ['Renglón', 'Concepto', 'Valor'],
-            ['8', 'Total ingresos ordinarios y extraordinarios del período en todo el país', fmt(r8)],
+            ['R', 'Concepto', 'Valor'],
+            ['8', 'Total ingresos ordinarios y extraordinarios del período', fmt(r8)],
             ['9', 'Menos ingresos fuera del municipio', fmt(r9)],
             ['10', 'TOTAL INGRESOS EN EL MUNICIPIO (R8 - R9)', fmt(r10)],
-            ['11', 'Menos ingresos por devoluciones, rebajas y descuentos', fmt(r11)],
-            ['12', 'Menos ingresos por exportaciones y venta de activos fijos', fmt(r12)],
-            ['13', 'Menos ingresos por actividades excluidas o no sujetas', fmt(r13)],
-            ['14', 'Menos ingresos por actividades exentas en el municipio', fmt(r14)],
-            ['15', 'TOTAL INGRESOS GRAVABLES (R10 - R11 - R12 - R13 - R14)', fmt(r15)],
+            ['11', 'Menos devoluciones, rebajas y descuentos', fmt(r11)],
+            ['12', 'Menos exportaciones y venta activos fijos', fmt(r12)],
+            ['13', 'Menos actividades excluidas o no sujetas', fmt(r13)],
+            ['14', 'Menos actividades exentas en el municipio', fmt(r14)],
+            ['15', 'TOTAL INGRESOS GRAVABLES', fmt(r15)],
         ]
         
-        table = Table(data, colWidths=[0.8*inch, 4.2*inch, 1.8*inch])
+        table = Table(data, colWidths=[0.4*inch, 4.8*inch, 1.5*inch])
         table.setStyle(TableStyle([
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.2, 0.2, 0.4)),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('FONTSIZE', (0, 0), (-1, -1), 8),
+            ('FONTSIZE', (0, 0), (-1, -1), 6),
             ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
             ('ALIGN', (0, 0), (0, -1), 'CENTER'),
             ('ALIGN', (2, 0), (2, -1), 'RIGHT'),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-            ('TOPPADDING', (0, 0), (-1, -1), 5),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
+            ('TOPPADDING', (0, 0), (-1, -1), 1),
             # Resaltar filas calculadas
             ('BACKGROUND', (0, 3), (-1, 3), colors.Color(0.9, 0.95, 0.9)),
             ('BACKGROUND', (0, 8), (-1, 8), colors.Color(0.9, 0.95, 0.9)),
@@ -349,53 +361,161 @@ class PDFGenerator:
         ]))
         
         elements.append(table)
-        elements.append(Spacer(1, 0.3*inch))
+        elements.append(Spacer(1, 0.02*inch))
         
         return elements
     
-    def _build_activities_section(self, activities: list) -> list:
-        """Construye Sección C - Actividades Gravadas."""
+    def _build_activities_section(self, activities: list, max_activities: int = 3) -> list:
+        """
+        Construye Sección C - Actividades Gravadas.
+        
+        Args:
+            activities: Lista de actividades gravadas
+            max_activities: Máximo número de actividades a mostrar en la primera página (default: 3)
+        
+        Returns:
+            Lista de elementos para la sección de actividades
+        """
         elements = []
         
         elements.append(Paragraph('Sección C – Actividades Gravadas', self.styles['SectionTitle']))
         
         def fmt(value):
-            return f"${value:,.2f}" if value else "$0.00"
+            return f"${value:,.0f}" if value else "$0"
         
-        data = [['Código CIIU', 'Descripción', 'Ingresos', 'Tarifa (‰)', 'Impuesto']]
+        data = [['Código', 'Descripción', 'Ingresos', 'Tarifa‰', 'Impuesto']]
         
+        # Calcular el total de impuestos de TODAS las actividades
         total_tax = 0
         for act in activities:
             tax = act.get('income', 0) * act.get('tax_rate', 0) / 1000
             total_tax += tax
+        
+        # Solo mostrar las primeras max_activities en esta sección
+        activities_to_show = activities[:max_activities]
+        
+        for act in activities_to_show:
+            tax = act.get('income', 0) * act.get('tax_rate', 0) / 1000
             data.append([
                 act.get('ciiu_code', ''),
-                act.get('description', '')[:40],  # Truncar descripción
+                act.get('description', '')[:30],  # Truncar descripción
                 fmt(act.get('income', 0)),
                 f"{act.get('tax_rate', 0):.2f}",
                 fmt(tax)
             ])
         
-        # Fila de total
+        # Si hay más actividades, indicar que continúan en anexo
+        if len(activities) > max_activities:
+            data.append(['', f'... Ver {len(activities) - max_activities} actividad(es) adicional(es) en Anexo', '', '', ''])
+        
+        # Fila de total (siempre muestra el total de TODAS las actividades)
         data.append(['', 'TOTAL IMPUESTO POR ACTIVIDADES', '', '', fmt(total_tax)])
         
-        table = Table(data, colWidths=[1*inch, 2.5*inch, 1.3*inch, 1*inch, 1.2*inch])
+        table = Table(data, colWidths=[0.7*inch, 2.8*inch, 1.2*inch, 0.8*inch, 1.2*inch])
+        
+        # Configurar estilo base
+        style_commands = [
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.2, 0.2, 0.4)),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTSIZE', (0, 0), (-1, -1), 6),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('ALIGN', (2, 0), (-1, -1), 'RIGHT'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
+            ('TOPPADDING', (0, 0), (-1, -1), 1),
+            # Fila de total
+            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+            ('BACKGROUND', (0, -1), (-1, -1), colors.Color(0.9, 0.95, 0.9)),
+        ]
+        
+        # Si hay indicador de "Ver anexo", estilizarlo
+        if len(activities) > max_activities:
+            annex_row = len(activities_to_show) + 1  # +1 por header
+            style_commands.append(('FONTNAME', (1, annex_row), (1, annex_row), 'Helvetica-Oblique'))
+            style_commands.append(('TEXTCOLOR', (1, annex_row), (1, annex_row), colors.Color(0.3, 0.3, 0.6)))
+        
+        table.setStyle(TableStyle(style_commands))
+        
+        elements.append(table)
+        elements.append(Spacer(1, 0.02*inch))
+        
+        return elements
+    
+    def _build_activities_annex_section(self, activities: list, start_index: int = 3) -> list:
+        """
+        Construye la página de Anexo con actividades adicionales.
+        
+        Args:
+            activities: Lista completa de actividades gravadas
+            start_index: Índice desde donde empezar a mostrar actividades (default: 3)
+        
+        Returns:
+            Lista de elementos para la página de anexo
+        """
+        elements = []
+        
+        # Solo las actividades adicionales (desde start_index en adelante)
+        additional_activities = activities[start_index:]
+        
+        if not additional_activities:
+            return elements
+        
+        # Título del anexo
+        elements.append(Paragraph('ANEXO – Actividades Gravadas Adicionales', self.styles['FormTitle']))
+        elements.append(Spacer(1, 0.02*inch))
+        
+        # Subtítulo con información
+        elements.append(Paragraph(
+            f'Continuación de Sección C – Actividades gravadas (actividades {start_index + 1} a {len(activities)})',
+            self.styles['SectionTitle']
+        ))
+        
+        def fmt(value):
+            return f"${value:,.0f}" if value else "$0"
+        
+        data = [['#', 'Código', 'Descripción', 'Ingresos', 'Tarifa‰', 'Impuesto']]
+        
+        subtotal_tax = 0
+        for i, act in enumerate(additional_activities, start=start_index + 1):
+            tax = act.get('income', 0) * act.get('tax_rate', 0) / 1000
+            subtotal_tax += tax
+            data.append([
+                str(i),
+                act.get('ciiu_code', ''),
+                act.get('description', '')[:30],  # Truncar descripción
+                fmt(act.get('income', 0)),
+                f"{act.get('tax_rate', 0):.2f}",
+                fmt(tax)
+            ])
+        
+        # Fila de subtotal de actividades adicionales
+        data.append(['', '', 'SUBTOTAL ACTIVIDADES ADICIONALES', '', '', fmt(subtotal_tax)])
+        
+        table = Table(data, colWidths=[0.4*inch, 0.7*inch, 2.8*inch, 1.2*inch, 0.8*inch, 1.2*inch])
         table.setStyle(TableStyle([
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.2, 0.2, 0.4)),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('FONTSIZE', (0, 0), (-1, -1), 6),
             ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-            ('ALIGN', (2, 0), (-1, -1), 'RIGHT'),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-            ('TOPPADDING', (0, 0), (-1, -1), 6),
-            # Fila de total
+            ('ALIGN', (0, 0), (0, -1), 'CENTER'),
+            ('ALIGN', (3, 0), (-1, -1), 'RIGHT'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
+            ('TOPPADDING', (0, 0), (-1, -1), 1),
+            # Fila de subtotal
             ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
             ('BACKGROUND', (0, -1), (-1, -1), colors.Color(0.9, 0.95, 0.9)),
         ]))
         
         elements.append(table)
-        elements.append(Spacer(1, 0.3*inch))
+        elements.append(Spacer(1, 0.02*inch))
+        
+        # Nota informativa
+        elements.append(Paragraph(
+            '<i>Nota: Este anexo forma parte integral del formulario de declaración ICA. '
+            'El total de impuestos por actividades se refleja en la primera página del formulario.</i>',
+            self.styles['Footer']
+        ))
         
         return elements
     
@@ -426,47 +546,43 @@ class PDFGenerator:
         r33 = settlement.get('row_33', 0) or 0
         r34 = settlement.get('row_34', 0) or 0
         
+        # Layout en 2 columnas para ahorrar espacio vertical
         data = [
-            ['Renglón', 'Concepto', 'Valor'],
-            ['20', 'Total impuesto de industria y comercio (R17 + R19)', fmt(r20)],
-            ['21', 'Impuesto de avisos y tableros', fmt(r21)],
-            ['22', 'Pago unidades comerciales adicionales sector financiero', fmt(r22)],
-            ['23', 'Sobretasa bomberil', fmt(r23)],
-            ['24', 'Sobretasa de seguridad', fmt(r24)],
-            ['25', 'TOTAL IMPUESTO A CARGO (R20+R21+R22+R23+R24)', fmt(r25)],
-            ['26', 'Menos exenciones o exoneraciones', fmt(r26)],
-            ['27', 'Menos retenciones practicadas', fmt(r27)],
-            ['28', 'Menos autorretenciones', fmt(r28)],
-            ['29', 'Menos anticipo liquidado año anterior', fmt(r29)],
-            ['30', 'Anticipo del año siguiente', fmt(r30)],
-            ['31', 'Sanciones', fmt(r31)],
-            ['32', 'Menos saldo a favor período anterior', fmt(r32)],
-            ['33', 'TOTAL SALDO A CARGO', fmt(r33)],
-            ['34', 'TOTAL SALDO A FAVOR', fmt(r34)],
+            ['R', 'Concepto', 'Valor', 'R', 'Concepto', 'Valor'],
+            ['20', 'Total impuesto ICA', fmt(r20), '27', 'Menos retenciones', fmt(r27)],
+            ['21', 'Avisos y tableros', fmt(r21), '28', 'Menos autorretenciones', fmt(r28)],
+            ['22', 'Unidades comerciales', fmt(r22), '29', 'Menos anticipo año ant.', fmt(r29)],
+            ['23', 'Sobretasa bomberil', fmt(r23), '30', 'Anticipo año siguiente', fmt(r30)],
+            ['24', 'Sobretasa seguridad', fmt(r24), '31', 'Sanciones', fmt(r31)],
+            ['25', 'TOTAL A CARGO', fmt(r25), '32', 'Menos saldo favor ant.', fmt(r32)],
+            ['26', 'Menos exenciones', fmt(r26), '33', 'SALDO A CARGO', fmt(r33)],
+            ['', '', '', '34', 'SALDO A FAVOR', fmt(r34)],
         ]
         
-        table = Table(data, colWidths=[0.6*inch, 4.4*inch, 1.8*inch])
+        table = Table(data, colWidths=[0.3*inch, 1.6*inch, 0.9*inch, 0.3*inch, 1.6*inch, 0.9*inch])
         table.setStyle(TableStyle([
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.2, 0.2, 0.4)),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('FONTSIZE', (0, 0), (-1, -1), 8),
+            ('FONTSIZE', (0, 0), (-1, -1), 6),
             ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
             ('ALIGN', (0, 0), (0, -1), 'CENTER'),
+            ('ALIGN', (3, 0), (3, -1), 'CENTER'),
             ('ALIGN', (2, 0), (2, -1), 'RIGHT'),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('ALIGN', (5, 0), (5, -1), 'RIGHT'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
+            ('TOPPADDING', (0, 0), (-1, -1), 1),
             # Resaltar filas importantes
-            ('FONTNAME', (0, 6), (-1, 6), 'Helvetica-Bold'),  # R25
-            ('BACKGROUND', (0, 6), (-1, 6), colors.Color(0.95, 0.95, 0.85)),
-            ('FONTNAME', (0, 14), (-1, 14), 'Helvetica-Bold'),  # R33
-            ('BACKGROUND', (0, 14), (-1, 14), colors.Color(0.95, 0.85, 0.85)),  # Rojo claro
-            ('FONTNAME', (0, 15), (-1, 15), 'Helvetica-Bold'),  # R34
-            ('BACKGROUND', (0, 15), (-1, 15), colors.Color(0.85, 0.95, 0.85)),  # Verde claro
+            ('FONTNAME', (0, 6), (2, 6), 'Helvetica-Bold'),  # R25
+            ('BACKGROUND', (0, 6), (2, 6), colors.Color(0.95, 0.95, 0.85)),
+            ('FONTNAME', (3, 7), (5, 7), 'Helvetica-Bold'),  # R33
+            ('BACKGROUND', (3, 7), (5, 7), colors.Color(0.95, 0.85, 0.85)),
+            ('FONTNAME', (3, 8), (5, 8), 'Helvetica-Bold'),  # R34
+            ('BACKGROUND', (3, 8), (5, 8), colors.Color(0.85, 0.95, 0.85)),
         ]))
         
         elements.append(table)
-        elements.append(Spacer(1, 0.3*inch))
+        elements.append(Spacer(1, 0.02*inch))
         
         return elements
     
@@ -491,44 +607,43 @@ class PDFGenerator:
         r39_dest = payment.get('row_39_destination', '')
         r40 = payment.get('row_40', r38 + r39) or 0
         
+        # Layout compacto en 2 columnas
         data_table = [
-            ['Renglón', 'Concepto', 'Valor'],
-            ['35', 'Valor a pagar (desde saldo a cargo R33)', fmt(r35)],
-            ['36', 'Descuento por pronto pago', fmt(r36)],
-            ['37', 'Intereses de mora', fmt(r37)],
-            ['38', 'TOTAL A PAGAR (R35 - R36 + R37)', fmt(r38)],
-            ['39', f'Pago voluntario{" - " + r39_dest if r39_dest else ""}', fmt(r39)],
-            ['40', 'TOTAL A PAGAR CON PAGO VOLUNTARIO (R38 + R39)', fmt(r40)],
+            ['R', 'Concepto', 'Valor', 'R', 'Concepto', 'Valor'],
+            ['35', 'Valor a pagar', fmt(r35), '38', 'TOTAL A PAGAR', fmt(r38)],
+            ['36', 'Desc. pronto pago', fmt(r36), '39', f'Pago voluntario', fmt(r39)],
+            ['37', 'Intereses mora', fmt(r37), '40', 'TOTAL CON VOL.', fmt(r40)],
         ]
         
-        table = Table(data_table, colWidths=[0.6*inch, 4.4*inch, 1.8*inch])
+        table = Table(data_table, colWidths=[0.3*inch, 1.5*inch, 0.9*inch, 0.3*inch, 1.5*inch, 0.9*inch])
         table.setStyle(TableStyle([
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.2, 0.2, 0.4)),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('FONTSIZE', (0, 0), (-1, -1), 8),
+            ('FONTSIZE', (0, 0), (-1, -1), 6),
             ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
             ('ALIGN', (0, 0), (0, -1), 'CENTER'),
+            ('ALIGN', (3, 0), (3, -1), 'CENTER'),
             ('ALIGN', (2, 0), (2, -1), 'RIGHT'),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-            ('TOPPADDING', (0, 0), (-1, -1), 5),
-            # Resaltar filas importantes
-            ('FONTNAME', (0, 4), (-1, 4), 'Helvetica-Bold'),  # R38
-            ('BACKGROUND', (0, 4), (-1, 4), colors.Color(0.95, 0.95, 0.85)),
-            ('FONTNAME', (0, 6), (-1, 6), 'Helvetica-Bold'),  # R40
-            ('BACKGROUND', (0, 6), (-1, 6), colors.Color(0.85, 0.9, 0.95)),  # Azul claro
+            ('ALIGN', (5, 0), (5, -1), 'RIGHT'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
+            ('TOPPADDING', (0, 0), (-1, -1), 1),
+            # Resaltar TOTAL A PAGAR
+            ('FONTNAME', (3, 1), (5, 1), 'Helvetica-Bold'),
+            ('BACKGROUND', (3, 1), (5, 1), colors.Color(0.95, 0.95, 0.85)),
+            # Resaltar TOTAL CON VOLUNTARIO
+            ('FONTNAME', (3, 3), (5, 3), 'Helvetica-Bold'),
+            ('BACKGROUND', (3, 3), (5, 3), colors.Color(0.85, 0.9, 0.95)),
         ]))
         
         elements.append(table)
-        elements.append(Spacer(1, 0.3*inch))
+        elements.append(Spacer(1, 0.02*inch))
         
         return elements
     
     def _build_result_section(self, result: dict) -> list:
         """Construye sección de resumen final."""
         elements = []
-        
-        elements.append(Paragraph('Resumen de la Declaración', self.styles['SectionTitle']))
         
         def fmt(value):
             v = value or 0
@@ -552,34 +667,27 @@ class PDFGenerator:
             bg_color = colors.Color(0.95, 0.95, 0.95)  # Gris claro
         
         data = [
-            ['Estado de la Declaración', 'Monto'],
             [f'SALDO {status}', fmt(amount)],
         ]
         
-        table = Table(data, colWidths=[4.8*inch, 2*inch])
+        table = Table(data, colWidths=[4.5*inch, 2*inch])
         table.setStyle(TableStyle([
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.2, 0.2, 0.4)),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-            ('FONTSIZE', (0, 0), (-1, -1), 11),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 7),
             ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
             ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
-            ('TOPPADDING', (0, 0), (-1, -1), 10),
-            ('FONTNAME', (0, 1), (-1, 1), 'Helvetica-Bold'),
-            ('BACKGROUND', (0, 1), (-1, 1), bg_color),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
+            ('TOPPADDING', (0, 0), (-1, -1), 1),
+            ('BACKGROUND', (0, 0), (-1, 0), bg_color),
         ]))
         
         elements.append(table)
-        elements.append(Spacer(1, 0.3*inch))
         
         return elements
     
     def _build_signature_section(self, data: dict) -> list:
-        """Construye Sección F - Firma del Declarante y Contador/Revisor Fiscal."""
+        """Construye Sección F - Firma del Declarante y Contador/Revisor Fiscal - Versión compacta."""
         elements = []
-        
-        elements.append(Paragraph('Sección F – Firmas', self.styles['SectionTitle']))
         
         # Datos de firma - buscar en signature_info primero, luego en data directamente
         signature_info = data.get('signature_info', {})
@@ -595,108 +703,51 @@ class PDFGenerator:
             except:
                 pass
         
-        # FIRMA DEL DECLARANTE / REPRESENTANTE LEGAL
-        elements.append(Paragraph('<b>FIRMA DEL DECLARANTE / REPRESENTANTE LEGAL</b>', self.styles['Normal']))
-        elements.append(Spacer(1, 0.1*inch))
-        
-        declarant_data = [
-            ['Nombre Completo:', signature_info.get('declarant_name', '___________________________________')],
-            ['Documento:', signature_info.get('declarant_document', '___________________________________')],
-            ['Fecha de Firma:', declaration_date or '___________________________________'],
-        ]
-        
-        table1 = Table(declarant_data, colWidths=[1.8*inch, 5*inch])
-        table1.setStyle(TableStyle([
-            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 9),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.lightgrey),
-        ]))
-        elements.append(table1)
-        elements.append(Spacer(1, 0.2*inch))
-        
-        # Firma digital del declarante (imagen)
-        # Buscar en signature_info.declarant_signature_image primero, luego en data.signature_data
-        declarant_signature_image = signature_info.get('declarant_signature_image') or data.get('signature_data')
-        if declarant_signature_image and data.get('is_signed'):
-            elements.append(Paragraph('Firma Digital del Declarante:', self.styles['FieldLabel']))
-            
-            # Decodificar base64 si es necesario
-            try:
-                if declarant_signature_image.startswith('data:image'):
-                    declarant_signature_image = declarant_signature_image.split(',')[1]
-                img_data = base64.b64decode(declarant_signature_image)
-                img_buffer = BytesIO(img_data)
-                sig_img = Image(img_buffer, width=2*inch, height=1*inch)
-                elements.append(sig_img)
-            except (ValueError, TypeError, KeyError) as e:
-                # Manejar errores de decodificación base64 o formato de imagen
-                elements.append(Paragraph('[Firma digital incluida]', self.styles['Normal']))
-            
-            elements.append(Spacer(1, 0.2*inch))
-        
-        # FIRMA DEL CONTADOR / REVISOR FISCAL (solo si aplica)
-        # Se muestra esta sección si hay datos del contador/revisor (accountant_name)
-        requires_fiscal_reviewer = signature_info.get('requires_fiscal_reviewer', False)
         accountant_name = signature_info.get('accountant_name')
+        requires_fiscal_reviewer = signature_info.get('requires_fiscal_reviewer', False)
+        
+        # Construir datos de firma en formato ultra compacto (una sola fila)
+        declarant_name = signature_info.get('declarant_name', '________')
+        declarant_doc = signature_info.get('declarant_document', '________')
         
         if accountant_name:
-            # Determinar si es contador público o revisor fiscal basado en requires_fiscal_reviewer
-            title = "FIRMA DEL REVISOR FISCAL" if requires_fiscal_reviewer else "FIRMA DEL CONTADOR PÚBLICO"
-            elements.append(Paragraph(f'<b>{title}</b>', self.styles['Normal']))
-            elements.append(Spacer(1, 0.1*inch))
-            
-            accountant_data = [
-                ['Nombre:', signature_info.get('accountant_name', '___________________________________')],
-                ['Documento:', signature_info.get('accountant_document', '___________________________________')],
-                ['Tarjeta Profesional:', signature_info.get('accountant_professional_card', '___________________________________')],
+            # Si hay contador/revisor, mostrar ambas firmas en formato compacto
+            title = "REV.FISCAL" if requires_fiscal_reviewer else "CONTADOR"
+            data_table = [
+                ['DECLARANTE:', declarant_name, 'Doc:', declarant_doc, title + ':', accountant_name, 'T.P.:', signature_info.get('accountant_professional_card', '________')],
             ]
-            
-            table2 = Table(accountant_data, colWidths=[1.8*inch, 5*inch])
-            table2.setStyle(TableStyle([
-                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, -1), 9),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.lightgrey),
-            ]))
-            elements.append(table2)
-            elements.append(Spacer(1, 0.1*inch))
-            
-            # Firma digital del contador/revisor (imagen)
-            accountant_signature_image = signature_info.get('accountant_signature_image')
-            if accountant_signature_image:
-                elements.append(Paragraph(f'Firma Digital del {title.split(" DEL ")[1]}:', self.styles['FieldLabel']))
-                
-                try:
-                    if accountant_signature_image.startswith('data:image'):
-                        accountant_signature_image = accountant_signature_image.split(',')[1]
-                    img_data = base64.b64decode(accountant_signature_image)
-                    img_buffer = BytesIO(img_data)
-                    sig_img = Image(img_buffer, width=2*inch, height=1*inch)
-                    elements.append(sig_img)
-                except (ValueError, TypeError, KeyError) as e:
-                    elements.append(Paragraph('[Firma digital incluida]', self.styles['Normal']))
-            
-            elements.append(Spacer(1, 0.2*inch))
+            table = Table(data_table, colWidths=[0.8*inch, 1.3*inch, 0.4*inch, 0.9*inch, 0.7*inch, 1.3*inch, 0.4*inch, 0.9*inch])
+        else:
+            # Solo firma del declarante en una línea
+            data_table = [
+                ['FIRMA DECLARANTE:', declarant_name, 'Doc:', declarant_doc, 'Fecha:', declaration_date or '________'],
+            ]
+            table = Table(data_table, colWidths=[1.1*inch, 1.8*inch, 0.4*inch, 1.2*inch, 0.5*inch, 1.0*inch])
         
-        # Información de integridad (si está firmado)
+        table.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
+            ('FONTNAME', (2, 0), (2, 0), 'Helvetica-Bold'),
+            ('FONTNAME', (4, 0), (4, 0), 'Helvetica-Bold'),
+            ('FONTNAME', (6, 0), (6, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 5),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.lightgrey),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.95, 0.95, 0.95)),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
+            ('TOPPADDING', (0, 0), (-1, -1), 1),
+        ]))
+        
+        elements.append(table)
+        
+        # Información de integridad (si está firmado) - muy compacta en una línea
         if data.get('is_signed'):
-            elements.append(Spacer(1, 0.1*inch))
             signed_at = signature_info.get('signed_at') or data.get('signed_at', 'N/A')
             integrity_hash = data.get('integrity_hash', '')
-            if integrity_hash and integrity_hash != 'N/A' and len(integrity_hash) > 32:
-                hash_display = integrity_hash[:32] + '...'
+            if integrity_hash and len(integrity_hash) > 12:
+                hash_display = integrity_hash[:12] + '...'
             else:
                 hash_display = integrity_hash or 'N/A'
-            integrity_text = f"""
-            <font size="8">
-            <b>Firmado el:</b> {signed_at}<br/>
-            <b>Hash de integridad:</b> {hash_display}
-            </font>
-            """
-            elements.append(Paragraph(integrity_text, self.styles['Normal']))
-        
-        elements.append(Spacer(1, 0.3*inch))
+            integrity_text = f"<font size='4'>Firmado: {signed_at} | Hash: {hash_display}</font>"
+            elements.append(Paragraph(integrity_text, self.styles['Footer']))
         
         return elements
     
@@ -704,8 +755,7 @@ class PDFGenerator:
         """Construye el pie de página."""
         elements = []
         
-        elements.append(HRFlowable(width="100%", thickness=1, color=colors.grey))
-        elements.append(Spacer(1, 0.1*inch))
+        elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.grey))
         
         # Notas legales
         legal_notes = self.config.get('legal_notes', '')
@@ -720,7 +770,7 @@ class PDFGenerator:
         # Timestamp de generación (usando hora de Colombia)
         timestamp = get_colombia_time().strftime('%Y-%m-%d %H:%M:%S')
         elements.append(Paragraph(
-            f'Documento generado el {timestamp} (Hora Colombia)',
+            f'Generado: {timestamp} (Hora Colombia)',
             self.styles['Footer']
         ))
         
