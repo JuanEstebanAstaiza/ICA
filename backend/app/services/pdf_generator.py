@@ -4,8 +4,9 @@ Genera PDF institucional basado en el formulario ICA.
 Almacena en el filesystem local del servidor (requerimiento on-premise).
 """
 import os
+import logging
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Union
 from io import BytesIO
 import base64
 
@@ -21,6 +22,9 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 from reportlab.pdfgen import canvas as pdf_canvas
 
 from ..core.config import settings, get_pdf_path, get_colombia_time
+
+# Configure logger
+logger = logging.getLogger(__name__)
 
 
 class PDFGenerator:
@@ -779,7 +783,7 @@ class PDFGenerator:
         
         return elements
     
-    def _get_signature_image(self, base64_data: str) -> Optional[Image]:
+    def _get_signature_image(self, base64_data: str) -> Union[Image, None]:
         """
         Convierte una imagen Base64 a un objeto Image de ReportLab.
         
@@ -810,7 +814,7 @@ class PDFGenerator:
         except Exception as e:
             # Si hay error al procesar la imagen, retornar None
             # El PDF mostrará "(Sin firma)" en su lugar
-            print(f"Error al procesar imagen de firma: {e}")
+            logger.error(f"Error al procesar imagen de firma: {e}")
             return None
     
     def _build_footer(self) -> list:
