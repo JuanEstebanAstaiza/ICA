@@ -680,8 +680,11 @@ class PDFGenerator:
         return elements
     
     def _build_signature_section(self, data: dict) -> list:
-        """Construye Sección F - Firma del Declarante y Contador/Revisor Fiscal - Versión compacta."""
+        """Construye Sección F - Firma del Declarante y Contador/Revisor Fiscal con imágenes de firmas."""
         elements = []
+        
+        # Título de la sección
+        elements.append(Paragraph('Sección F – Firmas', self.styles['SectionTitle']))
         
         # Datos de firma - buscar en signature_info primero, luego en data directamente
         signature_info = data.get('signature_info', {})
@@ -700,46 +703,112 @@ class PDFGenerator:
         accountant_name = signature_info.get('accountant_name')
         requires_fiscal_reviewer = signature_info.get('requires_fiscal_reviewer', False)
         
-        # Construir datos de firma en formato ultra compacto (una sola fila)
+        # Datos del declarante
         declarant_name = signature_info.get('declarant_name', '________')
         declarant_doc = signature_info.get('declarant_document', '________')
+        declarant_signature_image = signature_info.get('declarant_signature_image', '')
+        
+        # Datos del contador/revisor
+        accountant_doc = signature_info.get('accountant_document', '')
+        accountant_card = signature_info.get('accountant_professional_card', '')
+        accountant_signature_image = signature_info.get('accountant_signature_image', '')
+        
+        # Crear imagen de firma del declarante si existe
+        declarant_signature_element = None
+        if declarant_signature_image and declarant_signature_image.startswith('data:image'):
+            try:
+                # Extraer datos base64
+                signature_base64 = declarant_signature_image.split(',')[1]
+                signature_bytes = base64.b64decode(signature_base64)
+                signature_buffer = BytesIO(signature_bytes)
+                declarant_signature_element = Image(signature_buffer, width=1.5*inch, height=0.5*inch)
+            except Exception as e:
+                declarant_signature_element = Paragraph('_____________', self.styles['Normal'])
+        else:
+            declarant_signature_element = Paragraph('_____________', self.styles['Normal'])
+        
+        # Crear imagen de firma del contador si existe
+        accountant_signature_element = None
+        if accountant_name and accountant_signature_image and accountant_signature_image.startswith('data:image'):
+            try:
+                # Extraer datos base64
+                signature_base64 = accountant_signature_image.split(',')[1]
+                signature_bytes = base64.b64decode(signature_base64)
+                signature_buffer = BytesIO(signature_bytes)
+                accountant_signature_element = Image(signature_buffer, width=1.5*inch, height=0.5*inch)
+            except Exception as e:
+                accountant_signature_element = Paragraph('_____________', self.styles['Normal'])
+        elif accountant_name:
+            accountant_signature_element = Paragraph('_____________', self.styles['Normal'])
         
         if accountant_name:
-            # Si hay contador/revisor, mostrar ambas firmas en formato compacto
-            title = "REV.FISCAL" if requires_fiscal_reviewer else "CONTADOR"
+            # Mostrar ambas firmas lado a lado
+            title = "REVISOR FISCAL" if requires_fiscal_reviewer else "CONTADOR PÚBLICO"
+            
+            # Tabla con dos columnas para las firmas
             data_table = [
-                ['DECLARANTE:', declarant_name, 'Doc:', declarant_doc, title + ':', accountant_name, 'T.P.:', signature_info.get('accountant_professional_card', '________')],
+                ['FIRMA DEL DECLARANTE', '', title, ''],
+                [declarant_signature_element, '', accountant_signature_element, ''],
+                ['Nombre:', declarant_name, 'Nombre:', accountant_name],
+                ['Documento:', declarant_doc, 'Documento:', accountant_doc],
+                ['Fecha:', declaration_date or '________', 'T.P.:', accountant_card],
             ]
-            table = Table(data_table, colWidths=[0.8*inch, 1.3*inch, 0.4*inch, 0.9*inch, 0.7*inch, 1.3*inch, 0.4*inch, 0.9*inch])
+            table = Table(data_table, colWidths=[0.8*inch, 2.2*inch, 0.8*inch, 2.2*inch])
+            table.setStyle(TableStyle([
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 6),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.lightgrey),
+                ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.9, 0.9, 0.95)),
+                ('SPAN', (0, 0), (1, 0)),  # Span título declarante
+                ('SPAN', (2, 0), (3, 0)),  # Span título contador
+                ('SPAN', (0, 1), (1, 1)),  # Span firma declarante
+                ('SPAN', (2, 1), (3, 1)),  # Span firma contador
+                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                ('ALIGN', (0, 1), (-1, 1), 'CENTER'),
+                ('VALIGN', (0, 1), (-1, 1), 'MIDDLE'),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                ('TOPPADDING', (0, 0), (-1, -1), 2),
+                ('FONTNAME', (0, 2), (0, -1), 'Helvetica-Bold'),
+                ('FONTNAME', (2, 2), (2, -1), 'Helvetica-Bold'),
+            ]))
         else:
-            # Solo firma del declarante en una línea
+            # Solo firma del declarante
             data_table = [
-                ['FIRMA DECLARANTE:', declarant_name, 'Doc:', declarant_doc, 'Fecha:', declaration_date or '________'],
+                ['FIRMA DEL DECLARANTE / REPRESENTANTE LEGAL'],
+                [declarant_signature_element],
+                ['Nombre:', declarant_name, '', ''],
+                ['Documento:', declarant_doc, 'Fecha:', declaration_date or '________'],
             ]
-            table = Table(data_table, colWidths=[1.1*inch, 1.8*inch, 0.4*inch, 1.2*inch, 0.5*inch, 1.0*inch])
-        
-        table.setStyle(TableStyle([
-            ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
-            ('FONTNAME', (2, 0), (2, 0), 'Helvetica-Bold'),
-            ('FONTNAME', (4, 0), (4, 0), 'Helvetica-Bold'),
-            ('FONTNAME', (6, 0), (6, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 5),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.lightgrey),
-            ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.95, 0.95, 0.95)),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
-            ('TOPPADDING', (0, 0), (-1, -1), 1),
-        ]))
+            table = Table(data_table, colWidths=[0.8*inch, 2.2*inch, 0.8*inch, 2.2*inch])
+            table.setStyle(TableStyle([
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 6),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.lightgrey),
+                ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.9, 0.9, 0.95)),
+                ('SPAN', (0, 0), (3, 0)),  # Span título
+                ('SPAN', (0, 1), (3, 1)),  # Span firma
+                ('SPAN', (1, 2), (3, 2)),  # Span nombre
+                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                ('ALIGN', (0, 1), (-1, 1), 'CENTER'),
+                ('VALIGN', (0, 1), (-1, 1), 'MIDDLE'),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                ('TOPPADDING', (0, 0), (-1, -1), 2),
+                ('FONTNAME', (0, 2), (0, -1), 'Helvetica-Bold'),
+                ('FONTNAME', (2, 2), (2, -1), 'Helvetica-Bold'),
+            ]))
         
         elements.append(table)
         
-        # Información de integridad (si está firmado) - muy compacta en una línea
+        # Información de integridad (si está firmado)
         if data.get('is_signed'):
             signed_at = signature_info.get('signed_at') or data.get('signed_at', 'N/A')
             integrity_hash = data.get('integrity_hash', '')
-            if integrity_hash and len(integrity_hash) > 12:
-                hash_display = integrity_hash[:12] + '...'
+            if integrity_hash and len(integrity_hash) > 20:
+                hash_display = integrity_hash[:20] + '...'
             else:
                 hash_display = integrity_hash or 'N/A'
+            
+            elements.append(Spacer(1, 0.02*inch))
             integrity_text = f"<font size='4'>Firmado: {signed_at} | Hash: {hash_display}</font>"
             elements.append(Paragraph(integrity_text, self.styles['Footer']))
         
