@@ -399,9 +399,14 @@ class PDFGenerator:
             ['TOTAL IMPUESTO POR ACTIVIDADES', fmt(total_tax)],
         ]
         
+        # Calcular índice de fila del total (siempre es la fila después del header)
+        total_row_index = len(data) - 1  # Última fila actual es el total
+        
         # Si hay actividades, agregar referencia al anexo
+        annex_reference_row = None
         if len(activities) > 0:
             data.append(['', f'Ver detalle de {len(activities)} actividad(es) en Anexo - Página 2'])
+            annex_reference_row = len(data) - 1  # Última fila es la referencia al anexo
         
         table = Table(data, colWidths=[4.5*inch, 2*inch])
         
@@ -415,17 +420,17 @@ class PDFGenerator:
             ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
             ('TOPPADDING', (0, 0), (-1, -1), 2),
-            # Fila de total
-            ('FONTNAME', (0, 3), (-1, 3), 'Helvetica-Bold'),
-            ('BACKGROUND', (0, 3), (-1, 3), colors.Color(0.9, 0.95, 0.9)),
-            ('FONTSIZE', (0, 3), (-1, 3), 7),
+            # Fila de total (usando índice calculado)
+            ('FONTNAME', (0, total_row_index), (-1, total_row_index), 'Helvetica-Bold'),
+            ('BACKGROUND', (0, total_row_index), (-1, total_row_index), colors.Color(0.9, 0.95, 0.9)),
+            ('FONTSIZE', (0, total_row_index), (-1, total_row_index), 7),
         ]
         
-        # Si hay referencia al anexo, estilizarla
-        if len(activities) > 0:
-            style_commands.append(('FONTNAME', (1, 4), (1, 4), 'Helvetica-Oblique'))
-            style_commands.append(('TEXTCOLOR', (1, 4), (1, 4), colors.Color(0.3, 0.3, 0.6)))
-            style_commands.append(('FONTSIZE', (1, 4), (1, 4), 5))
+        # Si hay referencia al anexo, estilizarla (usando índice calculado)
+        if annex_reference_row is not None:
+            style_commands.append(('FONTNAME', (1, annex_reference_row), (1, annex_reference_row), 'Helvetica-Oblique'))
+            style_commands.append(('TEXTCOLOR', (1, annex_reference_row), (1, annex_reference_row), colors.Color(0.3, 0.3, 0.6)))
+            style_commands.append(('FONTSIZE', (1, annex_reference_row), (1, annex_reference_row), 5))
         
         table.setStyle(TableStyle(style_commands))
         
