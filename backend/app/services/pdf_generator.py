@@ -172,10 +172,9 @@ class PDFGenerator:
         # Sección B - Base Gravable
         elements.extend(self._build_income_section(declaration_data.get('income_base', {})))
         
-        # Sección C - Actividades (máximo 3 en primera página)
+        # Sección C - Actividades (solo resumen en primera página)
         activities = declaration_data.get('activities', [])
-        max_activities_first_page = 3
-        elements.extend(self._build_activities_section(activities, max_activities=max_activities_first_page))
+        elements.extend(self._build_activities_section(activities))
         
         # Sección D - Liquidación
         elements.extend(self._build_settlement_section(declaration_data.get('settlement', {})))
@@ -192,10 +191,10 @@ class PDFGenerator:
         # Footer con notas legales
         elements.extend(self._build_footer())
         
-        # Si hay más de 3 actividades, agregar página de anexo
-        if len(activities) > max_activities_first_page:
+        # Si hay actividades, agregar página de anexo con TODAS las actividades
+        if len(activities) > 0:
             elements.append(PageBreak())
-            elements.extend(self._build_activities_annex_section(activities, start_index=max_activities_first_page))
+            elements.extend(self._build_activities_annex_section(activities))
         
         # Generar PDF con marca de agua
         if watermark:
@@ -365,16 +364,17 @@ class PDFGenerator:
         
         return elements
     
-    def _build_activities_section(self, activities: list, max_activities: int = 3) -> list:
+    def _build_activities_section(self, activities: list) -> list:
         """
-        Construye Sección C - Actividades Gravadas.
+        Construye Sección C - Actividades Gravadas (solo resumen en página principal).
+        
+        Las actividades individuales se muestran en el Anexo.
         
         Args:
             activities: Lista de actividades gravadas
-            max_activities: Máximo número de actividades a mostrar en la primera página (default: 3)
         
         Returns:
-            Lista de elementos para la sección de actividades
+            Lista de elementos para la sección de actividades (solo resumen)
         """
         elements = []
         
@@ -383,56 +383,54 @@ class PDFGenerator:
         def fmt(value):
             return f"${value:,.0f}" if value else "$0"
         
-        data = [['Código', 'Descripción', 'Ingresos', 'Tarifa‰', 'Impuesto']]
-        
         # Calcular el total de impuestos de TODAS las actividades
         total_tax = 0
+        total_income = 0
         for act in activities:
             tax = act.get('income', 0) * act.get('tax_rate', 0) / 1000
             total_tax += tax
+            total_income += act.get('income', 0)
         
-        # Solo mostrar las primeras max_activities en esta sección
-        activities_to_show = activities[:max_activities]
+        # Solo mostrar resumen con referencia al anexo
+        data = [
+            ['Concepto', 'Valor'],
+            ['Número de actividades gravadas', str(len(activities))],
+            ['Total ingresos por actividades', fmt(total_income)],
+            ['TOTAL IMPUESTO POR ACTIVIDADES', fmt(total_tax)],
+        ]
         
-        for act in activities_to_show:
-            tax = act.get('income', 0) * act.get('tax_rate', 0) / 1000
-            data.append([
-                act.get('ciiu_code', ''),
-                act.get('description', '')[:30],  # Truncar descripción
-                fmt(act.get('income', 0)),
-                f"{act.get('tax_rate', 0):.2f}",
-                fmt(tax)
-            ])
+        # Calcular índice de fila del total (siempre es la fila después del header)
+        total_row_index = len(data) - 1  # Última fila actual es el total
         
-        # Si hay más actividades, indicar que continúan en anexo
-        if len(activities) > max_activities:
-            data.append(['', f'... Ver {len(activities) - max_activities} actividad(es) adicional(es) en Anexo', '', '', ''])
+        # Si hay actividades, agregar referencia al anexo
+        annex_reference_row = None
+        if len(activities) > 0:
+            data.append(['', f'Ver detalle de {len(activities)} actividad(es) en Anexo - Página 2'])
+            annex_reference_row = len(data) - 1  # Última fila es la referencia al anexo
         
-        # Fila de total (siempre muestra el total de TODAS las actividades)
-        data.append(['', 'TOTAL IMPUESTO POR ACTIVIDADES', '', '', fmt(total_tax)])
+        table = Table(data, colWidths=[4.5*inch, 2*inch])
         
-        table = Table(data, colWidths=[0.7*inch, 2.8*inch, 1.2*inch, 0.8*inch, 1.2*inch])
-        
-        # Configurar estilo base
+        # Configurar estilo
         style_commands = [
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.2, 0.2, 0.4)),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('FONTSIZE', (0, 0), (-1, -1), 6),
             ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-            ('ALIGN', (2, 0), (-1, -1), 'RIGHT'),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
-            ('TOPPADDING', (0, 0), (-1, -1), 1),
-            # Fila de total
-            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
-            ('BACKGROUND', (0, -1), (-1, -1), colors.Color(0.9, 0.95, 0.9)),
+            ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+            ('TOPPADDING', (0, 0), (-1, -1), 2),
+            # Fila de total (usando índice calculado)
+            ('FONTNAME', (0, total_row_index), (-1, total_row_index), 'Helvetica-Bold'),
+            ('BACKGROUND', (0, total_row_index), (-1, total_row_index), colors.Color(0.9, 0.95, 0.9)),
+            ('FONTSIZE', (0, total_row_index), (-1, total_row_index), 7),
         ]
         
-        # Si hay indicador de "Ver anexo", estilizarlo
-        if len(activities) > max_activities:
-            annex_row = len(activities_to_show) + 1  # +1 por header
-            style_commands.append(('FONTNAME', (1, annex_row), (1, annex_row), 'Helvetica-Oblique'))
-            style_commands.append(('TEXTCOLOR', (1, annex_row), (1, annex_row), colors.Color(0.3, 0.3, 0.6)))
+        # Si hay referencia al anexo, estilizarla (usando índice calculado)
+        if annex_reference_row is not None:
+            style_commands.append(('FONTNAME', (1, annex_reference_row), (1, annex_reference_row), 'Helvetica-Oblique'))
+            style_commands.append(('TEXTCOLOR', (1, annex_reference_row), (1, annex_reference_row), colors.Color(0.3, 0.3, 0.6)))
+            style_commands.append(('FONTSIZE', (1, annex_reference_row), (1, annex_reference_row), 5))
         
         table.setStyle(TableStyle(style_commands))
         
@@ -441,32 +439,28 @@ class PDFGenerator:
         
         return elements
     
-    def _build_activities_annex_section(self, activities: list, start_index: int = 3) -> list:
+    def _build_activities_annex_section(self, activities: list) -> list:
         """
-        Construye la página de Anexo con actividades adicionales.
+        Construye la página de Anexo con TODAS las actividades.
         
         Args:
             activities: Lista completa de actividades gravadas
-            start_index: Índice desde donde empezar a mostrar actividades (default: 3)
         
         Returns:
             Lista de elementos para la página de anexo
         """
         elements = []
         
-        # Solo las actividades adicionales (desde start_index en adelante)
-        additional_activities = activities[start_index:]
-        
-        if not additional_activities:
+        if not activities:
             return elements
         
         # Título del anexo
-        elements.append(Paragraph('ANEXO – Actividades Gravadas Adicionales', self.styles['FormTitle']))
+        elements.append(Paragraph('ANEXO – Detalle de Actividades Gravadas', self.styles['FormTitle']))
         elements.append(Spacer(1, 0.02*inch))
         
         # Subtítulo con información
         elements.append(Paragraph(
-            f'Continuación de Sección C – Actividades gravadas (actividades {start_index + 1} a {len(activities)})',
+            f'Sección C – Detalle completo de actividades gravadas (Total: {len(activities)} actividad(es))',
             self.styles['SectionTitle']
         ))
         
@@ -475,10 +469,10 @@ class PDFGenerator:
         
         data = [['#', 'Código', 'Descripción', 'Ingresos', 'Tarifa‰', 'Impuesto']]
         
-        subtotal_tax = 0
-        for i, act in enumerate(additional_activities, start=start_index + 1):
+        total_tax = 0
+        for i, act in enumerate(activities, start=1):
             tax = act.get('income', 0) * act.get('tax_rate', 0) / 1000
-            subtotal_tax += tax
+            total_tax += tax
             data.append([
                 str(i),
                 act.get('ciiu_code', ''),
@@ -488,8 +482,8 @@ class PDFGenerator:
                 fmt(tax)
             ])
         
-        # Fila de subtotal de actividades adicionales
-        data.append(['', '', 'SUBTOTAL ACTIVIDADES ADICIONALES', '', '', fmt(subtotal_tax)])
+        # Fila de total de actividades
+        data.append(['', '', 'TOTAL IMPUESTO POR ACTIVIDADES', '', '', fmt(total_tax)])
         
         table = Table(data, colWidths=[0.4*inch, 0.7*inch, 2.8*inch, 1.2*inch, 0.8*inch, 1.2*inch])
         table.setStyle(TableStyle([
@@ -502,7 +496,7 @@ class PDFGenerator:
             ('ALIGN', (3, 0), (-1, -1), 'RIGHT'),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
             ('TOPPADDING', (0, 0), (-1, -1), 1),
-            # Fila de subtotal
+            # Fila de total
             ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
             ('BACKGROUND', (0, -1), (-1, -1), colors.Color(0.9, 0.95, 0.9)),
         ]))
