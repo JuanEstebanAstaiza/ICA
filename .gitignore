@@ -113,7 +113,7 @@ Thumbs.db
 # Project specific
 /pdfs/
 /assets/
-*.pdf
+
 *.log
 
 # Node modules (if any frontend build tools are used)
