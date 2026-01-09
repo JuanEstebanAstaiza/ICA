@@ -25,6 +25,12 @@ from ...core.config import settings
 from ...core.security import get_password_hash
 from .auth import get_current_active_user, require_role
 
+# Import CIIU codes from national catalog
+try:
+    from scripts.ciiu_codes_data import CIIU_CODES
+except ImportError:
+    CIIU_CODES = None
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/admin", tags=["Administración"])
@@ -535,16 +541,17 @@ async def seed_ciiu_codes(
 ):
     """
     Carga los 504 códigos CIIU del catálogo nacional para un municipio.
-    Los códigos se crean con tarifa 0% - el administrador debe configurar las tarifas.
+    Los códigos se crean con tarifa inicial 0% - el administrador debe configurar las tarifas.
     
     Este endpoint reemplaza la carga masiva por CSV.
     Los códigos CIIU y descripciones son fijos del catálogo nacional.
     Solo la tarifa (tax_rate) es editable posteriormente.
     """
-    # Importar el catálogo de códigos CIIU
-    try:
-        from scripts.ciiu_codes_data import CIIU_CODES
-    except ImportError:
+    # Default tax rate for new CIIU codes - admin must configure actual rates
+    DEFAULT_TAX_RATE = 0.0
+    
+    # Verificar que el catálogo de códigos CIIU está disponible
+    if CIIU_CODES is None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="No se pudo cargar el catálogo de códigos CIIU"
@@ -588,12 +595,12 @@ async def seed_ciiu_codes(
                 updated_count += 1
             existing_count += 1
         else:
-            # Crear nueva actividad con tarifa 0 (el admin debe configurarla)
+            # Crear nueva actividad con tarifa inicial (el admin debe configurarla)
             activity = TaxActivity(
                 municipality_id=municipality_id,
                 ciiu_code=ciiu['ciiu_code'],
                 description=ciiu['description'],
-                tax_rate=0.0,
+                tax_rate=DEFAULT_TAX_RATE,
                 section_code=ciiu['section_code'],
                 section_name=ciiu['section_name'],
                 is_active=True

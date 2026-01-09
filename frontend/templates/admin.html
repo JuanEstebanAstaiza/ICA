@@ -1550,11 +1550,17 @@
                 
                 sectionSelect.innerHTML = '<option value="">📁 Todas las secciones</option>';
                 sections.forEach(s => {
-                    // Extract just the letter from "SECCIÓN A" -> "A"
-                    const letter = s.section_code ? s.section_code.replace('SECCIÓN ', '').trim() : '';
+                    // Extract section identifier - handles both "SECCIÓN A" and "SECCIÓN Dian"
+                    let letter = '';
+                    if (s.section_code) {
+                        letter = s.section_code.replace('SECCIÓN ', '').trim();
+                        // Truncate if longer than 4 chars (e.g., "Dian")
+                        if (letter.length > 4) letter = letter.substring(0, 4);
+                    }
                     const option = document.createElement('option');
-                    option.value = s.section_code;
-                    option.textContent = `${letter}: ${s.section_name ? s.section_name.substring(0, 40) + '...' : ''}`;
+                    option.value = s.section_code || '';
+                    const sectionNameDisplay = s.section_name ? s.section_name.substring(0, 40) + (s.section_name.length > 40 ? '...' : '') : '';
+                    option.textContent = `${letter}: ${sectionNameDisplay}`;
                     sectionSelect.appendChild(option);
                 });
             } catch (error) {
@@ -1630,18 +1636,26 @@
                     tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No hay códigos CIIU registrados. Use "Cargar Catálogo Nacional" para cargarlos.</td></tr>';
                 } else {
                     tbody.innerHTML = result.items.map(a => {
-                        // Extract section letter from "SECCIÓN A" -> "A"
-                        const sectionLetter = a.section_code ? a.section_code.replace('SECCIÓN ', '').trim() : '-';
+                        // Extract section letter, handle special cases like "SECCIÓN Dian"
+                        let sectionLetter = '-';
+                        if (a.section_code) {
+                            sectionLetter = a.section_code.replace('SECCIÓN ', '').trim();
+                            // Truncate if longer than 4 chars
+                            if (sectionLetter.length > 4) sectionLetter = sectionLetter.substring(0, 4);
+                        }
+                        // Safely handle null/undefined description
+                        const desc = a.description || '';
+                        const descShort = desc.substring(0, 50) + (desc.length > 50 ? '...' : '');
                         return `
                             <tr>
-                                <td><strong>${escapeHtml(a.ciiu_code)}</strong></td>
-                                <td title="${escapeHtml(a.description)}">${escapeHtml(a.description.substring(0, 50))}${a.description.length > 50 ? '...' : ''}</td>
-                                <td><span class="badge" style="background: #e5e7eb; color: #374151; font-size: 0.75rem;">${sectionLetter}</span></td>
+                                <td><strong>${escapeHtml(a.ciiu_code || '')}</strong></td>
+                                <td title="${escapeHtml(desc)}">${escapeHtml(descShort)}</td>
+                                <td><span class="badge" style="background: #e5e7eb; color: #374151; font-size: 0.75rem;">${escapeHtml(sectionLetter)}</span></td>
                                 <td>
                                     <input type="number" class="form-control tax-rate-input" 
                                            data-id="${a.id}"
-                                           data-ciiu="${escapeHtml(a.ciiu_code)}"
-                                           value="${a.tax_rate}" 
+                                           data-ciiu="${escapeHtml(a.ciiu_code || '')}"
+                                           value="${a.tax_rate || 0}" 
                                            min="0" max="100" step="0.01"
                                            style="width: 80px; padding: 0.25rem 0.5rem; font-size: 0.875rem;"
                                            onchange="updateTaxRate(this)">

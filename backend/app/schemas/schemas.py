@@ -488,10 +488,12 @@ class TaxActivityBase(BaseModel):
     Catálogo de actividades económicas (Códigos CIIU).
     Los códigos CIIU vienen precargados del catálogo nacional.
     Solo la tarifa (tax_rate) es editable por el administrador.
+    
+    La tarifa se expresa en porcentaje (%), por ejemplo: 4.14 significa 4.14%
     """
     ciiu_code: str = Field(..., min_length=1, max_length=10)
     description: str = Field(..., min_length=1, max_length=500)
-    tax_rate: float = Field(default=0.0, ge=0, le=100)  # Tarifa ICA (%) - EDITABLE
+    tax_rate: float = Field(default=0.0, ge=0, le=100)  # Tarifa ICA en porcentaje (%) - EDITABLE
     section_code: Optional[str] = Field(None, max_length=20)  # Ej: 'SECCIÓN A'
     section_name: Optional[str] = Field(None, max_length=255)  # Nombre de la sección
 
