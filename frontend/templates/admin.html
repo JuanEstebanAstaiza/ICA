@@ -1572,16 +1572,41 @@
                             <td>${a.tax_rate}%</td>
                             <td>
                                 <div class="d-flex gap-1">
-                                    <button class="btn btn-sm btn-primary" onclick="editActivity(${a.id}, '${escapeHtml(a.ciiu_code)}', '${escapeHtml(a.description.replace(/'/g, "\\'"))}', ${a.tax_rate})" title="Editar">
+                                    <button class="btn btn-sm btn-primary edit-activity-btn" 
+                                            data-id="${a.id}" 
+                                            data-ciiu="${escapeHtml(a.ciiu_code)}" 
+                                            data-description="${escapeHtml(a.description)}" 
+                                            data-rate="${a.tax_rate}" 
+                                            title="Editar">
                                         ✏️
                                     </button>
-                                    <button class="btn btn-sm btn-danger" onclick="deleteActivity(${a.id})" title="Eliminar">
+                                    <button class="btn btn-sm btn-danger delete-activity-btn" 
+                                            data-id="${a.id}" 
+                                            title="Eliminar">
                                         🗑️
                                     </button>
                                 </div>
                             </td>
                         </tr>
                     `).join('');
+                    
+                    // Agregar event listeners para los botones
+                    tbody.querySelectorAll('.edit-activity-btn').forEach(btn => {
+                        btn.addEventListener('click', function() {
+                            const id = parseInt(this.dataset.id);
+                            const ciiu = this.dataset.ciiu;
+                            const desc = this.dataset.description;
+                            const rate = parseFloat(this.dataset.rate);
+                            editActivity(id, ciiu, desc, rate);
+                        });
+                    });
+                    
+                    tbody.querySelectorAll('.delete-activity-btn').forEach(btn => {
+                        btn.addEventListener('click', function() {
+                            const id = parseInt(this.dataset.id);
+                            deleteActivity(id);
+                        });
+                    });
                 }
                 
                 updateActivitiesPagination(result.total, result.page, result.total_pages);

@@ -602,12 +602,19 @@ async def bulk_create_tax_activities(
                     errors.append(f"Fila {row_num}: Descripción vacía")
                     continue
                 
-                # Parsear tarifa (soportar formato con coma o punto decimal)
+                # Parsear tarifa (soportar formato con coma decimal)
+                # El formato esperado es un número decimal (ej: 4.14 o 4,14)
+                # NO soporta separadores de miles - solo coma como separador decimal
                 tax_rate_str = tax_rate_str.replace(',', '.')
+                # Remover múltiples puntos (previene errores con formato incorrecto)
+                parts = tax_rate_str.split('.')
+                if len(parts) > 2:
+                    # Si tiene más de un punto, juntar las partes enteras
+                    tax_rate_str = ''.join(parts[:-1]) + '.' + parts[-1]
                 try:
                     tax_rate = float(tax_rate_str)
                 except ValueError:
-                    errors.append(f"Fila {row_num}: Tarifa inválida '{tax_rate_str}'")
+                    errors.append(f"Fila {row_num}: Tarifa inválida '{normalized_row.get('tax_rate', '')}'. Use formato decimal (ej: 4.14)")
                     continue
                 
                 if tax_rate < 0 or tax_rate > 100:

@@ -5,6 +5,10 @@
  * Actualizado: Diciembre 2024 - Reorganización de renglones según formulario oficial
  */
 
+// Constantes de configuración
+const CIIU_DROPDOWN_CLOSE_DELAY_MS = 200;
+const CIIU_SEARCH_DEBOUNCE_MS = 250;
+
 /**
  * Motor de cálculo del formulario ICA (cliente)
  * Replica las fórmulas del backend para validación doble
@@ -846,7 +850,7 @@ class ICAFormController {
             
             debounceTimer = setTimeout(() => {
                 searchCIIU(e.target.value);
-            }, 250);
+            }, CIIU_SEARCH_DEBOUNCE_MS);
         });
         
         // Eventos de teclado para navegación
@@ -878,7 +882,7 @@ class ICAFormController {
             // Pequeño delay para permitir click en opciones
             setTimeout(() => {
                 dropdown.classList.remove('active');
-            }, 200);
+            }, CIIU_DROPDOWN_CLOSE_DELAY_MS);
         });
         
         // Reabrir al enfocar si hay valor
