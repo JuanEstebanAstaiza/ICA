@@ -102,10 +102,10 @@ class ICACalculationEngine:
     def calculate_activity_tax(activity: ActivityData) -> float:
         """
         Impuesto por actividad.
-        Fórmula: impuesto = ingresos * tarifa / 1000
-        La tarifa se expresa en por mil.
+        Fórmula: impuesto = ingresos * tarifa / 100
+        La tarifa se expresa en porcentaje (%).
         """
-        return activity.income * activity.tax_rate / 1000
+        return activity.income * activity.tax_rate / 100
     
     @staticmethod
     def calculate_total_activities_tax(activities: List[ActivityData]) -> tuple:

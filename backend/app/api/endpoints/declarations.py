@@ -930,7 +930,7 @@ async def generate_pdf(
     for activity in declaration.activities:
         income = activity.income or 0
         rate = activity.tax_rate or 0
-        tax = income * rate / 1000
+        tax = income * rate / 100  # Porcentaje
         total_activities_income += income
         total_activities_tax += tax
         declaration_data['activities'].append({

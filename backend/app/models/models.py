@@ -455,14 +455,14 @@ class TaxableActivity(Base):
     ciiu_code = Column(String(10), nullable=False)  # Código CIIU
     description = Column(String(500))
     income = Column(Float, default=0)  # Ingresos gravados
-    tax_rate = Column(Float, default=0)  # Tarifa (por mil)
+    tax_rate = Column(Float, default=0)  # Tarifa (porcentaje %)
     special_rate = Column(Float, nullable=True)  # Tarifa especial (si aplica)
     
     @property
     def generated_tax(self) -> float:
-        """Impuesto ICA = ingresos * tarifa / 1000"""
+        """Impuesto ICA = ingresos * tarifa / 100 (porcentaje)"""
         rate = self.special_rate if self.special_rate else self.tax_rate
-        return (self.income or 0) * (rate or 0) / 1000
+        return (self.income or 0) * (rate or 0) / 100
     
     # Relación
     declaration = relationship("ICADeclaration", back_populates="activities")

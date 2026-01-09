@@ -72,37 +72,37 @@ class TestICACalculationEngine:
     def test_calculate_activity_tax(self):
         """
         Test impuesto por actividad.
-        Fórmula: impuesto = ingresos * tarifa / 1000
+        Fórmula: impuesto = ingresos * tarifa / 100 (porcentaje)
         """
         activity = ActivityData(
             ciiu_code="G4711",
             income=10000000,
-            tax_rate=4.14  # 4.14 por mil
+            tax_rate=5  # 5%
         )
         
-        # tax = 10000000 * 4.14 / 1000 = 41400
+        # tax = 10000000 * 5 / 100 = 500000
         result = ICACalculationEngine.calculate_activity_tax(activity)
-        assert result == 41400
+        assert result == 500000
     
     def test_calculate_total_activities_tax(self):
         """
         Test total impuesto de actividades (Renglón 30).
         """
         activities = [
-            ActivityData(ciiu_code="G4711", income=5000000, tax_rate=4.14),
-            ActivityData(ciiu_code="I5511", income=3000000, tax_rate=6.0),
+            ActivityData(ciiu_code="G4711", income=5000000, tax_rate=4),  # 4%
+            ActivityData(ciiu_code="I5511", income=3000000, tax_rate=6),  # 6%
         ]
         
-        # Act 1: 5000000 * 4.14 / 1000 = 20700
-        # Act 2: 3000000 * 6.0 / 1000 = 18000
-        # Total = 38700
+        # Act 1: 5000000 * 4 / 100 = 200000
+        # Act 2: 3000000 * 6 / 100 = 180000
+        # Total = 380000
         
         taxes, total = ICACalculationEngine.calculate_total_activities_tax(activities)
         
         assert len(taxes) == 2
-        assert total == 38700
-        assert taxes[0]['generated_tax'] == 20700
-        assert taxes[1]['generated_tax'] == 18000
+        assert total == 380000
+        assert taxes[0]['generated_tax'] == 200000
+        assert taxes[1]['generated_tax'] == 180000
     
     def test_calculate_total_tax(self):
         """
@@ -177,8 +177,8 @@ class TestICACalculationEngine:
         )
         
         activities = [
-            ActivityData(ciiu_code="G4711", income=25000000, tax_rate=4.14),
-            ActivityData(ciiu_code="I5511", income=20000000, tax_rate=6.0),
+            ActivityData(ciiu_code="G4711", income=25000000, tax_rate=5),  # 5%
+            ActivityData(ciiu_code="I5511", income=20000000, tax_rate=4),  # 4%
         ]
         
         settlement = SettlementData(
@@ -204,19 +204,19 @@ class TestICACalculationEngine:
         assert result.row_16_taxable_income == 45000000
         
         # Actividades:
-        # Act1: 25000000 * 4.14 / 1000 = 103500
-        # Act2: 20000000 * 6.0 / 1000 = 120000
-        # Total: 223500
-        assert result.row_30_ica_tax == 223500
+        # Act1: 25000000 * 5 / 100 = 1250000
+        # Act2: 20000000 * 4 / 100 = 800000
+        # Total: 2050000
+        assert result.row_30_ica_tax == 2050000
         
-        # R33 = 223500 + 30000 + 10000 = 263500
-        assert result.row_33_total_tax == 263500
+        # R33 = 2050000 + 30000 + 10000 = 2090000
+        assert result.row_33_total_tax == 2090000
         
         # Créditos = 20000 + 100000 + 50000 = 170000
         assert result.total_credits == 170000
         
-        # Resultado = 263500 - 170000 = 93500 a pagar
-        assert result.amount_to_pay == 93500
+        # Resultado = 2090000 - 170000 = 1920000 a pagar
+        assert result.amount_to_pay == 1920000
         assert result.balance_in_favor == 0
 
 

@@ -74,11 +74,11 @@ const ICACalculator = {
     },
     
     /**
-     * Impuesto por actividad = ingresos * tarifa / 1000
+     * Impuesto por actividad = ingresos * tarifa / 100 (porcentaje)
      */
     calculateActivityTax(income, rate, specialRate = null) {
         const effectiveRate = specialRate !== null ? specialRate : rate;
-        return (parseFloat(income) || 0) * (parseFloat(effectiveRate) || 0) / 1000;
+        return (parseFloat(income) || 0) * (parseFloat(effectiveRate) || 0) / 100;
     },
     
     /**

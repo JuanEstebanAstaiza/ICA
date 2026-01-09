@@ -1,7 +1,7 @@
 """
 Servicio de generación de PDF.
 Genera PDF institucional basado en el formulario ICA.
-Formulario condensado en una única tabla.
+Formulario condensado en una única tabla con celdas ajustables.
 """
 import os
 from datetime import datetime
@@ -36,9 +36,9 @@ COLOR_GRID = colors.Color(0.7, 0.7, 0.7)
 
 # Tamaños de fuente
 FONT_TITLE = 10
-FONT_SECTION = 8
-FONT_NORMAL = 7
-FONT_SMALL = 6
+FONT_SECTION = 7
+FONT_NORMAL = 6
+FONT_SMALL = 5
 
 # Padding
 PAD = 2
@@ -86,6 +86,89 @@ class PDFGenerator:
             textColor=colors.grey,
             alignment=TA_CENTER
         ))
+        
+        # Estilos para celdas con wrap
+        self.styles.add(ParagraphStyle(
+            name='CellNormal',
+            fontName='Helvetica',
+            fontSize=FONT_NORMAL,
+            leading=FONT_NORMAL + 2,
+            alignment=TA_LEFT,
+            wordWrap='CJK'
+        ))
+        
+        self.styles.add(ParagraphStyle(
+            name='CellBold',
+            fontName='Helvetica-Bold',
+            fontSize=FONT_NORMAL,
+            leading=FONT_NORMAL + 2,
+            alignment=TA_LEFT,
+            wordWrap='CJK'
+        ))
+        
+        self.styles.add(ParagraphStyle(
+            name='CellRight',
+            fontName='Helvetica',
+            fontSize=FONT_NORMAL,
+            leading=FONT_NORMAL + 2,
+            alignment=TA_RIGHT,
+            wordWrap='CJK'
+        ))
+        
+        self.styles.add(ParagraphStyle(
+            name='CellRightBold',
+            fontName='Helvetica-Bold',
+            fontSize=FONT_NORMAL,
+            leading=FONT_NORMAL + 2,
+            alignment=TA_RIGHT,
+            wordWrap='CJK'
+        ))
+        
+        self.styles.add(ParagraphStyle(
+            name='CellCenter',
+            fontName='Helvetica',
+            fontSize=FONT_NORMAL,
+            leading=FONT_NORMAL + 2,
+            alignment=TA_CENTER,
+            wordWrap='CJK'
+        ))
+        
+        self.styles.add(ParagraphStyle(
+            name='CellCenterBold',
+            fontName='Helvetica-Bold',
+            fontSize=FONT_NORMAL,
+            leading=FONT_NORMAL + 2,
+            alignment=TA_CENTER,
+            wordWrap='CJK'
+        ))
+        
+        self.styles.add(ParagraphStyle(
+            name='CellSmall',
+            fontName='Helvetica',
+            fontSize=FONT_SMALL,
+            leading=FONT_SMALL + 2,
+            alignment=TA_LEFT,
+            wordWrap='CJK'
+        ))
+        
+        self.styles.add(ParagraphStyle(
+            name='CellWhite',
+            fontName='Helvetica-Bold',
+            fontSize=FONT_SECTION,
+            leading=FONT_SECTION + 2,
+            textColor=colors.white,
+            alignment=TA_LEFT,
+            wordWrap='CJK'
+        ))
+        
+        self.styles.add(ParagraphStyle(
+            name='CellLabel',
+            fontName='Helvetica-Bold',
+            fontSize=FONT_SMALL,
+            leading=FONT_SMALL + 2,
+            alignment=TA_LEFT,
+            wordWrap='CJK'
+        ))
     
     def _hex_to_rgb(self, hex_color: str) -> tuple:
         hex_color = hex_color.lstrip('#')
@@ -94,6 +177,36 @@ class PDFGenerator:
     def _fmt(self, value) -> str:
         v = value or 0
         return f"${v:,.0f}"
+    
+    def _p(self, text, style='CellNormal'):
+        """Crear Paragraph con estilo."""
+        return Paragraph(str(text) if text else '', self.styles[style])
+    
+    def _p_right(self, text, bold=False):
+        """Crear Paragraph alineado a la derecha."""
+        style = 'CellRightBold' if bold else 'CellRight'
+        return Paragraph(str(text) if text else '', self.styles[style])
+    
+    def _p_bold(self, text):
+        """Crear Paragraph en negrita."""
+        return Paragraph(str(text) if text else '', self.styles['CellBold'])
+    
+    def _p_center(self, text, bold=False):
+        """Crear Paragraph centrado."""
+        style = 'CellCenterBold' if bold else 'CellCenter'
+        return Paragraph(str(text) if text else '', self.styles[style])
+    
+    def _p_label(self, text):
+        """Crear Paragraph para etiqueta pequeña."""
+        return Paragraph(str(text) if text else '', self.styles['CellLabel'])
+    
+    def _p_small(self, text):
+        """Crear Paragraph pequeño."""
+        return Paragraph(str(text) if text else '', self.styles['CellSmall'])
+    
+    def _p_section(self, text):
+        """Crear Paragraph para título de sección."""
+        return Paragraph(str(text) if text else '', self.styles['CellWhite'])
     
     def generate_declaration_pdf(self, declaration_data: dict, output_path: Optional[str] = None) -> str:
         """Genera el PDF de una declaración ICA en una sola tabla."""
@@ -181,7 +294,7 @@ class PDFGenerator:
         return elements
     
     def _build_unified_table(self, data: dict) -> Table:
-        """Construye una tabla única con todo el formulario."""
+        """Construye una tabla única con todo el formulario usando Paragraphs."""
         
         # Obtener todos los datos
         taxpayer = data.get('taxpayer', {})
@@ -221,7 +334,7 @@ class PDFGenerator:
             inc = act.get('income', 0) or 0
             rate = act.get('tax_rate', 0) or 0
             total_activities_income += inc
-            total_activities_tax += inc * rate / 1000
+            total_activities_tax += inc * rate / 100  # Porcentaje
         
         # Settlement values
         r20 = settlement.get('row_20', total_activities_tax) or 0
@@ -270,8 +383,8 @@ class PDFGenerator:
         
         # ===================== CONSTRUIR FILAS DE LA TABLA =====================
         # Definir anchos de 6 columnas para layout flexible
-        # Total: 7.7 inches (página - márgenes)
-        c1, c2, c3, c4, c5, c6 = 0.9*inch, 1.6*inch, 0.9*inch, 1.5*inch, 0.9*inch, 1.5*inch
+        # Total: ~7.2 inches
+        c1, c2, c3, c4, c5, c6 = 0.5*inch, 1.9*inch, 0.75*inch, 0.5*inch, 1.7*inch, 0.85*inch
         col_widths = [c1, c2, c3, c4, c5, c6]
         
         rows = []
@@ -279,7 +392,11 @@ class PDFGenerator:
         row_idx = 0
         
         # ─────────── METADATOS ───────────
-        rows.append(['Año Gravable:', str(data.get('tax_year', '')), 'Tipo:', data.get('declaration_type', '').replace('_', ' ').title(), 'Estado:', data.get('status', '').title()])
+        rows.append([
+            self._p_label('Año:'), self._p(data.get('tax_year', '')),
+            self._p_label('Tipo:'), self._p(data.get('declaration_type', '').replace('_', ' ').title()),
+            self._p_label('Estado:'), self._p(data.get('status', '').title())
+        ])
         styles.extend([
             ('BACKGROUND', (0, row_idx), (0, row_idx), COLOR_SUBHEADER),
             ('BACKGROUND', (2, row_idx), (2, row_idx), COLOR_SUBHEADER),
@@ -287,7 +404,15 @@ class PDFGenerator:
         ])
         row_idx += 1
         
-        rows.append(['No. Formulario:', data.get('form_number', ''), 'No. Radicado:', data.get('filing_number', 'Pendiente'), 'Fecha:', filing_date or 'No presentada'])
+        # Número de formulario - truncar si es muy largo
+        form_number = data.get('form_number', '')
+        filing_number = data.get('filing_number', 'Pendiente')
+        
+        rows.append([
+            self._p_label('Form:'), self._p_small(form_number),
+            self._p_label('Radicado:'), self._p_small(filing_number),
+            self._p_label('Fecha:'), self._p_small(filing_date or 'No presentada')
+        ])
         styles.extend([
             ('BACKGROUND', (0, row_idx), (0, row_idx), COLOR_SUBHEADER),
             ('BACKGROUND', (2, row_idx), (2, row_idx), COLOR_SUBHEADER),
@@ -296,16 +421,18 @@ class PDFGenerator:
         row_idx += 1
         
         # ─────────── SECCIÓN A - CONTRIBUYENTE ───────────
-        rows.append(['Sección A – Información del Contribuyente', '', '', '', '', ''])
+        rows.append([self._p_section('Sección A – Información del Contribuyente'), '', '', '', '', ''])
         styles.extend([
             ('SPAN', (0, row_idx), (5, row_idx)),
             ('BACKGROUND', (0, row_idx), (5, row_idx), COLOR_SECTION),
-            ('TEXTCOLOR', (0, row_idx), (5, row_idx), colors.white),
-            ('FONTNAME', (0, row_idx), (5, row_idx), 'Helvetica-Bold'),
         ])
         row_idx += 1
         
-        rows.append(['Tipo Doc:', taxpayer.get('document_type', ''), 'Número:', taxpayer.get('document_number', ''), 'DV:', taxpayer.get('verification_digit', '')])
+        rows.append([
+            self._p_label('Tipo Doc:'), self._p(taxpayer.get('document_type', '')),
+            self._p_label('Número:'), self._p(taxpayer.get('document_number', '')),
+            self._p_label('DV:'), self._p(taxpayer.get('verification_digit', ''))
+        ])
         styles.extend([
             ('BACKGROUND', (0, row_idx), (0, row_idx), COLOR_SUBHEADER),
             ('BACKGROUND', (2, row_idx), (2, row_idx), COLOR_SUBHEADER),
@@ -313,22 +440,30 @@ class PDFGenerator:
         ])
         row_idx += 1
         
-        rows.append(['Razón Social:', taxpayer.get('legal_name', ''), '', '', '', ''])
+        rows.append([self._p_label('Razón Social:'), self._p(taxpayer.get('legal_name', '')), '', '', '', ''])
         styles.extend([
             ('SPAN', (1, row_idx), (5, row_idx)),
             ('BACKGROUND', (0, row_idx), (0, row_idx), COLOR_SUBHEADER),
         ])
         row_idx += 1
         
-        rows.append(['Dirección:', taxpayer.get('address', ''), 'Municipio:', taxpayer.get('municipality', ''), '', ''])
+        rows.append([
+            self._p_label('Dirección:'), self._p(taxpayer.get('address', '')),
+            self._p_label('Municipio:'), self._p(taxpayer.get('municipality', '')), '', ''
+        ])
         styles.extend([
+            ('SPAN', (1, row_idx), (1, row_idx)),
             ('SPAN', (3, row_idx), (5, row_idx)),
             ('BACKGROUND', (0, row_idx), (0, row_idx), COLOR_SUBHEADER),
             ('BACKGROUND', (2, row_idx), (2, row_idx), COLOR_SUBHEADER),
         ])
         row_idx += 1
         
-        rows.append(['Depto:', taxpayer.get('department', ''), 'Teléfono:', taxpayer.get('phone', ''), 'Email:', taxpayer.get('email', '')])
+        rows.append([
+            self._p_label('Depto:'), self._p(taxpayer.get('department', '')),
+            self._p_label('Tel:'), self._p(taxpayer.get('phone', '')),
+            self._p_label('Email:'), self._p_small(taxpayer.get('email', ''))
+        ])
         styles.extend([
             ('BACKGROUND', (0, row_idx), (0, row_idx), COLOR_SUBHEADER),
             ('BACKGROUND', (2, row_idx), (2, row_idx), COLOR_SUBHEADER),
@@ -337,63 +472,59 @@ class PDFGenerator:
         row_idx += 1
         
         # ─────────── SECCIÓN B - BASE GRAVABLE ───────────
-        rows.append(['Sección B – Base Gravable', '', '', '', '', ''])
+        rows.append([self._p_section('Sección B – Base Gravable'), '', '', '', '', ''])
         styles.extend([
             ('SPAN', (0, row_idx), (5, row_idx)),
             ('BACKGROUND', (0, row_idx), (5, row_idx), COLOR_SECTION),
-            ('TEXTCOLOR', (0, row_idx), (5, row_idx), colors.white),
-            ('FONTNAME', (0, row_idx), (5, row_idx), 'Helvetica-Bold'),
         ])
         row_idx += 1
         
         income_rows = [
-            ('8', 'Total ingresos ordinarios y extraordinarios', self._fmt(r8)),
-            ('9', 'Menos ingresos fuera del municipio', self._fmt(r9)),
-            ('10', 'TOTAL INGRESOS EN EL MUNICIPIO (R8 - R9)', self._fmt(r10)),
-            ('11', 'Menos devoluciones, rebajas y descuentos', self._fmt(r11)),
-            ('12', 'Menos exportaciones y venta activos fijos', self._fmt(r12)),
-            ('13', 'Menos actividades excluidas o no sujetas', self._fmt(r13)),
-            ('14', 'Menos actividades exentas en el municipio', self._fmt(r14)),
-            ('15', 'TOTAL INGRESOS GRAVABLES', self._fmt(r15)),
+            ('8', 'Total ingresos ordinarios y extraordinarios', self._fmt(r8), False),
+            ('9', 'Menos ingresos fuera del municipio', self._fmt(r9), False),
+            ('10', 'TOTAL INGRESOS EN EL MUNICIPIO (R8 - R9)', self._fmt(r10), True),
+            ('11', 'Menos devoluciones, rebajas y descuentos', self._fmt(r11), False),
+            ('12', 'Menos exportaciones y venta activos fijos', self._fmt(r12), False),
+            ('13', 'Menos actividades excluidas o no sujetas', self._fmt(r13), False),
+            ('14', 'Menos actividades exentas en el municipio', self._fmt(r14), False),
+            ('15', 'TOTAL INGRESOS GRAVABLES', self._fmt(r15), True),
         ]
         
-        for i, (rnum, concept, value) in enumerate(income_rows):
-            rows.append([rnum, concept, '', '', '', value])
+        for rnum, concept, value, is_total in income_rows:
+            if is_total:
+                rows.append([self._p_bold(rnum), self._p_bold(concept), '', '', '', self._p_right(value, bold=True)])
+            else:
+                rows.append([self._p(rnum), self._p(concept), '', '', '', self._p_right(value)])
             styles.append(('SPAN', (1, row_idx), (4, row_idx)))
-            styles.append(('ALIGN', (5, row_idx), (5, row_idx), 'RIGHT'))
-            if rnum in ['10', '15']:
+            if is_total:
                 styles.append(('BACKGROUND', (0, row_idx), (5, row_idx), COLOR_GREEN))
-                styles.append(('FONTNAME', (0, row_idx), (5, row_idx), 'Helvetica-Bold'))
             row_idx += 1
         
         # ─────────── SECCIÓN C - ACTIVIDADES ───────────
-        rows.append(['Sección C – Actividades Gravadas', '', '', '', '', ''])
+        rows.append([self._p_section('Sección C – Actividades Gravadas'), '', '', '', '', ''])
         styles.extend([
             ('SPAN', (0, row_idx), (5, row_idx)),
             ('BACKGROUND', (0, row_idx), (5, row_idx), COLOR_SECTION),
-            ('TEXTCOLOR', (0, row_idx), (5, row_idx), colors.white),
-            ('FONTNAME', (0, row_idx), (5, row_idx), 'Helvetica-Bold'),
         ])
         row_idx += 1
         
-        rows.append(['Actividades:', str(len(activities)), 'Ingresos:', self._fmt(total_activities_income), 'Impuesto:', self._fmt(total_activities_tax)])
+        rows.append([
+            self._p_label('Actividades:'), self._p(str(len(activities))),
+            self._p_label('Ingresos:'), self._p_right(self._fmt(total_activities_income)),
+            self._p_label('Impuesto:'), self._p_right(self._fmt(total_activities_tax), bold=True)
+        ])
         styles.extend([
             ('BACKGROUND', (0, row_idx), (0, row_idx), COLOR_SUBHEADER),
             ('BACKGROUND', (2, row_idx), (2, row_idx), COLOR_SUBHEADER),
-            ('BACKGROUND', (4, row_idx), (4, row_idx), COLOR_GREEN),
-            ('FONTNAME', (4, row_idx), (5, row_idx), 'Helvetica-Bold'),
-            ('ALIGN', (3, row_idx), (3, row_idx), 'RIGHT'),
-            ('ALIGN', (5, row_idx), (5, row_idx), 'RIGHT'),
+            ('BACKGROUND', (4, row_idx), (5, row_idx), COLOR_GREEN),
         ])
         row_idx += 1
         
         # ─────────── SECCIÓN D - LIQUIDACIÓN ───────────
-        rows.append(['Sección D – Liquidación del Impuesto', '', '', '', '', ''])
+        rows.append([self._p_section('Sección D – Liquidación del Impuesto'), '', '', '', '', ''])
         styles.extend([
             ('SPAN', (0, row_idx), (5, row_idx)),
             ('BACKGROUND', (0, row_idx), (5, row_idx), COLOR_SECTION),
-            ('TEXTCOLOR', (0, row_idx), (5, row_idx), colors.white),
-            ('FONTNAME', (0, row_idx), (5, row_idx), 'Helvetica-Bold'),
         ])
         row_idx += 1
         
@@ -410,58 +541,57 @@ class PDFGenerator:
         ]
         
         for r1, c1_text, v1, r2, c2_text, v2 in settlement_pairs:
-            rows.append([r1, c1_text, self._fmt(v1) if v1 or r1 else '', r2, c2_text, self._fmt(v2)])
-            styles.append(('ALIGN', (2, row_idx), (2, row_idx), 'RIGHT'))
-            styles.append(('ALIGN', (5, row_idx), (5, row_idx), 'RIGHT'))
+            is_25 = r1 == '25'
+            is_33 = r2 == '33'
+            is_34 = r2 == '34'
             
-            if r1 == '25':
-                styles.extend([
-                    ('BACKGROUND', (0, row_idx), (2, row_idx), COLOR_YELLOW),
-                    ('FONTNAME', (0, row_idx), (2, row_idx), 'Helvetica-Bold'),
-                ])
-            if r2 == '33':
-                styles.extend([
-                    ('BACKGROUND', (3, row_idx), (5, row_idx), COLOR_RED),
-                    ('FONTNAME', (3, row_idx), (5, row_idx), 'Helvetica-Bold'),
-                ])
-            if r2 == '34':
-                styles.extend([
-                    ('BACKGROUND', (3, row_idx), (5, row_idx), COLOR_GREEN),
-                    ('FONTNAME', (3, row_idx), (5, row_idx), 'Helvetica-Bold'),
-                ])
+            row_data = [
+                self._p_bold(r1) if is_25 else self._p(r1),
+                self._p_bold(c1_text) if is_25 else self._p(c1_text),
+                self._p_right(self._fmt(v1), bold=is_25) if v1 or r1 else self._p(''),
+                self._p_bold(r2) if (is_33 or is_34) else self._p(r2),
+                self._p_bold(c2_text) if (is_33 or is_34) else self._p(c2_text),
+                self._p_right(self._fmt(v2), bold=(is_33 or is_34))
+            ]
+            rows.append(row_data)
+            
+            if is_25:
+                styles.append(('BACKGROUND', (0, row_idx), (2, row_idx), COLOR_YELLOW))
+            if is_33:
+                styles.append(('BACKGROUND', (3, row_idx), (5, row_idx), COLOR_RED))
+            if is_34:
+                styles.append(('BACKGROUND', (3, row_idx), (5, row_idx), COLOR_GREEN))
             row_idx += 1
         
         # ─────────── SECCIÓN E - PAGO ───────────
-        rows.append(['Sección E – Pago', '', '', '', '', ''])
+        rows.append([self._p_section('Sección E – Pago'), '', '', '', '', ''])
         styles.extend([
             ('SPAN', (0, row_idx), (5, row_idx)),
             ('BACKGROUND', (0, row_idx), (5, row_idx), COLOR_SECTION),
-            ('TEXTCOLOR', (0, row_idx), (5, row_idx), colors.white),
-            ('FONTNAME', (0, row_idx), (5, row_idx), 'Helvetica-Bold'),
         ])
         row_idx += 1
         
         payment_pairs = [
-            ('35', 'Valor a pagar', r35, '38', 'TOTAL A PAGAR', r38),
-            ('36', 'Desc. pronto pago', r36, '39', 'Pago voluntario', r39),
-            ('37', 'Intereses mora', r37, '40', 'TOTAL CON VOLUNTARIO', r40),
+            ('35', 'Valor a pagar', r35, '38', 'TOTAL A PAGAR', r38, False, True),
+            ('36', 'Desc. pronto pago', r36, '39', 'Pago voluntario', r39, False, False),
+            ('37', 'Intereses mora', r37, '40', 'TOTAL CON VOLUNTARIO', r40, False, True),
         ]
         
-        for r1, c1_text, v1, r2, c2_text, v2 in payment_pairs:
-            rows.append([r1, c1_text, self._fmt(v1), r2, c2_text, self._fmt(v2)])
-            styles.append(('ALIGN', (2, row_idx), (2, row_idx), 'RIGHT'))
-            styles.append(('ALIGN', (5, row_idx), (5, row_idx), 'RIGHT'))
+        for r1, c1_text, v1, r2, c2_text, v2, bold1, bold2 in payment_pairs:
+            row_data = [
+                self._p(r1),
+                self._p(c1_text),
+                self._p_right(self._fmt(v1)),
+                self._p_bold(r2) if bold2 else self._p(r2),
+                self._p_bold(c2_text) if bold2 else self._p(c2_text),
+                self._p_right(self._fmt(v2), bold=bold2)
+            ]
+            rows.append(row_data)
             
             if r2 == '38':
-                styles.extend([
-                    ('BACKGROUND', (3, row_idx), (5, row_idx), COLOR_YELLOW),
-                    ('FONTNAME', (3, row_idx), (5, row_idx), 'Helvetica-Bold'),
-                ])
+                styles.append(('BACKGROUND', (3, row_idx), (5, row_idx), COLOR_YELLOW))
             if r2 == '40':
-                styles.extend([
-                    ('BACKGROUND', (3, row_idx), (5, row_idx), COLOR_SUBHEADER),
-                    ('FONTNAME', (3, row_idx), (5, row_idx), 'Helvetica-Bold'),
-                ])
+                styles.append(('BACKGROUND', (3, row_idx), (5, row_idx), COLOR_SUBHEADER))
             row_idx += 1
         
         # ─────────── RESUMEN ───────────
@@ -478,23 +608,18 @@ class PDFGenerator:
             status_value = "$0"
             status_color = COLOR_SUBHEADER
         
-        rows.append([status_text, '', '', '', '', status_value])
+        rows.append([self._p_bold(status_text), '', '', '', '', self._p_right(status_value, bold=True)])
         styles.extend([
             ('SPAN', (0, row_idx), (4, row_idx)),
             ('BACKGROUND', (0, row_idx), (5, row_idx), status_color),
-            ('FONTNAME', (0, row_idx), (5, row_idx), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, row_idx), (5, row_idx), FONT_SECTION),
-            ('ALIGN', (5, row_idx), (5, row_idx), 'RIGHT'),
         ])
         row_idx += 1
         
         # ─────────── SECCIÓN F - FIRMAS ───────────
-        rows.append(['Sección F – Firmas', '', '', '', '', ''])
+        rows.append([self._p_section('Sección F – Firmas'), '', '', '', '', ''])
         styles.extend([
             ('SPAN', (0, row_idx), (5, row_idx)),
             ('BACKGROUND', (0, row_idx), (5, row_idx), COLOR_SECTION),
-            ('TEXTCOLOR', (0, row_idx), (5, row_idx), colors.white),
-            ('FONTNAME', (0, row_idx), (5, row_idx), 'Helvetica-Bold'),
         ])
         row_idx += 1
         
@@ -509,13 +634,11 @@ class PDFGenerator:
         accountant_sig_el = self._create_signature_image(accountant_sig) if accountant_name else ''
         
         if accountant_name:
-            rows.append(['DECLARANTE', '', '', title_acc, '', ''])
+            rows.append([self._p_center('DECLARANTE', bold=True), '', '', self._p_center(title_acc, bold=True), '', ''])
             styles.extend([
                 ('SPAN', (0, row_idx), (2, row_idx)),
                 ('SPAN', (3, row_idx), (5, row_idx)),
                 ('BACKGROUND', (0, row_idx), (5, row_idx), COLOR_SUBHEADER),
-                ('ALIGN', (0, row_idx), (5, row_idx), 'CENTER'),
-                ('FONTNAME', (0, row_idx), (5, row_idx), 'Helvetica-Bold'),
             ])
             row_idx += 1
             
@@ -528,26 +651,24 @@ class PDFGenerator:
             ])
             row_idx += 1
             
-            rows.append([f'Nombre: {declarant_name}', '', '', f'Nombre: {accountant_name}', '', ''])
+            rows.append([self._p_small(f'Nombre: {declarant_name}'), '', '', self._p_small(f'Nombre: {accountant_name}'), '', ''])
             styles.extend([
                 ('SPAN', (0, row_idx), (2, row_idx)),
                 ('SPAN', (3, row_idx), (5, row_idx)),
             ])
             row_idx += 1
             
-            rows.append([f'Doc: {declarant_doc}', '', '', f'T.P.: {accountant_card}', '', ''])
+            rows.append([self._p_small(f'Doc: {declarant_doc}'), '', '', self._p_small(f'T.P.: {accountant_card}'), '', ''])
             styles.extend([
                 ('SPAN', (0, row_idx), (2, row_idx)),
                 ('SPAN', (3, row_idx), (5, row_idx)),
             ])
             row_idx += 1
         else:
-            rows.append(['FIRMA DEL DECLARANTE / REPRESENTANTE LEGAL', '', '', '', '', ''])
+            rows.append([self._p_center('FIRMA DEL DECLARANTE / REPRESENTANTE LEGAL', bold=True), '', '', '', '', ''])
             styles.extend([
                 ('SPAN', (0, row_idx), (5, row_idx)),
                 ('BACKGROUND', (0, row_idx), (5, row_idx), COLOR_SUBHEADER),
-                ('ALIGN', (0, row_idx), (5, row_idx), 'CENTER'),
-                ('FONTNAME', (0, row_idx), (5, row_idx), 'Helvetica-Bold'),
             ])
             row_idx += 1
             
@@ -559,7 +680,11 @@ class PDFGenerator:
             ])
             row_idx += 1
             
-            rows.append([f'Nombre: {declarant_name}', '', 'Doc:', declarant_doc, 'Fecha:', declaration_date or '________'])
+            rows.append([
+                self._p_label('Nombre:'), self._p(declarant_name),
+                self._p_label('Doc:'), self._p(declarant_doc),
+                self._p_label('Fecha:'), self._p(declaration_date or '________')
+            ])
             styles.extend([
                 ('BACKGROUND', (0, row_idx), (0, row_idx), COLOR_SUBHEADER),
                 ('BACKGROUND', (2, row_idx), (2, row_idx), COLOR_SUBHEADER),
@@ -571,14 +696,12 @@ class PDFGenerator:
         if data.get('is_signed'):
             signed_at = signature_info.get('signed_at') or data.get('signed_at', '')
             integrity_hash = data.get('integrity_hash', '')
-            hash_short = (integrity_hash[:20] + '...') if len(integrity_hash) > 20 else integrity_hash
+            hash_short = (integrity_hash[:16] + '...') if len(integrity_hash) > 16 else integrity_hash
             
-            rows.append([f'Firmado: {signed_at}', '', '', f'Hash: {hash_short}', '', ''])
+            rows.append([self._p_small(f'Firmado: {signed_at}'), '', '', self._p_small(f'Hash: {hash_short}'), '', ''])
             styles.extend([
                 ('SPAN', (0, row_idx), (2, row_idx)),
                 ('SPAN', (3, row_idx), (5, row_idx)),
-                ('FONTSIZE', (0, row_idx), (5, row_idx), FONT_SMALL),
-                ('TEXTCOLOR', (0, row_idx), (5, row_idx), colors.grey),
             ])
             row_idx += 1
         
@@ -587,13 +710,11 @@ class PDFGenerator:
         
         # Estilos globales
         base_styles = [
-            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 0), (-1, -1), FONT_NORMAL),
             ('GRID', (0, 0), (-1, -1), 0.5, COLOR_GRID),
             ('TOPPADDING', (0, 0), (-1, -1), PAD),
             ('BOTTOMPADDING', (0, 0), (-1, -1), PAD),
-            ('LEFTPADDING', (0, 0), (-1, -1), 3),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 3),
+            ('LEFTPADDING', (0, 0), (-1, -1), 2),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 2),
             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ]
         
@@ -609,7 +730,7 @@ class PDFGenerator:
                 signature_base64 = signature_data.split(',')[1]
                 signature_bytes = base64.b64decode(signature_base64)
                 signature_buffer = BytesIO(signature_bytes)
-                return Image(signature_buffer, width=1.8*inch, height=0.5*inch)
+                return Image(signature_buffer, width=1.5*inch, height=0.4*inch)
             except:
                 pass
         return Paragraph('<font size="6">_________________________</font>', 
@@ -642,40 +763,51 @@ class PDFGenerator:
         elements.append(Paragraph('ANEXO – Detalle de Actividades Gravadas', self.styles['FormTitle']))
         elements.append(Spacer(1, 4))
         
-        col_widths = [0.4*inch, 0.8*inch, 2.8*inch, 1.2*inch, 0.7*inch, 1.2*inch]
+        col_widths = [0.35*inch, 0.7*inch, 2.9*inch, 1.1*inch, 0.6*inch, 1.0*inch]
         
-        rows = [['#', 'Código', 'Descripción', 'Ingresos', 'Tarifa‰', 'Impuesto']]
+        rows = [[
+            self._p_center('#', bold=True),
+            self._p_center('Código', bold=True),
+            self._p_center('Descripción', bold=True),
+            self._p_center('Ingresos', bold=True),
+            self._p_center('Tarifa‰', bold=True),
+            self._p_center('Impuesto', bold=True)
+        ]]
         
         total_tax = 0
         for i, act in enumerate(activities, start=1):
             income = act.get('income', 0) or 0
             rate = act.get('tax_rate', 0) or 0
-            tax = income * rate / 1000
+            tax = income * rate / 100  # Porcentaje
             total_tax += tax
             
+            desc = act.get('description', '') or ''
+            if len(desc) > 50:
+                desc = desc[:47] + '...'
+            
             rows.append([
-                str(i),
-                act.get('ciiu_code', ''),
-                (act.get('description', '') or '')[:40],
-                self._fmt(income),
-                f"{rate:.2f}",
-                self._fmt(tax)
+                self._p_center(str(i)),
+                self._p(act.get('ciiu_code', '')),
+                self._p(desc),
+                self._p_right(self._fmt(income)),
+                self._p_center(f"{rate:.2f}"),
+                self._p_right(self._fmt(tax))
             ])
         
-        rows.append(['', '', 'TOTAL IMPUESTO POR ACTIVIDADES', '', '', self._fmt(total_tax)])
+        rows.append([
+            self._p(''), self._p(''),
+            self._p_bold('TOTAL IMPUESTO POR ACTIVIDADES'),
+            self._p(''), self._p(''),
+            self._p_right(self._fmt(total_tax), bold=True)
+        ])
         
         table = Table(rows, colWidths=col_widths)
         table.setStyle(TableStyle([
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), FONT_NORMAL),
             ('BACKGROUND', (0, 0), (-1, 0), COLOR_HEADER),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('GRID', (0, 0), (-1, -1), 0.5, COLOR_GRID),
-            ('ALIGN', (0, 0), (0, -1), 'CENTER'),
-            ('ALIGN', (3, 0), (5, -1), 'RIGHT'),
             ('TOPPADDING', (0, 0), (-1, -1), PAD),
             ('BOTTOMPADDING', (0, 0), (-1, -1), PAD),
-            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ('BACKGROUND', (0, -1), (-1, -1), COLOR_GREEN),
         ]))
         
