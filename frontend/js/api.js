@@ -471,19 +471,34 @@ const AdminAPI = {
     },
     
     /**
+     * Listar secciones CIIU disponibles para un municipio
+     * @param {number} municipalityId - ID del municipio
+     */
+    async listCIIUSections(municipalityId) {
+        const response = await fetch(`${API_BASE_URL}/admin/activities/${municipalityId}/sections`, {
+            headers: getHeaders()
+        });
+        return handleResponse(response);
+    },
+    
+    /**
      * Listar actividades económicas con paginación
      * @param {number} municipalityId - ID del municipio
      * @param {number} page - Número de página (default 1)
      * @param {number} perPage - Elementos por página (default 10)
      * @param {string} search - Término de búsqueda opcional
+     * @param {string} section - Código de sección opcional (ej: 'SECCIÓN A')
      */
-    async listActivitiesPaginated(municipalityId, page = 1, perPage = 10, search = '') {
+    async listActivitiesPaginated(municipalityId, page = 1, perPage = 10, search = '', section = '') {
         const params = new URLSearchParams({
             page: page.toString(),
             per_page: perPage.toString()
         });
         if (search) {
             params.append('search', search);
+        }
+        if (section) {
+            params.append('section', section);
         }
         const response = await fetch(`${API_BASE_URL}/admin/activities/${municipalityId}/paginated?${params}`, {
             headers: getHeaders()
@@ -496,12 +511,16 @@ const AdminAPI = {
      * @param {number} municipalityId - ID del municipio
      * @param {string} query - Término de búsqueda
      * @param {number} limit - Máximo de resultados (default 10)
+     * @param {string} section - Filtrar por sección opcional
      */
-    async searchActivities(municipalityId, query, limit = 10) {
+    async searchActivities(municipalityId, query, limit = 10, section = '') {
         const params = new URLSearchParams({
             q: query,
             limit: limit.toString()
         });
+        if (section) {
+            params.append('section', section);
+        }
         const response = await fetch(`${API_BASE_URL}/admin/activities/${municipalityId}/search?${params}`, {
             headers: getHeaders()
         });
@@ -509,47 +528,45 @@ const AdminAPI = {
     },
     
     /**
-     * Carga masiva de actividades económicas desde CSV
+     * Cargar códigos CIIU del catálogo nacional para un municipio
+     * Esto reemplaza la carga masiva por CSV
      * @param {number} municipalityId - ID del municipio
-     * @param {File} file - Archivo CSV con las actividades
      */
-    async bulkUploadActivities(municipalityId, file) {
-        const formData = new FormData();
-        formData.append('file', file);
-        
-        const headers = {};
-        if (accessToken) {
-            headers['Authorization'] = `Bearer ${accessToken}`;
-        }
-        
-        const response = await fetch(`${API_BASE_URL}/admin/activities/bulk?municipality_id=${municipalityId}`, {
+    async seedCIIUCodes(municipalityId) {
+        const response = await fetch(`${API_BASE_URL}/admin/activities/${municipalityId}/seed`, {
             method: 'POST',
-            headers: headers,
-            body: formData
+            headers: getHeaders()
         });
         return handleResponse(response);
     },
     
     /**
-     * Crear actividad económica
+     * Actualizar SOLO la tarifa de una actividad económica
+     * Los códigos CIIU y descripciones son fijos del catálogo nacional
+     * @param {number} activityId - ID de la actividad
+     * @param {number} taxRate - Nueva tarifa (0-100%)
      */
-    async createActivity(data) {
-        const response = await fetch(`${API_BASE_URL}/admin/activities`, {
-            method: 'POST',
-            headers: getHeaders(),
-            body: JSON.stringify(data)
+    async updateActivityTaxRate(activityId, taxRate) {
+        const params = new URLSearchParams({
+            tax_rate: taxRate.toString()
+        });
+        const response = await fetch(`${API_BASE_URL}/admin/activities/${activityId}/tax-rate?${params}`, {
+            method: 'PUT',
+            headers: getHeaders()
         });
         return handleResponse(response);
     },
     
     /**
-     * Actualizar actividad económica
+     * Actualizar tarifas de múltiples actividades en lote
+     * @param {number} municipalityId - ID del municipio
+     * @param {Array} updates - Lista de objetos {ciiu_code: string, tax_rate: number}
      */
-    async updateActivity(activityId, data) {
-        const response = await fetch(`${API_BASE_URL}/admin/activities/${activityId}`, {
+    async bulkUpdateTaxRates(municipalityId, updates) {
+        const response = await fetch(`${API_BASE_URL}/admin/activities/${municipalityId}/bulk-tax-rate`, {
             method: 'PUT',
             headers: getHeaders(),
-            body: JSON.stringify(data)
+            body: JSON.stringify(updates)
         });
         return handleResponse(response);
     },

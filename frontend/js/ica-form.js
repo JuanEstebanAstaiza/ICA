@@ -761,13 +761,18 @@ class ICAFormController {
                 currentOptions = results;
                 
                 if (results.length > 0) {
-                    dropdown.innerHTML = results.map((item, i) => `
-                        <div class="ciiu-autocomplete-option" data-index="${i}">
-                            <span class="ciiu-code">${this.escapeHtml(item.ciiu_code)}</span>
-                            <span class="ciiu-rate">${item.tax_rate}%</span>
-                            <span class="ciiu-desc">${this.escapeHtml(item.description)}</span>
-                        </div>
-                    `).join('');
+                    dropdown.innerHTML = results.map((item, i) => {
+                        // Extract section letter from "SECCIÓN A" -> "A"
+                        const sectionLetter = item.section_code ? item.section_code.replace('SECCIÓN ', '').trim() : '';
+                        return `
+                            <div class="ciiu-autocomplete-option" data-index="${i}">
+                                <span class="ciiu-code">${this.escapeHtml(item.ciiu_code)}</span>
+                                ${sectionLetter ? `<span style="background: #e5e7eb; color: #374151; padding: 0.1rem 0.3rem; border-radius: 3px; font-size: 0.7rem; margin-right: 0.3rem;">${sectionLetter}</span>` : ''}
+                                <span class="ciiu-rate">${item.tax_rate}%</span>
+                                <span class="ciiu-desc">${this.escapeHtml(item.description)}</span>
+                            </div>
+                        `;
+                    }).join('');
                     
                     dropdown.classList.add('active');
                     highlightedIndex = -1;

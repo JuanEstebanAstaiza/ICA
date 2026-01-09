@@ -484,14 +484,29 @@ class IncomeBaseResponse(IncomeBaseSchema):
 # ===================== ACTIVIDADES - SECCIÓN C =====================
 
 class TaxActivityBase(BaseModel):
-    """Catálogo de actividades económicas."""
+    """
+    Catálogo de actividades económicas (Códigos CIIU).
+    Los códigos CIIU vienen precargados del catálogo nacional.
+    Solo la tarifa (tax_rate) es editable por el administrador.
+    """
     ciiu_code: str = Field(..., min_length=1, max_length=10)
     description: str = Field(..., min_length=1, max_length=500)
-    tax_rate: float = Field(..., ge=0, le=100)
+    tax_rate: float = Field(default=0.0, ge=0, le=100)  # Tarifa ICA (%) - EDITABLE
+    section_code: Optional[str] = Field(None, max_length=20)  # Ej: 'SECCIÓN A'
+    section_name: Optional[str] = Field(None, max_length=255)  # Nombre de la sección
 
 
 class TaxActivityCreate(TaxActivityBase):
     municipality_id: int
+
+
+class TaxActivityUpdate(BaseModel):
+    """
+    Actualización de actividad económica.
+    Solo permite actualizar la tarifa (tax_rate).
+    El código CIIU y descripción son fijos del catálogo nacional.
+    """
+    tax_rate: float = Field(..., ge=0, le=100)  # Solo la tarifa es editable
 
 
 class TaxActivityResponse(TaxActivityBase):

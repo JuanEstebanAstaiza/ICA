@@ -512,90 +512,76 @@
                 <div class="col-6">
                     <div class="card">
                         <div class="card-header">
-                            📊 Actividades Económicas (CIIU)
+                            📊 Códigos CIIU - Catálogo Nacional
                         </div>
                         <div class="card-body">
-                            <form id="activity-form">
-                                <div class="form-group">
-                                    <label class="form-label">Municipio</label>
-                                    <div class="municipality-search-container">
-                                        <input type="text" 
-                                               id="act-municipality-search" 
-                                               class="municipality-search-input" 
-                                               placeholder="Buscar municipio por nombre..."
-                                               autocomplete="off">
-                                        <input type="hidden" id="act-municipality" value="">
-                                        <div id="act-municipality-dropdown" class="municipality-dropdown"></div>
-                                    </div>
-                                    <div id="act-municipality-selected" class="municipality-selected" style="display: none;">
-                                        <span id="act-municipality-name"></span>
-                                        <button type="button" class="clear-btn" onclick="clearMunicipalitySelection('act')">✕</button>
-                                    </div>
-                                </div>
-                                
-                                <div class="row">
-                                    <div class="col-4">
-                                        <div class="form-group">
-                                            <label for="act-ciiu" class="form-label">Código CIIU</label>
-                                            <input type="text" id="act-ciiu" class="form-control" placeholder="G4711">
-                                        </div>
-                                    </div>
-                                    <div class="col-8">
-                                        <div class="form-group">
-                                            <label for="act-description" class="form-label">Descripción</label>
-                                            <input type="text" id="act-description" class="form-control" 
-                                                   placeholder="Comercio al por menor">
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="act-rate" class="form-label">Tarifa ICA (%)</label>
-                                    <input type="number" id="act-rate" class="form-control" 
-                                           min="0" max="100" step="0.01" value="4.14">
-                                </div>
-                                
-                                <button type="submit" class="btn btn-primary">
-                                    ➕ Agregar Actividad
-                                </button>
-                            </form>
-                            
-                            <hr>
-                            
-                            <!-- Carga masiva de CIIU -->
-                            <div class="alert" style="background: linear-gradient(135deg, #f0fdf4, #dcfce7); border-left: 4px solid #16a34a; margin-bottom: 1rem;">
-                                <strong>📤 Carga Masiva de Códigos CIIU</strong>
-                                <p style="font-size: 0.875rem; margin: 0.5rem 0 0.75rem 0;">
-                                    Suba un archivo CSV con los códigos CIIU del municipio. El archivo debe tener las columnas: 
-                                    <code>ciiu_code</code>, <code>description</code>, <code>tax_rate</code>
+                            <!-- Información sobre el catálogo -->
+                            <div class="alert" style="background: linear-gradient(135deg, #dbeafe, #bfdbfe); border-left: 4px solid #2563eb; margin-bottom: 1rem;">
+                                <strong>📋 Catálogo Nacional de Códigos CIIU</strong>
+                                <p style="font-size: 0.875rem; margin: 0.5rem 0 0;">
+                                    Los 504 códigos CIIU de 4 dígitos están precargados del catálogo nacional oficial.
+                                    Organizados en 22 secciones (A-U). <strong>Solo las tarifas son editables</strong>.
                                 </p>
-                                <div class="d-flex gap-2" style="align-items: center;">
-                                    <label class="btn btn-primary" style="cursor: pointer; margin: 0;">
-                                        📁 Seleccionar Archivo CSV
-                                        <input type="file" id="ciiu-bulk-upload" accept=".csv" style="display: none;" onchange="handleCIIUBulkUpload(this)">
-                                    </label>
-                                    <button type="button" class="btn btn-ghost" onclick="downloadCIIUTemplate()">
-                                        📥 Descargar Plantilla
-                                    </button>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Municipio</label>
+                                <div class="municipality-search-container">
+                                    <input type="text" 
+                                           id="act-municipality-search" 
+                                           class="municipality-search-input" 
+                                           placeholder="Buscar municipio por nombre..."
+                                           autocomplete="off">
+                                    <input type="hidden" id="act-municipality" value="">
+                                    <div id="act-municipality-dropdown" class="municipality-dropdown"></div>
+                                </div>
+                                <div id="act-municipality-selected" class="municipality-selected" style="display: none;">
+                                    <span id="act-municipality-name"></span>
+                                    <button type="button" class="clear-btn" onclick="clearMunicipalitySelection('act')">✕</button>
                                 </div>
                             </div>
                             
-                            <h4>Actividades Registradas</h4>
+                            <!-- Botón para cargar códigos CIIU -->
+                            <div class="alert" style="background: linear-gradient(135deg, #f0fdf4, #dcfce7); border-left: 4px solid #16a34a; margin-bottom: 1rem;">
+                                <strong>📥 Cargar Códigos CIIU del Catálogo Nacional</strong>
+                                <p style="font-size: 0.875rem; margin: 0.5rem 0 0.75rem 0;">
+                                    Cargue los 504 códigos CIIU del catálogo nacional para este municipio.
+                                    Los códigos se crearán con tarifa 0% - luego configure las tarifas.
+                                </p>
+                                <button type="button" class="btn btn-primary" onclick="seedCIIUCodesForMunicipality()">
+                                    📥 Cargar Catálogo Nacional
+                                </button>
+                            </div>
                             
-                            <!-- Búsqueda y filtro -->
-                            <div class="form-group" style="margin-bottom: 1rem;">
-                                <input type="text" id="activities-search" class="form-control" 
-                                       placeholder="🔍 Buscar por código o descripción..." 
-                                       oninput="searchActivitiesDebounced()">
+                            <hr>
+                            
+                            <h4>Códigos CIIU Registrados</h4>
+                            
+                            <!-- Filtros: Sección y Búsqueda -->
+                            <div class="row" style="margin-bottom: 1rem;">
+                                <div class="col-5">
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <select id="activities-section-filter" class="form-control" onchange="filterActivitiesBySection()">
+                                            <option value="">📁 Todas las secciones</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-7">
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <input type="text" id="activities-search" class="form-control" 
+                                               placeholder="🔍 Buscar por código o descripción..." 
+                                               oninput="searchActivitiesDebounced()">
+                                    </div>
+                                </div>
                             </div>
                             
                             <table class="table" id="activities-table">
                                 <thead>
                                     <tr>
-                                        <th>Código</th>
+                                        <th style="width: 80px;">Código</th>
                                         <th>Descripción</th>
-                                        <th>Tarifa (%)</th>
-                                        <th>Acciones</th>
+                                        <th style="width: 100px;">Sección</th>
+                                        <th style="width: 100px;">Tarifa (%)</th>
                                     </tr>
                                 </thead>
                                 <tbody id="activities-body">
@@ -1220,7 +1206,7 @@
         function initMunicipalitySearchers() {
             const searchConfigs = [
                 { prefix: 'wl', onSelect: loadWhiteLabelConfig },
-                { prefix: 'act', onSelect: loadActivities },
+                { prefix: 'act', onSelect: (id) => { loadCIIUSections(id); loadActivities(id, 1, '', ''); } },
                 { prefix: 'fp', onSelect: loadFormulaParameters }
             ];
             
@@ -1370,7 +1356,8 @@
             
             // Cargar datos del municipio seleccionado
             loadWhiteLabelConfig(selectedMunicipality.id);
-            loadActivities(selectedMunicipality.id);
+            loadCIIUSections(selectedMunicipality.id);
+            loadActivities(selectedMunicipality.id, 1, '', '');
             loadFormulaParameters(selectedMunicipality.id);
         }
         
@@ -1496,7 +1483,8 @@
             
             // Cargar datos del municipio
             loadWhiteLabelConfig(municipality.id);
-            loadActivities(municipality.id);
+            loadCIIUSections(municipality.id);
+            loadActivities(municipality.id, 1, '', '');
             loadFormulaParameters(municipality.id);
             
             // Mostrar mensaje informativo
@@ -1540,14 +1528,89 @@
             }
         }
         
-        // ==================== ACTIVIDADES ECONÓMICAS CON PAGINACIÓN ====================
+        // ==================== CÓDIGOS CIIU - CATÁLOGO NACIONAL ====================
         
         const ACTIVITIES_PER_PAGE = 10;
         let activitiesCurrentPage = 1;
         let activitiesSearchTerm = '';
+        let activitiesSectionFilter = '';
         let searchDebounceTimer = null;
         
-        async function loadActivities(municipalityId, page = 1, search = '') {
+        // Cargar secciones CIIU disponibles para el municipio
+        async function loadCIIUSections(municipalityId) {
+            const sectionSelect = document.getElementById('activities-section-filter');
+            
+            if (!municipalityId) {
+                sectionSelect.innerHTML = '<option value="">📁 Todas las secciones</option>';
+                return;
+            }
+            
+            try {
+                const sections = await AdminAPI.listCIIUSections(municipalityId);
+                
+                sectionSelect.innerHTML = '<option value="">📁 Todas las secciones</option>';
+                sections.forEach(s => {
+                    // Extract just the letter from "SECCIÓN A" -> "A"
+                    const letter = s.section_code ? s.section_code.replace('SECCIÓN ', '').trim() : '';
+                    const option = document.createElement('option');
+                    option.value = s.section_code;
+                    option.textContent = `${letter}: ${s.section_name ? s.section_name.substring(0, 40) + '...' : ''}`;
+                    sectionSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading CIIU sections:', error);
+            }
+        }
+        
+        // Filtrar por sección
+        function filterActivitiesBySection() {
+            activitiesSectionFilter = document.getElementById('activities-section-filter').value;
+            const municipalityId = document.getElementById('act-municipality').value;
+            if (municipalityId) {
+                loadActivities(municipalityId, 1, activitiesSearchTerm, activitiesSectionFilter);
+            }
+        }
+        
+        // Cargar códigos CIIU del catálogo nacional
+        async function seedCIIUCodesForMunicipality() {
+            const municipalityId = document.getElementById('act-municipality').value;
+            if (!municipalityId) {
+                showAlert('⚠️ Primero seleccione un municipio', 'warning');
+                return;
+            }
+            
+            if (!confirm('¿Desea cargar los 504 códigos CIIU del catálogo nacional para este municipio?\n\nLos códigos se crearán con tarifa 0%. Luego deberá configurar las tarifas.')) {
+                return;
+            }
+            
+            try {
+                showLoading();
+                const result = await AdminAPI.seedCIIUCodes(municipalityId);
+                hideLoading();
+                
+                let message = `✅ ${result.message}\n\n`;
+                message += `📊 Códigos creados: ${result.created_count}\n`;
+                message += `🔄 Códigos actualizados: ${result.updated_count}\n`;
+                message += `⏭️ Códigos existentes: ${result.existing_count}\n`;
+                message += `📚 Total en catálogo: ${result.total_catalog}`;
+                
+                showAlert(message, 'success');
+                
+                // Recargar actividades y secciones
+                loadCIIUSections(municipalityId);
+                loadActivities(municipalityId, 1, '', '');
+                document.getElementById('activities-search').value = '';
+                document.getElementById('activities-section-filter').value = '';
+                activitiesSearchTerm = '';
+                activitiesSectionFilter = '';
+                
+            } catch (error) {
+                hideLoading();
+                showAlert('❌ Error al cargar códigos CIIU: ' + error.message, 'danger');
+            }
+        }
+        
+        async function loadActivities(municipalityId, page = 1, search = '', section = '') {
             if (!municipalityId) {
                 document.getElementById('activities-body').innerHTML = 
                     '<tr><td colspan="4" style="text-align: center;">Seleccione un municipio</td></tr>';
@@ -1557,56 +1620,35 @@
             
             activitiesCurrentPage = page;
             activitiesSearchTerm = search;
+            activitiesSectionFilter = section;
             
             try {
-                const result = await AdminAPI.listActivitiesPaginated(municipalityId, page, ACTIVITIES_PER_PAGE, search);
+                const result = await AdminAPI.listActivitiesPaginated(municipalityId, page, ACTIVITIES_PER_PAGE, search, section);
                 const tbody = document.getElementById('activities-body');
                 
                 if (result.items.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No hay actividades registradas</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No hay códigos CIIU registrados. Use "Cargar Catálogo Nacional" para cargarlos.</td></tr>';
                 } else {
-                    tbody.innerHTML = result.items.map(a => `
-                        <tr>
-                            <td><strong>${escapeHtml(a.ciiu_code)}</strong></td>
-                            <td>${escapeHtml(a.description)}</td>
-                            <td>${a.tax_rate}%</td>
-                            <td>
-                                <div class="d-flex gap-1">
-                                    <button class="btn btn-sm btn-primary edit-activity-btn" 
-                                            data-id="${a.id}" 
-                                            data-ciiu="${escapeHtml(a.ciiu_code)}" 
-                                            data-description="${escapeHtml(a.description)}" 
-                                            data-rate="${a.tax_rate}" 
-                                            title="Editar">
-                                        ✏️
-                                    </button>
-                                    <button class="btn btn-sm btn-danger delete-activity-btn" 
-                                            data-id="${a.id}" 
-                                            title="Eliminar">
-                                        🗑️
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    `).join('');
-                    
-                    // Agregar event listeners para los botones
-                    tbody.querySelectorAll('.edit-activity-btn').forEach(btn => {
-                        btn.addEventListener('click', function() {
-                            const id = parseInt(this.dataset.id);
-                            const ciiu = this.dataset.ciiu;
-                            const desc = this.dataset.description;
-                            const rate = parseFloat(this.dataset.rate);
-                            editActivity(id, ciiu, desc, rate);
-                        });
-                    });
-                    
-                    tbody.querySelectorAll('.delete-activity-btn').forEach(btn => {
-                        btn.addEventListener('click', function() {
-                            const id = parseInt(this.dataset.id);
-                            deleteActivity(id);
-                        });
-                    });
+                    tbody.innerHTML = result.items.map(a => {
+                        // Extract section letter from "SECCIÓN A" -> "A"
+                        const sectionLetter = a.section_code ? a.section_code.replace('SECCIÓN ', '').trim() : '-';
+                        return `
+                            <tr>
+                                <td><strong>${escapeHtml(a.ciiu_code)}</strong></td>
+                                <td title="${escapeHtml(a.description)}">${escapeHtml(a.description.substring(0, 50))}${a.description.length > 50 ? '...' : ''}</td>
+                                <td><span class="badge" style="background: #e5e7eb; color: #374151; font-size: 0.75rem;">${sectionLetter}</span></td>
+                                <td>
+                                    <input type="number" class="form-control tax-rate-input" 
+                                           data-id="${a.id}"
+                                           data-ciiu="${escapeHtml(a.ciiu_code)}"
+                                           value="${a.tax_rate}" 
+                                           min="0" max="100" step="0.01"
+                                           style="width: 80px; padding: 0.25rem 0.5rem; font-size: 0.875rem;"
+                                           onchange="updateTaxRate(this)">
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
                 }
                 
                 updateActivitiesPagination(result.total, result.page, result.total_pages);
@@ -1617,9 +1659,28 @@
             }
         }
         
+        // Actualizar tarifa de una actividad
+        async function updateTaxRate(input) {
+            const activityId = parseInt(input.dataset.id);
+            const ciiuCode = input.dataset.ciiu;
+            const newRate = parseFloat(input.value);
+            
+            if (isNaN(newRate) || newRate < 0 || newRate > 100) {
+                showAlert('❌ La tarifa debe ser un número entre 0 y 100', 'danger');
+                return;
+            }
+            
+            try {
+                await AdminAPI.updateActivityTaxRate(activityId, newRate);
+                showAlert(`✅ Tarifa del código ${ciiuCode} actualizada a ${newRate}%`, 'success');
+            } catch (error) {
+                showAlert('❌ Error al actualizar tarifa: ' + error.message, 'danger');
+            }
+        }
+        
         function updateActivitiesPagination(total, currentPage, totalPages) {
             document.getElementById('act-page-info').textContent = 
-                `Página ${currentPage} de ${totalPages || 1} (${total} actividades)`;
+                `Página ${currentPage} de ${totalPages || 1} (${total} códigos)`;
             document.getElementById('act-prev').disabled = currentPage <= 1;
             document.getElementById('act-next').disabled = currentPage >= totalPages;
         }
@@ -1627,7 +1688,7 @@
         function goToActivitiesPage(page) {
             const municipalityId = document.getElementById('act-municipality').value;
             if (municipalityId) {
-                loadActivities(municipalityId, page, activitiesSearchTerm);
+                loadActivities(municipalityId, page, activitiesSearchTerm, activitiesSectionFilter);
             }
         }
         
@@ -1637,7 +1698,7 @@
                 const searchTerm = document.getElementById('activities-search').value;
                 const municipalityId = document.getElementById('act-municipality').value;
                 if (municipalityId) {
-                    loadActivities(municipalityId, 1, searchTerm);
+                    loadActivities(municipalityId, 1, searchTerm, activitiesSectionFilter);
                 }
             }, 300);
         }
@@ -1650,115 +1711,32 @@
             return div.innerHTML;
         }
         
-        // ==================== CARGA MASIVA DE CIIU ====================
+        // ==================== (Funciones removidas - CSV upload no disponible) ====================
+        // Los códigos CIIU ahora se cargan desde el catálogo nacional usando seedCIIUCodesForMunicipality()
         
-        async function handleCIIUBulkUpload(input) {
-            if (!input.files || input.files.length === 0) {
-                return;
-            }
-            
-            const municipalityId = document.getElementById('act-municipality').value;
-            if (!municipalityId) {
-                showAlert('⚠️ Primero seleccione un municipio', 'warning');
-                input.value = '';
-                return;
-            }
-            
-            const file = input.files[0];
-            if (!file.name.endsWith('.csv')) {
-                showAlert('❌ Solo se permiten archivos CSV', 'danger');
-                input.value = '';
-                return;
-            }
-            
-            if (!confirm(`¿Desea cargar el archivo "${file.name}" con códigos CIIU?\n\nLos códigos existentes se actualizarán y los nuevos se agregarán.`)) {
-                input.value = '';
-                return;
-            }
-            
-            try {
-                showLoading();
-                const result = await AdminAPI.bulkUploadActivities(municipalityId, file);
-                hideLoading();
-                
-                let message = `✅ ${result.message}\n`;
-                message += `📊 Creados: ${result.created_count}\n`;
-                message += `🔄 Actualizados: ${result.updated_count}`;
-                
-                if (result.errors_count > 0) {
-                    message += `\n⚠️ Errores: ${result.errors_count}`;
-                    if (result.errors && result.errors.length > 0) {
-                        message += `\n\nPrimeros errores:\n${result.errors.slice(0, 5).join('\n')}`;
-                    }
-                }
-                
-                showAlert(message, result.errors_count > 0 ? 'warning' : 'success');
-                
-                // Recargar actividades
-                loadActivities(municipalityId, 1, '');
-                document.getElementById('activities-search').value = '';
-                
-            } catch (error) {
-                hideLoading();
-                showAlert('❌ Error al cargar archivo: ' + error.message, 'danger');
-            }
-            
-            input.value = '';
-        }
-        
-        function downloadCIIUTemplate() {
-            // Crear plantilla CSV de ejemplo
-            const template = `ciiu_code,description,tax_rate
-G4711,Comercio al por menor en establecimientos no especializados con surtido compuesto principalmente por alimentos bebidas o tabaco,4.14
-G4719,Comercio al por menor de otros artículos en establecimientos no especializados,4.14
-G4721,Comercio al por menor de productos agricolas para el consumo en establecimientos especializados,3.5
-G4771,Comercio al por menor de prendas de vestir y sus accesorios incluye articulos de piel en establecimientos especializados,5.0
-I5611,Expendio a la mesa de comidas preparadas,7.0
-I5613,Expendio de comidas preparadas en cafeterias,6.0`;
-            
-            const blob = new Blob([template], { type: 'text/csv;charset=utf-8;' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'plantilla_ciiu.csv';
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            a.remove();
-            
-            showAlert('📥 Plantilla CSV descargada', 'success');
-        }
-        
-        // Función para editar actividad (abre modal o inline)
+        // Función legado para editar actividad (ahora solo edita tarifa)
         function editActivity(id, ciiu_code, description, tax_rate) {
-            // Abrir modal de edición simple
-            const newCiiu = prompt('Código CIIU:', ciiu_code);
-            if (newCiiu === null) return;
-            
-            const newDescription = prompt('Descripción:', description);
-            if (newDescription === null) return;
-            
-            const newRate = prompt('Tarifa (%):', tax_rate);
+            const newRate = prompt(`Editar tarifa para código ${ciiu_code}:\n${description}\n\nTarifa actual: ${tax_rate}%\n\nIngrese nueva tarifa (0-100):`, tax_rate);
             if (newRate === null) return;
             
-            const municipalityId = document.getElementById('act-municipality').value;
-            if (!municipalityId) return;
+            const rate = parseFloat(newRate);
+            if (isNaN(rate) || rate < 0 || rate > 100) {
+                showAlert('❌ La tarifa debe ser un número entre 0 y 100', 'danger');
+                return;
+            }
             
-            updateActivityAsync(id, municipalityId, newCiiu, newDescription, parseFloat(newRate));
+            updateTaxRateAsync(id, ciiu_code, rate);
         }
         
-        async function updateActivityAsync(id, municipalityId, ciiu_code, description, tax_rate) {
+        async function updateTaxRateAsync(id, ciiu_code, rate) {
             try {
                 showLoading();
-                await AdminAPI.updateActivity(id, {
-                    municipality_id: parseInt(municipalityId),
-                    ciiu_code: ciiu_code,
-                    description: description,
-                    tax_rate: tax_rate
-                });
+                await AdminAPI.updateActivityTaxRate(id, rate);
                 hideLoading();
-                showAlert('✅ Actividad actualizada correctamente', 'success');
-                loadActivities(municipalityId, activitiesCurrentPage, activitiesSearchTerm);
+                showAlert(`✅ Tarifa del código ${ciiu_code} actualizada a ${rate}%`, 'success');
+                
+                const municipalityId = document.getElementById('act-municipality').value;
+                loadActivities(municipalityId, activitiesCurrentPage, activitiesSearchTerm, activitiesSectionFilter);
             } catch (error) {
                 hideLoading();
                 showAlert('❌ Error al actualizar: ' + error.message, 'danger');
@@ -1891,41 +1869,7 @@ I5613,Expendio de comidas preparadas en cafeterias,6.0`;
             }
         });
         
-        // Formulario de actividades
-        document.getElementById('activity-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const municipalityId = document.getElementById('act-municipality').value;
-            if (!municipalityId) {
-                alert('Seleccione un municipio');
-                return;
-            }
-            
-            try {
-                showLoading();
-                
-                await AdminAPI.createActivity({
-                    municipality_id: parseInt(municipalityId),
-                    ciiu_code: document.getElementById('act-ciiu').value,
-                    description: document.getElementById('act-description').value,
-                    tax_rate: parseFloat(document.getElementById('act-rate').value)
-                });
-                
-                document.getElementById('act-ciiu').value = '';
-                document.getElementById('act-description').value = '';
-                document.getElementById('act-rate').value = '4.14';
-                
-                loadActivities(municipalityId);
-                
-                hideLoading();
-                alert('✅ Actividad creada correctamente');
-            } catch (error) {
-                hideLoading();
-                alert('Error: ' + error.message);
-            }
-        });
-        
-        // (Formulario de creación de municipios eliminado - todos los municipios ya están precargados)
+        // (Formulario de creación de actividades eliminado - los códigos CIIU vienen precargados del catálogo nacional)
         
         // ==================== FUNCIONES AUXILIARES ====================
         
