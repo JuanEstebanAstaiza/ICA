@@ -6,6 +6,79 @@
     <meta name="description" content="Formulario Único Nacional de Declaración y Pago ICA">
     <title>Formulario ICA - Sistema de Declaración</title>
     <link rel="stylesheet" href="../css/styles.css">
+    <style>
+        /* Estilos para autocompletado de CIIU */
+        .ciiu-autocomplete-container {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+        .ciiu-autocomplete-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            max-height: 250px;
+            overflow-y: auto;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-top: none;
+            border-radius: 0 0 var(--radius) var(--radius);
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .ciiu-autocomplete-dropdown.active {
+            display: block;
+        }
+        .ciiu-autocomplete-option {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+            transition: background 0.2s;
+        }
+        .ciiu-autocomplete-option:hover,
+        .ciiu-autocomplete-option.highlighted {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+        }
+        .ciiu-autocomplete-option .ciiu-code {
+            font-weight: bold;
+            font-family: 'Roboto Mono', monospace;
+            margin-right: 0.5rem;
+        }
+        .ciiu-autocomplete-option .ciiu-rate {
+            font-size: 0.8rem;
+            opacity: 0.9;
+            float: right;
+            background: rgba(0,0,0,0.1);
+            padding: 0.1rem 0.4rem;
+            border-radius: 4px;
+        }
+        .ciiu-autocomplete-option:hover .ciiu-rate,
+        .ciiu-autocomplete-option.highlighted .ciiu-rate {
+            background: rgba(255,255,255,0.2);
+        }
+        .ciiu-autocomplete-option .ciiu-desc {
+            font-size: 0.85rem;
+            display: block;
+            margin-top: 0.25rem;
+            opacity: 0.85;
+        }
+        .ciiu-selected-badge {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-left: 0.5rem;
+        }
+        /* Campos autocompletados (readonly) */
+        input.ciiu-readonly {
+            background-color: #f3f4f6 !important;
+            cursor: not-allowed;
+        }
+    </style>
 </head>
 <body>
     <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
@@ -435,15 +508,21 @@
                         📊 SECCIÓN C – DISCRIMINACIÓN DE INGRESOS GRAVADOS Y ACTIVIDADES
                     </div>
                     <div class="card-body">
-                        <p class="form-text mb-2">
-                            Agregue las actividades económicas con su código CIIU, descripción, ingresos gravados, tarifa (en ‰) e impuesto ICA.
-                        </p>
+                        <!-- Indicador de autocompletado CIIU -->
+                        <div class="alert" style="margin-bottom: 1rem; background: linear-gradient(135deg, #dbeafe, #bfdbfe); border-left: 4px solid #2563eb;">
+                            <strong>📋 Autocompletado de Códigos CIIU:</strong>
+                            <span style="font-size: 0.875rem;">
+                                Al escribir el código CIIU, el sistema sugerirá actividades del catálogo oficial del municipio.
+                                La descripción y tarifa se completarán automáticamente. Solo debe ingresar el monto de ingresos gravados.
+                                Si requiere una tarifa especial, puede indicarla en el campo "Tarifa Esp."
+                            </span>
+                        </div>
                         
                         <table class="table">
                             <thead>
                                 <tr>
                                     <th style="width: 100px;">Tipo</th>
-                                    <th style="width: 100px;">Código CIIU</th>
+                                    <th style="width: 150px;">Código CIIU</th>
                                     <th>Descripción</th>
                                     <th style="width: 140px;">Ingresos Gravados</th>
                                     <th style="width: 90px;">Tarifa (%)</th>

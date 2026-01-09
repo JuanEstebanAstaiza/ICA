@@ -471,11 +471,83 @@ const AdminAPI = {
     },
     
     /**
+     * Listar actividades económicas con paginación
+     * @param {number} municipalityId - ID del municipio
+     * @param {number} page - Número de página (default 1)
+     * @param {number} perPage - Elementos por página (default 10)
+     * @param {string} search - Término de búsqueda opcional
+     */
+    async listActivitiesPaginated(municipalityId, page = 1, perPage = 10, search = '') {
+        const params = new URLSearchParams({
+            page: page.toString(),
+            per_page: perPage.toString()
+        });
+        if (search) {
+            params.append('search', search);
+        }
+        const response = await fetch(`${API_BASE_URL}/admin/activities/${municipalityId}/paginated?${params}`, {
+            headers: getHeaders()
+        });
+        return handleResponse(response);
+    },
+    
+    /**
+     * Buscar actividades económicas (para autocompletado)
+     * @param {number} municipalityId - ID del municipio
+     * @param {string} query - Término de búsqueda
+     * @param {number} limit - Máximo de resultados (default 10)
+     */
+    async searchActivities(municipalityId, query, limit = 10) {
+        const params = new URLSearchParams({
+            q: query,
+            limit: limit.toString()
+        });
+        const response = await fetch(`${API_BASE_URL}/admin/activities/${municipalityId}/search?${params}`, {
+            headers: getHeaders()
+        });
+        return handleResponse(response);
+    },
+    
+    /**
+     * Carga masiva de actividades económicas desde CSV
+     * @param {number} municipalityId - ID del municipio
+     * @param {File} file - Archivo CSV con las actividades
+     */
+    async bulkUploadActivities(municipalityId, file) {
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        const headers = {};
+        if (accessToken) {
+            headers['Authorization'] = `Bearer ${accessToken}`;
+        }
+        
+        const response = await fetch(`${API_BASE_URL}/admin/activities/bulk?municipality_id=${municipalityId}`, {
+            method: 'POST',
+            headers: headers,
+            body: formData
+        });
+        return handleResponse(response);
+    },
+    
+    /**
      * Crear actividad económica
      */
     async createActivity(data) {
         const response = await fetch(`${API_BASE_URL}/admin/activities`, {
             method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+        return handleResponse(response);
+    },
+    
+    /**
+     * Actualizar actividad económica
+     */
+    async updateActivity(activityId, data) {
+        const response = await fetch(`${API_BASE_URL}/admin/activities/${activityId}`, {
+            method: 'PUT',
             headers: getHeaders(),
             body: JSON.stringify(data)
         });

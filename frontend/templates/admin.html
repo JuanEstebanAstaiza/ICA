@@ -550,7 +550,7 @@
                                 </div>
                                 
                                 <div class="form-group">
-                                    <label for="act-rate" class="form-label">Tarifa ICA (‰)</label>
+                                    <label for="act-rate" class="form-label">Tarifa ICA (%)</label>
                                     <input type="number" id="act-rate" class="form-control" 
                                            min="0" max="100" step="0.01" value="4.14">
                                 </div>
@@ -562,13 +562,39 @@
                             
                             <hr>
                             
+                            <!-- Carga masiva de CIIU -->
+                            <div class="alert" style="background: linear-gradient(135deg, #f0fdf4, #dcfce7); border-left: 4px solid #16a34a; margin-bottom: 1rem;">
+                                <strong>📤 Carga Masiva de Códigos CIIU</strong>
+                                <p style="font-size: 0.875rem; margin: 0.5rem 0 0.75rem 0;">
+                                    Suba un archivo CSV con los códigos CIIU del municipio. El archivo debe tener las columnas: 
+                                    <code>ciiu_code</code>, <code>description</code>, <code>tax_rate</code>
+                                </p>
+                                <div class="d-flex gap-2" style="align-items: center;">
+                                    <label class="btn btn-primary" style="cursor: pointer; margin: 0;">
+                                        📁 Seleccionar Archivo CSV
+                                        <input type="file" id="ciiu-bulk-upload" accept=".csv" style="display: none;" onchange="handleCIIUBulkUpload(this)">
+                                    </label>
+                                    <button type="button" class="btn btn-ghost" onclick="downloadCIIUTemplate()">
+                                        📥 Descargar Plantilla
+                                    </button>
+                                </div>
+                            </div>
+                            
                             <h4>Actividades Registradas</h4>
+                            
+                            <!-- Búsqueda y filtro -->
+                            <div class="form-group" style="margin-bottom: 1rem;">
+                                <input type="text" id="activities-search" class="form-control" 
+                                       placeholder="🔍 Buscar por código o descripción..." 
+                                       oninput="searchActivitiesDebounced()">
+                            </div>
+                            
                             <table class="table" id="activities-table">
                                 <thead>
                                     <tr>
                                         <th>Código</th>
                                         <th>Descripción</th>
-                                        <th>Tarifa</th>
+                                        <th>Tarifa (%)</th>
                                         <th>Acciones</th>
                                     </tr>
                                 </thead>
@@ -580,6 +606,13 @@
                                     </tr>
                                 </tbody>
                             </table>
+                            
+                            <!-- Paginación de actividades -->
+                            <div class="pagination" id="activities-pagination">
+                                <button id="act-prev" disabled onclick="goToActivitiesPage(activitiesCurrentPage - 1)">← Anterior</button>
+                                <span class="pagination-info" id="act-page-info">Página 1 de 1</span>
+                                <button id="act-next" disabled onclick="goToActivitiesPage(activitiesCurrentPage + 1)">Siguiente →</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1507,35 +1540,203 @@
             }
         }
         
-        async function loadActivities(municipalityId) {
+        // ==================== ACTIVIDADES ECONÓMICAS CON PAGINACIÓN ====================
+        
+        const ACTIVITIES_PER_PAGE = 10;
+        let activitiesCurrentPage = 1;
+        let activitiesSearchTerm = '';
+        let searchDebounceTimer = null;
+        
+        async function loadActivities(municipalityId, page = 1, search = '') {
             if (!municipalityId) {
                 document.getElementById('activities-body').innerHTML = 
                     '<tr><td colspan="4" style="text-align: center;">Seleccione un municipio</td></tr>';
+                updateActivitiesPagination(0, 1, 1);
                 return;
             }
             
+            activitiesCurrentPage = page;
+            activitiesSearchTerm = search;
+            
             try {
-                const activities = await AdminAPI.listActivities(municipalityId);
+                const result = await AdminAPI.listActivitiesPaginated(municipalityId, page, ACTIVITIES_PER_PAGE, search);
                 const tbody = document.getElementById('activities-body');
                 
-                if (activities.length === 0) {
+                if (result.items.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No hay actividades registradas</td></tr>';
                 } else {
-                    tbody.innerHTML = activities.map(a => `
+                    tbody.innerHTML = result.items.map(a => `
                         <tr>
-                            <td>${a.ciiu_code}</td>
-                            <td>${a.description}</td>
-                            <td>${a.tax_rate}‰</td>
+                            <td><strong>${escapeHtml(a.ciiu_code)}</strong></td>
+                            <td>${escapeHtml(a.description)}</td>
+                            <td>${a.tax_rate}%</td>
                             <td>
-                                <button class="btn btn-sm btn-danger" onclick="deleteActivity(${a.id})">
-                                    Eliminar
-                                </button>
+                                <div class="d-flex gap-1">
+                                    <button class="btn btn-sm btn-primary" onclick="editActivity(${a.id}, '${escapeHtml(a.ciiu_code)}', '${escapeHtml(a.description.replace(/'/g, "\\'"))}', ${a.tax_rate})" title="Editar">
+                                        ✏️
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteActivity(${a.id})" title="Eliminar">
+                                        🗑️
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     `).join('');
                 }
+                
+                updateActivitiesPagination(result.total, result.page, result.total_pages);
             } catch (error) {
                 console.error('Error loading activities:', error);
+                document.getElementById('activities-body').innerHTML = 
+                    '<tr><td colspan="4" style="text-align: center; color: red;">Error al cargar actividades</td></tr>';
+            }
+        }
+        
+        function updateActivitiesPagination(total, currentPage, totalPages) {
+            document.getElementById('act-page-info').textContent = 
+                `Página ${currentPage} de ${totalPages || 1} (${total} actividades)`;
+            document.getElementById('act-prev').disabled = currentPage <= 1;
+            document.getElementById('act-next').disabled = currentPage >= totalPages;
+        }
+        
+        function goToActivitiesPage(page) {
+            const municipalityId = document.getElementById('act-municipality').value;
+            if (municipalityId) {
+                loadActivities(municipalityId, page, activitiesSearchTerm);
+            }
+        }
+        
+        function searchActivitiesDebounced() {
+            clearTimeout(searchDebounceTimer);
+            searchDebounceTimer = setTimeout(() => {
+                const searchTerm = document.getElementById('activities-search').value;
+                const municipalityId = document.getElementById('act-municipality').value;
+                if (municipalityId) {
+                    loadActivities(municipalityId, 1, searchTerm);
+                }
+            }, 300);
+        }
+        
+        // Función auxiliar para escapar HTML
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // ==================== CARGA MASIVA DE CIIU ====================
+        
+        async function handleCIIUBulkUpload(input) {
+            if (!input.files || input.files.length === 0) {
+                return;
+            }
+            
+            const municipalityId = document.getElementById('act-municipality').value;
+            if (!municipalityId) {
+                showAlert('⚠️ Primero seleccione un municipio', 'warning');
+                input.value = '';
+                return;
+            }
+            
+            const file = input.files[0];
+            if (!file.name.endsWith('.csv')) {
+                showAlert('❌ Solo se permiten archivos CSV', 'danger');
+                input.value = '';
+                return;
+            }
+            
+            if (!confirm(`¿Desea cargar el archivo "${file.name}" con códigos CIIU?\n\nLos códigos existentes se actualizarán y los nuevos se agregarán.`)) {
+                input.value = '';
+                return;
+            }
+            
+            try {
+                showLoading();
+                const result = await AdminAPI.bulkUploadActivities(municipalityId, file);
+                hideLoading();
+                
+                let message = `✅ ${result.message}\n`;
+                message += `📊 Creados: ${result.created_count}\n`;
+                message += `🔄 Actualizados: ${result.updated_count}`;
+                
+                if (result.errors_count > 0) {
+                    message += `\n⚠️ Errores: ${result.errors_count}`;
+                    if (result.errors && result.errors.length > 0) {
+                        message += `\n\nPrimeros errores:\n${result.errors.slice(0, 5).join('\n')}`;
+                    }
+                }
+                
+                showAlert(message, result.errors_count > 0 ? 'warning' : 'success');
+                
+                // Recargar actividades
+                loadActivities(municipalityId, 1, '');
+                document.getElementById('activities-search').value = '';
+                
+            } catch (error) {
+                hideLoading();
+                showAlert('❌ Error al cargar archivo: ' + error.message, 'danger');
+            }
+            
+            input.value = '';
+        }
+        
+        function downloadCIIUTemplate() {
+            // Crear plantilla CSV de ejemplo
+            const template = `ciiu_code,description,tax_rate
+G4711,Comercio al por menor en establecimientos no especializados con surtido compuesto principalmente por alimentos bebidas o tabaco,4.14
+G4719,Comercio al por menor de otros artículos en establecimientos no especializados,4.14
+G4721,Comercio al por menor de productos agricolas para el consumo en establecimientos especializados,3.5
+G4771,Comercio al por menor de prendas de vestir y sus accesorios incluye articulos de piel en establecimientos especializados,5.0
+I5611,Expendio a la mesa de comidas preparadas,7.0
+I5613,Expendio de comidas preparadas en cafeterias,6.0`;
+            
+            const blob = new Blob([template], { type: 'text/csv;charset=utf-8;' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'plantilla_ciiu.csv';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+            
+            showAlert('📥 Plantilla CSV descargada', 'success');
+        }
+        
+        // Función para editar actividad (abre modal o inline)
+        function editActivity(id, ciiu_code, description, tax_rate) {
+            // Abrir modal de edición simple
+            const newCiiu = prompt('Código CIIU:', ciiu_code);
+            if (newCiiu === null) return;
+            
+            const newDescription = prompt('Descripción:', description);
+            if (newDescription === null) return;
+            
+            const newRate = prompt('Tarifa (%):', tax_rate);
+            if (newRate === null) return;
+            
+            const municipalityId = document.getElementById('act-municipality').value;
+            if (!municipalityId) return;
+            
+            updateActivityAsync(id, municipalityId, newCiiu, newDescription, parseFloat(newRate));
+        }
+        
+        async function updateActivityAsync(id, municipalityId, ciiu_code, description, tax_rate) {
+            try {
+                showLoading();
+                await AdminAPI.updateActivity(id, {
+                    municipality_id: parseInt(municipalityId),
+                    ciiu_code: ciiu_code,
+                    description: description,
+                    tax_rate: tax_rate
+                });
+                hideLoading();
+                showAlert('✅ Actividad actualizada correctamente', 'success');
+                loadActivities(municipalityId, activitiesCurrentPage, activitiesSearchTerm);
+            } catch (error) {
+                hideLoading();
+                showAlert('❌ Error al actualizar: ' + error.message, 'danger');
             }
         }
         

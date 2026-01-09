@@ -580,7 +580,8 @@ class ICAFormController {
             income: 0,
             tax_rate: 0,
             special_rate: null,
-            generated_tax: 0
+            generated_tax: 0,
+            ciiu_from_catalog: false  // Indica si fue seleccionado del catálogo
         };
         
         this.activities.push(activityData);
@@ -601,6 +602,11 @@ class ICAFormController {
         
         this.activities.forEach((activity, index) => {
             const row = document.createElement('tr');
+            // Si fue seleccionado del catálogo, descripción y tarifa son readonly
+            const isFromCatalog = activity.ciiu_from_catalog;
+            const descReadonly = isFromCatalog && !this.isSigned ? 'readonly class="form-control ciiu-readonly"' : 'class="form-control"';
+            const rateReadonly = isFromCatalog && !this.isSigned ? 'readonly class="form-control ciiu-readonly"' : 'class="form-control"';
+            
             row.innerHTML = `
                 <td>
                     <select class="form-control" 
@@ -611,17 +617,22 @@ class ICAFormController {
                     </select>
                 </td>
                 <td>
-                    <input type="text" class="form-control" 
-                           id="activity_ciiu_${index}" 
-                           value="${activity.ciiu_code}"
-                           placeholder="Código CIIU"
-                           ${this.isSigned ? 'disabled' : ''}>
+                    <div class="ciiu-autocomplete-container">
+                        <input type="text" class="form-control" 
+                               id="activity_ciiu_${index}" 
+                               value="${this.escapeHtml(activity.ciiu_code)}"
+                               placeholder="Buscar CIIU..."
+                               autocomplete="off"
+                               ${this.isSigned ? 'disabled' : ''}>
+                        <div id="ciiu_dropdown_${index}" class="ciiu-autocomplete-dropdown"></div>
+                    </div>
                 </td>
                 <td>
-                    <input type="text" class="form-control" 
+                    <input type="text" ${descReadonly}
                            id="activity_desc_${index}" 
-                           value="${activity.description}"
+                           value="${this.escapeHtml(activity.description)}"
                            placeholder="Descripción"
+                           title="${isFromCatalog ? 'Descripción del catálogo oficial CIIU' : 'Ingrese descripción'}"
                            ${this.isSigned ? 'disabled' : ''}>
                 </td>
                 <td>
@@ -629,12 +640,14 @@ class ICAFormController {
                            id="activity_income_${index}" 
                            value="${activity.income}"
                            min="0" step="0.01"
+                           placeholder="Ingresos"
                            ${this.isSigned ? 'disabled' : ''}>
                 </td>
                 <td>
-                    <input type="text" class="form-control" 
+                    <input type="text" ${rateReadonly}
                            id="activity_rate_${index}" 
                            value="${activity.tax_rate}"
+                           title="${isFromCatalog ? 'Tarifa del catálogo oficial CIIU' : 'Ingrese tarifa'}"
                            ${this.isSigned ? 'disabled' : ''}>
                 </td>
                 <td class="calculated-field" id="activity_tax_${index}">
@@ -687,27 +700,191 @@ class ICAFormController {
                 });
             }
             
-            // Eventos para actualizar tipo, descripción y código
+            // Eventos para actualizar tipo
             const typeInput = document.getElementById(`activity_type_${index}`);
-            const ciiuInput = document.getElementById(`activity_ciiu_${index}`);
-            const descInput = document.getElementById(`activity_desc_${index}`);
-            
             if (typeInput) {
                 typeInput.addEventListener('change', (e) => {
                     this.activities[index].activity_type = e.target.value;
                 });
             }
             
-            if (ciiuInput) {
-                ciiuInput.addEventListener('input', (e) => {
-                    this.activities[index].ciiu_code = e.target.value;
-                });
+            // Configurar autocompletado CIIU
+            this.setupCIIUAutocomplete(index);
+        });
+    }
+    
+    /**
+     * Escapar HTML para prevenir XSS
+     */
+    escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    /**
+     * Configurar autocompletado de código CIIU para una actividad
+     */
+    setupCIIUAutocomplete(index) {
+        const ciiuInput = document.getElementById(`activity_ciiu_${index}`);
+        const dropdown = document.getElementById(`ciiu_dropdown_${index}`);
+        const descInput = document.getElementById(`activity_desc_${index}`);
+        const rateInput = document.getElementById(`activity_rate_${index}`);
+        
+        if (!ciiuInput || !dropdown) return;
+        
+        let debounceTimer = null;
+        let highlightedIndex = -1;
+        let currentOptions = [];
+        
+        // Obtener el municipio seleccionado
+        const getMunicipalityId = () => {
+            const select = document.getElementById('municipality_id');
+            return select ? select.value : null;
+        };
+        
+        // Buscar actividades CIIU
+        const searchCIIU = async (query) => {
+            const municipalityId = getMunicipalityId();
+            if (!municipalityId || query.length < 1) {
+                dropdown.classList.remove('active');
+                return;
             }
             
-            if (descInput) {
-                descInput.addEventListener('input', (e) => {
-                    this.activities[index].description = e.target.value;
-                });
+            try {
+                const results = await AdminAPI.searchActivities(municipalityId, query, 10);
+                currentOptions = results;
+                
+                if (results.length > 0) {
+                    dropdown.innerHTML = results.map((item, i) => `
+                        <div class="ciiu-autocomplete-option" data-index="${i}">
+                            <span class="ciiu-code">${this.escapeHtml(item.ciiu_code)}</span>
+                            <span class="ciiu-rate">${item.tax_rate}%</span>
+                            <span class="ciiu-desc">${this.escapeHtml(item.description)}</span>
+                        </div>
+                    `).join('');
+                    
+                    dropdown.classList.add('active');
+                    highlightedIndex = -1;
+                    
+                    // Agregar eventos de click
+                    dropdown.querySelectorAll('.ciiu-autocomplete-option').forEach((opt, i) => {
+                        opt.addEventListener('click', () => selectCIIUOption(i));
+                        opt.addEventListener('mouseenter', () => {
+                            highlightOption(i);
+                        });
+                    });
+                } else {
+                    dropdown.innerHTML = '<div class="ciiu-autocomplete-option" style="color: #9ca3af;">No se encontraron resultados</div>';
+                    dropdown.classList.add('active');
+                }
+            } catch (error) {
+                console.error('Error searching CIIU:', error);
+                dropdown.classList.remove('active');
+            }
+        };
+        
+        // Seleccionar opción
+        const selectCIIUOption = (optIndex) => {
+            const selected = currentOptions[optIndex];
+            if (!selected) return;
+            
+            // Actualizar campos
+            ciiuInput.value = selected.ciiu_code;
+            descInput.value = selected.description;
+            rateInput.value = selected.tax_rate;
+            
+            // Hacer campos readonly ya que vienen del catálogo
+            descInput.readOnly = true;
+            descInput.classList.add('ciiu-readonly');
+            rateInput.readOnly = true;
+            rateInput.classList.add('ciiu-readonly');
+            
+            // Actualizar datos de la actividad
+            this.activities[index].ciiu_code = selected.ciiu_code;
+            this.activities[index].description = selected.description;
+            this.activities[index].tax_rate = selected.tax_rate;
+            this.activities[index].ciiu_from_catalog = true;
+            
+            // Cerrar dropdown
+            dropdown.classList.remove('active');
+            
+            // Recalcular
+            this.recalculate();
+            
+            // Enfocar en el campo de ingresos para facilitar entrada de datos
+            const incomeInput = document.getElementById(`activity_income_${index}`);
+            if (incomeInput) {
+                incomeInput.focus();
+                incomeInput.select();
+            }
+        };
+        
+        // Resaltar opción
+        const highlightOption = (i) => {
+            const options = dropdown.querySelectorAll('.ciiu-autocomplete-option');
+            options.forEach((opt, idx) => {
+                opt.classList.toggle('highlighted', idx === i);
+            });
+            highlightedIndex = i;
+        };
+        
+        // Input event con debounce
+        ciiuInput.addEventListener('input', (e) => {
+            clearTimeout(debounceTimer);
+            
+            // Si el usuario escribe manualmente, quitar readonly de desc y rate
+            this.activities[index].ciiu_from_catalog = false;
+            descInput.readOnly = false;
+            descInput.classList.remove('ciiu-readonly');
+            rateInput.readOnly = false;
+            rateInput.classList.remove('ciiu-readonly');
+            
+            // Actualizar valor
+            this.activities[index].ciiu_code = e.target.value;
+            
+            debounceTimer = setTimeout(() => {
+                searchCIIU(e.target.value);
+            }, 250);
+        });
+        
+        // Eventos de teclado para navegación
+        ciiuInput.addEventListener('keydown', (e) => {
+            if (!dropdown.classList.contains('active')) return;
+            
+            const options = dropdown.querySelectorAll('.ciiu-autocomplete-option');
+            
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                highlightedIndex = Math.min(highlightedIndex + 1, currentOptions.length - 1);
+                highlightOption(highlightedIndex);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                highlightedIndex = Math.max(highlightedIndex - 1, 0);
+                highlightOption(highlightedIndex);
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (highlightedIndex >= 0 && highlightedIndex < currentOptions.length) {
+                    selectCIIUOption(highlightedIndex);
+                }
+            } else if (e.key === 'Escape') {
+                dropdown.classList.remove('active');
+            }
+        });
+        
+        // Cerrar al perder foco
+        ciiuInput.addEventListener('blur', () => {
+            // Pequeño delay para permitir click en opciones
+            setTimeout(() => {
+                dropdown.classList.remove('active');
+            }, 200);
+        });
+        
+        // Reabrir al enfocar si hay valor
+        ciiuInput.addEventListener('focus', () => {
+            if (ciiuInput.value.length >= 1) {
+                searchCIIU(ciiuInput.value);
             }
         });
     }
