@@ -30,3 +30,16 @@ El script crea los siguientes usuarios:
 4. **Super Admin** - superadmin@sistema.com / Super2024!
 
 Ver más detalles en `docs/DATOS_PRUEBA.md`
+
+### recordatorio seed_ciiu_codes.py
+
+El script funciona correctamente sin embargo en los modelos no estan las siguientes tablas 
+
+1. **section_code**
+2. **tax_activities**
+
+Para ello ejecutar:
+
+docker compose exec postgres psql -U ica_user -d ica_db -c "ALTER TABLE tax_activities ADD COLUMN IF NOT EXISTS section_code VARCHAR(20); ALTER TABLE tax_activities ADD COLUMN IF NOT EXISTS section_name VARCHAR(255);"
+
+docker compose restart backend
