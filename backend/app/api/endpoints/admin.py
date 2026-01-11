@@ -25,6 +25,12 @@ from ...core.config import settings
 from ...core.security import get_password_hash
 from .auth import get_current_active_user, require_role
 
+# Import CIIU codes from national catalog
+try:
+    from scripts.ciiu_codes_data import CIIU_CODES
+except ImportError:
+    CIIU_CODES = None
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/admin", tags=["Administración"])
@@ -337,42 +343,10 @@ async def upload_logo(
     return {"message": "Logo subido correctamente", "path": file_path}
 
 
-# ===================== ACTIVIDADES ECONÓMICAS =====================
-
-@router.post("/activities", response_model=TaxActivityResponse)
-async def create_tax_activity(
-    data: TaxActivityCreate,
-    current_user: User = Depends(require_role([
-        UserRole.ADMIN_ALCALDIA, 
-        UserRole.ADMIN_SISTEMA
-    ])),
-    db: Session = Depends(get_db)
-):
-    """
-    Crea una actividad económica con su tarifa ICA.
-    Catálogo CIIU por municipio.
-    """
-    # Verificar permisos
-    if current_user.role == UserRole.ADMIN_ALCALDIA:
-        if current_user.municipality_id != data.municipality_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Solo puede crear actividades para su municipio"
-            )
-    
-    activity = TaxActivity(
-        municipality_id=data.municipality_id,
-        ciiu_code=data.ciiu_code,
-        description=data.description,
-        tax_rate=data.tax_rate
-    )
-    
-    db.add(activity)
-    db.commit()
-    db.refresh(activity)
-    
-    return activity
-
+# ===================== ACTIVIDADES ECONÓMICAS (CÓDIGOS CIIU) =====================
+# Los códigos CIIU vienen precargados del catálogo nacional (504 códigos de 4 dígitos).
+# Organizados por secciones (A-U) según la clasificación oficial.
+# Solo la tarifa (tax_rate) es editable por el administrador.
 
 @router.get("/activities/{municipality_id}", response_model=List[TaxActivityResponse])
 async def list_tax_activities(
@@ -391,12 +365,45 @@ async def list_tax_activities(
     return activities
 
 
+@router.get("/activities/{municipality_id}/sections")
+async def list_ciiu_sections(
+    municipality_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Lista las secciones CIIU disponibles para un municipio.
+    Usado para el filtro por sección en el panel de admin y formulario del declarante.
+    
+    Returns:
+        Lista de secciones con código y nombre
+    """
+    # Obtener secciones únicas de las actividades del municipio
+    sections = db.query(
+        TaxActivity.section_code,
+        TaxActivity.section_name
+    ).filter(
+        TaxActivity.municipality_id == municipality_id,
+        TaxActivity.is_active == True,
+        TaxActivity.section_code.isnot(None)
+    ).distinct().order_by(TaxActivity.section_code).all()
+    
+    return [
+        {
+            "section_code": s.section_code,
+            "section_name": s.section_name,
+        }
+        for s in sections
+    ]
+
+
 @router.get("/activities/{municipality_id}/paginated")
 async def list_tax_activities_paginated(
     municipality_id: int,
     page: int = 1,
     per_page: int = 10,
     search: Optional[str] = None,
+    section: Optional[str] = None,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
@@ -409,6 +416,7 @@ async def list_tax_activities_paginated(
         page: Número de página (default 1)
         per_page: Elementos por página (default 10, max 100)
         search: Término de búsqueda para filtrar por código CIIU o descripción
+        section: Código de sección para filtrar (ej: 'SECCIÓN A')
     """
     # Validar parámetros
     if page < 1:
@@ -424,6 +432,10 @@ async def list_tax_activities_paginated(
         TaxActivity.is_active == True
     )
     
+    # Aplicar filtro de sección si existe
+    if section:
+        query = query.filter(TaxActivity.section_code == section)
+    
     # Aplicar filtro de búsqueda si existe
     if search:
         search_term = f"%{search}%"
@@ -437,7 +449,7 @@ async def list_tax_activities_paginated(
     
     # Aplicar paginación
     offset = (page - 1) * per_page
-    activities = query.order_by(TaxActivity.ciiu_code).offset(offset).limit(per_page).all()
+    activities = query.order_by(TaxActivity.section_code, TaxActivity.ciiu_code).offset(offset).limit(per_page).all()
     
     # Calcular páginas
     total_pages = (total + per_page - 1) // per_page if total > 0 else 1
@@ -450,6 +462,8 @@ async def list_tax_activities_paginated(
                 "ciiu_code": a.ciiu_code,
                 "description": a.description,
                 "tax_rate": a.tax_rate,
+                "section_code": a.section_code,
+                "section_name": a.section_name,
                 "is_active": a.is_active
             }
             for a in activities
@@ -468,6 +482,7 @@ async def search_tax_activities(
     municipality_id: int,
     q: str,
     limit: int = 10,
+    section: Optional[str] = None,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
@@ -479,6 +494,7 @@ async def search_tax_activities(
         municipality_id: ID del municipio
         q: Término de búsqueda
         limit: Máximo de resultados (default 10)
+        section: Filtrar por sección (ej: 'SECCIÓN A')
     """
     if not q or len(q) < 1:
         return []
@@ -488,28 +504,35 @@ async def search_tax_activities(
     
     search_term = f"%{q}%"
     
-    activities = db.query(TaxActivity).filter(
+    query = db.query(TaxActivity).filter(
         TaxActivity.municipality_id == municipality_id,
         TaxActivity.is_active == True,
         (TaxActivity.ciiu_code.ilike(search_term)) |
         (TaxActivity.description.ilike(search_term))
-    ).order_by(TaxActivity.ciiu_code).limit(limit).all()
+    )
+    
+    # Aplicar filtro de sección si se proporciona
+    if section:
+        query = query.filter(TaxActivity.section_code == section)
+    
+    activities = query.order_by(TaxActivity.section_code, TaxActivity.ciiu_code).limit(limit).all()
     
     return [
         {
             "id": a.id,
             "ciiu_code": a.ciiu_code,
             "description": a.description,
-            "tax_rate": a.tax_rate
+            "tax_rate": a.tax_rate,
+            "section_code": a.section_code,
+            "section_name": a.section_name
         }
         for a in activities
     ]
 
 
-@router.post("/activities/bulk")
-async def bulk_create_tax_activities(
+@router.post("/activities/{municipality_id}/seed")
+async def seed_ciiu_codes(
     municipality_id: int,
-    file: UploadFile = File(...),
     current_user: User = Depends(require_role([
         UserRole.ADMIN_ALCALDIA, 
         UserRole.ADMIN_SISTEMA
@@ -517,26 +540,29 @@ async def bulk_create_tax_activities(
     db: Session = Depends(get_db)
 ):
     """
-    Carga masiva de actividades económicas (códigos CIIU) desde un archivo CSV.
+    Carga los 504 códigos CIIU del catálogo nacional para un municipio.
+    Los códigos se crean con tarifa inicial 0% - el administrador debe configurar las tarifas.
     
-    Formato del archivo CSV esperado:
-    - Primera fila (encabezados): ciiu_code,description,tax_rate
-    - Filas siguientes: datos de cada actividad
-    
-    Ejemplo:
-    ciiu_code,description,tax_rate
-    G4711,Comercio al por menor en establecimientos no especializados,4.14
-    G4719,Comercio al por menor de otros artículos en establecimientos no especializados,4.14
+    Este endpoint reemplaza la carga masiva por CSV.
+    Los códigos CIIU y descripciones son fijos del catálogo nacional.
+    Solo la tarifa (tax_rate) es editable posteriormente.
     """
-    import csv
-    import io
+    # Default tax rate for new CIIU codes - admin must configure actual rates
+    DEFAULT_TAX_RATE = 0.0
+    
+    # Verificar que el catálogo de códigos CIIU está disponible
+    if CIIU_CODES is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="No se pudo cargar el catálogo de códigos CIIU"
+        )
     
     # Verificar permisos
     if current_user.role == UserRole.ADMIN_ALCALDIA:
         if current_user.municipality_id != municipality_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Solo puede crear actividades para su municipio"
+                detail="Solo puede cargar códigos para su municipio"
             )
     
     # Verificar que el municipio existe
@@ -550,132 +576,56 @@ async def bulk_create_tax_activities(
             detail="Municipio no encontrado"
         )
     
-    # Validar tipo de archivo
-    if not file.filename.endswith('.csv'):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Solo se permiten archivos CSV"
-        )
+    created_count = 0
+    updated_count = 0
+    existing_count = 0
     
-    try:
-        # Leer contenido del archivo
-        content = await file.read()
-        decoded_content = content.decode('utf-8')
+    for ciiu in CIIU_CODES:
+        # Verificar si ya existe
+        existing = db.query(TaxActivity).filter(
+            TaxActivity.municipality_id == municipality_id,
+            TaxActivity.ciiu_code == ciiu['ciiu_code']
+        ).first()
         
-        # Parsear CSV
-        csv_reader = csv.DictReader(io.StringIO(decoded_content))
-        
-        # Validar encabezados
-        required_headers = {'ciiu_code', 'description', 'tax_rate'}
-        if not csv_reader.fieldnames:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="El archivo CSV está vacío o no tiene encabezados"
+        if existing:
+            # Si existe pero le falta la sección, actualizarla
+            if not existing.section_code or not existing.section_name:
+                existing.section_code = ciiu['section_code']
+                existing.section_name = ciiu['section_name']
+                updated_count += 1
+            existing_count += 1
+        else:
+            # Crear nueva actividad con tarifa inicial (el admin debe configurarla)
+            activity = TaxActivity(
+                municipality_id=municipality_id,
+                ciiu_code=ciiu['ciiu_code'],
+                description=ciiu['description'],
+                tax_rate=DEFAULT_TAX_RATE,
+                section_code=ciiu['section_code'],
+                section_name=ciiu['section_name'],
+                is_active=True
             )
-        
-        # Normalizar nombres de columnas (convertir a minúsculas y eliminar espacios)
-        normalized_headers = {h.lower().strip() for h in csv_reader.fieldnames}
-        if not required_headers.issubset(normalized_headers):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"El archivo CSV debe tener las columnas: {', '.join(required_headers)}"
-            )
-        
-        created_count = 0
-        updated_count = 0
-        errors = []
-        
-        for row_num, row in enumerate(csv_reader, start=2):
-            try:
-                # Normalizar claves del row
-                normalized_row = {k.lower().strip(): v for k, v in row.items()}
-                
-                ciiu_code = normalized_row.get('ciiu_code', '').strip()
-                description = normalized_row.get('description', '').strip()
-                tax_rate_str = normalized_row.get('tax_rate', '0').strip()
-                
-                if not ciiu_code:
-                    errors.append(f"Fila {row_num}: Código CIIU vacío")
-                    continue
-                
-                if not description:
-                    errors.append(f"Fila {row_num}: Descripción vacía")
-                    continue
-                
-                # Parsear tarifa (soportar formato con coma decimal)
-                # El formato esperado es un número decimal (ej: 4.14 o 4,14)
-                # NO soporta separadores de miles - solo coma como separador decimal
-                tax_rate_str = tax_rate_str.replace(',', '.')
-                # Remover múltiples puntos (previene errores con formato incorrecto)
-                parts = tax_rate_str.split('.')
-                if len(parts) > 2:
-                    # Si tiene más de un punto, juntar las partes enteras
-                    tax_rate_str = ''.join(parts[:-1]) + '.' + parts[-1]
-                try:
-                    tax_rate = float(tax_rate_str)
-                except ValueError:
-                    errors.append(f"Fila {row_num}: Tarifa inválida '{normalized_row.get('tax_rate', '')}'. Use formato decimal (ej: 4.14)")
-                    continue
-                
-                if tax_rate < 0 or tax_rate > 100:
-                    errors.append(f"Fila {row_num}: Tarifa debe estar entre 0 y 100")
-                    continue
-                
-                # Verificar si ya existe la actividad para este municipio
-                existing = db.query(TaxActivity).filter(
-                    TaxActivity.municipality_id == municipality_id,
-                    TaxActivity.ciiu_code == ciiu_code
-                ).first()
-                
-                if existing:
-                    # Actualizar la existente
-                    existing.description = description
-                    existing.tax_rate = tax_rate
-                    existing.is_active = True
-                    updated_count += 1
-                else:
-                    # Crear nueva actividad
-                    activity = TaxActivity(
-                        municipality_id=municipality_id,
-                        ciiu_code=ciiu_code,
-                        description=description,
-                        tax_rate=tax_rate
-                    )
-                    db.add(activity)
-                    created_count += 1
-                
-            except Exception as e:
-                errors.append(f"Fila {row_num}: Error inesperado - {str(e)}")
-        
-        # Commit todos los cambios
-        db.commit()
-        
-        return {
-            "message": "Carga masiva completada",
-            "created_count": created_count,
-            "updated_count": updated_count,
-            "errors_count": len(errors),
-            "errors": errors[:20] if errors else None,  # Limitar errores mostrados
-            "total_processed": created_count + updated_count
-        }
-        
-    except UnicodeDecodeError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Error al decodificar el archivo. Asegúrese de que sea UTF-8"
-        )
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al procesar el archivo: {str(e)}"
-        )
+            db.add(activity)
+            created_count += 1
+    
+    db.commit()
+    
+    return {
+        "message": "Códigos CIIU cargados correctamente",
+        "municipality_id": municipality_id,
+        "municipality_name": municipality.name,
+        "created_count": created_count,
+        "updated_count": updated_count,
+        "existing_count": existing_count,
+        "total_catalog": len(CIIU_CODES),
+        "note": "Los códigos se crearon con tarifa 0%. Configure las tarifas desde el panel de administración."
+    }
 
 
-@router.put("/activities/{activity_id}", response_model=TaxActivityResponse)
-async def update_tax_activity(
+@router.put("/activities/{activity_id}/tax-rate")
+async def update_activity_tax_rate(
     activity_id: int,
-    data: TaxActivityCreate,
+    tax_rate: float,
     current_user: User = Depends(require_role([
         UserRole.ADMIN_ALCALDIA, 
         UserRole.ADMIN_SISTEMA
@@ -683,8 +633,21 @@ async def update_tax_activity(
     db: Session = Depends(get_db)
 ):
     """
-    Actualiza una actividad económica.
+    Actualiza SOLO la tarifa de una actividad económica.
+    
+    Los códigos CIIU y descripciones son fijos del catálogo nacional
+    y no pueden ser modificados. Solo la tarifa es editable.
+    
+    Args:
+        activity_id: ID de la actividad
+        tax_rate: Nueva tarifa (0-100%)
     """
+    if tax_rate < 0 or tax_rate > 100:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La tarifa debe estar entre 0 y 100"
+        )
+    
     activity = db.query(TaxActivity).filter(
         TaxActivity.id == activity_id
     ).first()
@@ -703,19 +666,27 @@ async def update_tax_activity(
                 detail="Solo puede modificar actividades de su municipio"
             )
     
-    activity.ciiu_code = data.ciiu_code
-    activity.description = data.description
-    activity.tax_rate = data.tax_rate
-    
+    activity.tax_rate = tax_rate
     db.commit()
     db.refresh(activity)
     
-    return activity
+    return {
+        "message": "Tarifa actualizada correctamente",
+        "activity": {
+            "id": activity.id,
+            "ciiu_code": activity.ciiu_code,
+            "description": activity.description,
+            "tax_rate": activity.tax_rate,
+            "section_code": activity.section_code,
+            "section_name": activity.section_name
+        }
+    }
 
 
-@router.delete("/activities/{activity_id}")
-async def delete_tax_activity(
-    activity_id: int,
+@router.put("/activities/{municipality_id}/bulk-tax-rate")
+async def bulk_update_tax_rates(
+    municipality_id: int,
+    updates: List[dict],
     current_user: User = Depends(require_role([
         UserRole.ADMIN_ALCALDIA, 
         UserRole.ADMIN_SISTEMA
@@ -723,30 +694,82 @@ async def delete_tax_activity(
     db: Session = Depends(get_db)
 ):
     """
-    Desactiva una actividad económica (soft delete).
+    Actualiza las tarifas de múltiples actividades en lote.
+    
+    Args:
+        municipality_id: ID del municipio
+        updates: Lista de objetos con {ciiu_code: str, tax_rate: float}
+    
+    Ejemplo de body:
+    [
+        {"ciiu_code": "0111", "tax_rate": 5.0},
+        {"ciiu_code": "0112", "tax_rate": 4.5},
+        ...
+    ]
     """
-    activity = db.query(TaxActivity).filter(
-        TaxActivity.id == activity_id
-    ).first()
-    
-    if not activity:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Actividad no encontrada"
-        )
-    
     # Verificar permisos
     if current_user.role == UserRole.ADMIN_ALCALDIA:
-        if current_user.municipality_id != activity.municipality_id:
+        if current_user.municipality_id != municipality_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Solo puede eliminar actividades de su municipio"
+                detail="Solo puede modificar actividades de su municipio"
             )
     
-    activity.is_active = False
+    # Verificar que el municipio existe
+    municipality = db.query(Municipality).filter(
+        Municipality.id == municipality_id
+    ).first()
+    
+    if not municipality:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Municipio no encontrado"
+        )
+    
+    updated_count = 0
+    not_found = []
+    errors = []
+    
+    for item in updates:
+        ciiu_code = item.get('ciiu_code')
+        tax_rate = item.get('tax_rate')
+        
+        if not ciiu_code:
+            errors.append(f"Falta código CIIU en: {item}")
+            continue
+        
+        if tax_rate is None:
+            errors.append(f"Falta tarifa para código {ciiu_code}")
+            continue
+        
+        try:
+            tax_rate = float(tax_rate)
+            if tax_rate < 0 or tax_rate > 100:
+                errors.append(f"Tarifa inválida para {ciiu_code}: {tax_rate}")
+                continue
+        except (ValueError, TypeError):
+            errors.append(f"Tarifa inválida para {ciiu_code}: {tax_rate}")
+            continue
+        
+        activity = db.query(TaxActivity).filter(
+            TaxActivity.municipality_id == municipality_id,
+            TaxActivity.ciiu_code == ciiu_code
+        ).first()
+        
+        if activity:
+            activity.tax_rate = tax_rate
+            updated_count += 1
+        else:
+            not_found.append(ciiu_code)
+    
     db.commit()
     
-    return {"message": "Actividad desactivada correctamente"}
+    return {
+        "message": "Actualización masiva de tarifas completada",
+        "updated_count": updated_count,
+        "not_found": not_found[:20] if not_found else None,
+        "errors": errors[:20] if errors else None
+    }
 
 
 # ===================== GESTIÓN DE USUARIOS =====================

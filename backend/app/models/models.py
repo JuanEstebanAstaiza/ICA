@@ -423,15 +423,23 @@ class TaxActivity(Base):
     """
     Catálogo de actividades económicas por municipio.
     Con código CIIU y tarifas.
+    
+    Los códigos CIIU vienen precargados del catálogo nacional (504 códigos de 4 dígitos).
+    Organizados por secciones (A-U) según la clasificación oficial.
+    Solo la tarifa (tax_rate) es editable por el administrador.
     """
     __tablename__ = "tax_activities"
     
     id = Column(Integer, primary_key=True, index=True)
     municipality_id = Column(Integer, ForeignKey("municipalities.id"), nullable=False)
     
-    ciiu_code = Column(String(10), nullable=False)  # Código CIIU
+    ciiu_code = Column(String(10), nullable=False)  # Código CIIU (4 dígitos)
     description = Column(String(500), nullable=False)
-    tax_rate = Column(Float, nullable=False)  # Tarifa ICA (por mil)
+    tax_rate = Column(Float, nullable=False, default=0.0)  # Tarifa ICA (%) - EDITABLE por admin
+    
+    # Sección del catálogo CIIU para organización y búsqueda
+    section_code = Column(String(20))  # Ej: 'SECCIÓN A', 'SECCIÓN B', etc.
+    section_name = Column(String(255))  # Ej: 'AGRICULTURA, GANADERÍA, CAZA, SILVICULTURA Y PESCA'
     
     is_active = Column(Boolean, default=True)
     
