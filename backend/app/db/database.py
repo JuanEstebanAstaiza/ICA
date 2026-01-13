@@ -41,5 +41,14 @@ def get_db():
 
 
 def init_db():
-    """Inicializa las tablas de la base de datos."""
+    """
+    Inicializa las tablas de la base de datos.
+    Importa todos los modelos para asegurar que se registren en Base.metadata
+    antes de crear las tablas con todas sus columnas.
+    """
+    # Importar todos los modelos para que se registren en Base.metadata
+    # Esto asegura que todas las columnas se creen automáticamente
+    from ..models import models  # noqa: F401
+    
+    # Crear todas las tablas definidas en los modelos
     Base.metadata.create_all(bind=engine)
