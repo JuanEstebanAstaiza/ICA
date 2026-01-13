@@ -282,6 +282,130 @@ async def update_white_label_config(
     return config
 
 
+@router.post("/white-label/{municipality_id}/test-smtp")
+async def test_smtp_connection(
+    municipality_id: int,
+    current_user: User = Depends(require_role([
+        UserRole.ADMIN_ALCALDIA, 
+        UserRole.ADMIN_SISTEMA
+    ])),
+    db: Session = Depends(get_db)
+):
+    """
+    Prueba la conexión SMTP del municipio enviando un correo de prueba.
+    """
+    from ...services.email_service import EmailService
+    import smtplib
+    import ssl
+    
+    # Verificar permisos
+    if current_user.role == UserRole.ADMIN_ALCALDIA:
+        if current_user.municipality_id != municipality_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Solo puede probar la configuración de su municipio"
+            )
+    
+    municipality = db.query(Municipality).filter(
+        Municipality.id == municipality_id
+    ).first()
+    
+    if not municipality:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Municipio no encontrado"
+        )
+    
+    if not municipality.config:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El municipio no tiene configuración SMTP"
+        )
+    
+    config = municipality.config
+    
+    # Verificar campos requeridos
+    if not config.smtp_host or not config.smtp_user or not config.smtp_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Faltan campos obligatorios: servidor, usuario o contraseña"
+        )
+    
+    if not config.smtp_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El envío de correos no está habilitado"
+        )
+    
+    # Intentar conectar y autenticar
+    try:
+        if config.smtp_tls:
+            # Conexión con STARTTLS
+            context = ssl.create_default_context()
+            with smtplib.SMTP(config.smtp_host, config.smtp_port, timeout=10) as server:
+                server.starttls(context=context)
+                server.login(config.smtp_user, config.smtp_password)
+                # Si llegamos aquí, la conexión y autenticación fueron exitosas
+        else:
+            # Conexión SSL directa
+            context = ssl.create_default_context()
+            with smtplib.SMTP_SSL(config.smtp_host, config.smtp_port, context=context, timeout=10) as server:
+                server.login(config.smtp_user, config.smtp_password)
+        
+        # Opcional: enviar correo de prueba al mismo usuario
+        email_service = EmailService.from_municipality(municipality_id, db)
+        test_sent = email_service.send_email(
+            to_email=config.smtp_user,
+            subject="✅ Prueba de conexión SMTP - Sistema ICA",
+            html_content=f"""
+            <html>
+            <body style="font-family: Arial, sans-serif; padding: 20px;">
+                <h2 style="color: #059669;">✅ ¡Conexión SMTP exitosa!</h2>
+                <p>Este es un correo de prueba del Sistema ICA.</p>
+                <p>La configuración SMTP del municipio <strong>{municipality.name}</strong> está funcionando correctamente.</p>
+                <hr>
+                <p style="color: #666; font-size: 12px;">
+                    Servidor: {config.smtp_host}:{config.smtp_port}<br>
+                    Seguridad: {'TLS' if config.smtp_tls else 'SSL'}<br>
+                    Usuario: {config.smtp_user}
+                </p>
+            </body>
+            </html>
+            """
+        )
+        
+        return {
+            "success": True,
+            "message": "Conexión SMTP exitosa. Se ha enviado un correo de prueba a " + config.smtp_user,
+            "test_email_sent": test_sent
+        }
+        
+    except smtplib.SMTPAuthenticationError as e:
+        logger.error(f"Error de autenticación SMTP: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Error de autenticación. Verifique el usuario y la contraseña. Para Gmail, use una 'Contraseña de Aplicación', no su contraseña normal."
+        )
+    except smtplib.SMTPConnectError as e:
+        logger.error(f"Error de conexión SMTP: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"No se pudo conectar al servidor {config.smtp_host}:{config.smtp_port}. Verifique el servidor y puerto."
+        )
+    except smtplib.SMTPException as e:
+        logger.error(f"Error SMTP: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error SMTP: {str(e)}"
+        )
+    except Exception as e:
+        logger.error(f"Error al probar conexión SMTP: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error inesperado: {str(e)}"
+        )
+
+
 @router.post("/white-label/{municipality_id}/logo")
 async def upload_logo(
     municipality_id: int,
