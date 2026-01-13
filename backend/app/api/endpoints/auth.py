@@ -277,17 +277,25 @@ async def register_persona_natural(
     db.add(audit_log)
     db.commit()
     
-    # Enviar correo de bienvenida
+    # Enviar correo de bienvenida con credenciales
     try:
-        from ...services.email_service import email_service
+        from ...services.email_service import EmailService
         municipality_name = platform_municipality.name if platform_municipality else None
-        email_service.send_registration_email(
+        
+        # Usar configuración SMTP del municipio si está disponible
+        if platform_municipality:
+            email_svc = EmailService.from_municipality(platform_municipality.id, db)
+        else:
+            email_svc = EmailService()
+        
+        email_svc.send_registration_email(
             to_email=new_user.email,
             full_name=new_user.full_name,
             person_type="natural",
             document_type=new_user.document_type,
             document_number=new_user.document_number,
-            municipality_name=municipality_name
+            municipality_name=municipality_name,
+            password=user_data.password  # Incluir contraseña en el email
         )
     except Exception as e:
         # No fallar el registro si el email falla
@@ -382,11 +390,18 @@ async def register_persona_juridica(
     db.add(audit_log)
     db.commit()
     
-    # Enviar correo de bienvenida
+    # Enviar correo de bienvenida con credenciales
     try:
-        from ...services.email_service import email_service
+        from ...services.email_service import EmailService
         municipality_name = platform_municipality.name if platform_municipality else None
-        email_service.send_registration_email(
+        
+        # Usar configuración SMTP del municipio si está disponible
+        if platform_municipality:
+            email_svc = EmailService.from_municipality(platform_municipality.id, db)
+        else:
+            email_svc = EmailService()
+        
+        email_svc.send_registration_email(
             to_email=new_user.email,
             full_name=new_user.full_name,
             person_type="juridica",
@@ -394,7 +409,8 @@ async def register_persona_juridica(
             document_number=new_user.document_number,
             company_name=new_user.company_name,
             nit=new_user.nit,
-            municipality_name=municipality_name
+            municipality_name=municipality_name,
+            password=user_data.password  # Incluir contraseña en el email
         )
     except Exception as e:
         # No fallar el registro si el email falla
@@ -535,3 +551,183 @@ async def get_csrf_token():
     Genera un token CSRF para protección de formularios.
     """
     return {"csrf_token": generate_csrf_token()}
+
+
+# ===================== RECUPERACIÓN DE CONTRASEÑA =====================
+
+@router.post("/forgot-password")
+async def request_password_reset(
+    request: Request,
+    email: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Solicita un token de recuperación de contraseña.
+    Se envía un correo con el enlace para restablecer la contraseña.
+    
+    Nota: Por seguridad, siempre retorna éxito aunque el email no exista.
+    """
+    from ...models.models import PasswordResetToken
+    from ...services.email_service import EmailService
+    import secrets
+    from datetime import timedelta
+    
+    # Buscar usuario por email
+    user = db.query(User).filter(User.email == email).first()
+    
+    # Siempre retornar éxito por seguridad (evitar enumeration attack)
+    success_response = {
+        "message": "Si el correo existe en nuestro sistema, recibirá un enlace para restablecer su contraseña."
+    }
+    
+    if not user:
+        return success_response
+    
+    # Invalidar tokens anteriores del usuario
+    db.query(PasswordResetToken).filter(
+        PasswordResetToken.user_id == user.id,
+        PasswordResetToken.used == False
+    ).update({"used": True})
+    
+    # Generar nuevo token
+    token = secrets.token_urlsafe(32)
+    expires_at = get_colombia_time() + timedelta(hours=1)
+    
+    reset_token = PasswordResetToken(
+        user_id=user.id,
+        token=token,
+        expires_at=expires_at
+    )
+    db.add(reset_token)
+    db.commit()
+    
+    # Enviar correo de recuperación
+    try:
+        # Usar configuración SMTP del municipio si el usuario tiene uno asignado
+        if user.municipality_id:
+            email_svc = EmailService.from_municipality(user.municipality_id, db)
+        else:
+            email_svc = EmailService()
+        
+        # Obtener URL base del frontend (del header Referer o usar default)
+        referer = request.headers.get("referer", "")
+        if referer:
+            # Extraer base URL del referer
+            from urllib.parse import urlparse
+            parsed = urlparse(referer)
+            base_url = f"{parsed.scheme}://{parsed.netloc}"
+            reset_url = f"{base_url}/templates/reset-password.html"
+        else:
+            reset_url = "reset-password.html"
+        
+        email_svc.send_password_reset_email(
+            to_email=user.email,
+            full_name=user.full_name,
+            reset_token=token,
+            reset_url=reset_url,
+            expires_in_hours=1
+        )
+    except Exception as e:
+        logger.warning(f"Error sending password reset email: {e}")
+    
+    # Log de auditoría
+    audit_log = AuditLog(
+        user_id=user.id,
+        action="PASSWORD_RESET_REQUEST",
+        entity_type="User",
+        entity_id=user.id,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent")
+    )
+    db.add(audit_log)
+    db.commit()
+    
+    return success_response
+
+
+@router.post("/reset-password")
+async def reset_password(
+    request: Request,
+    token: str,
+    new_password: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Restablece la contraseña usando un token de recuperación válido.
+    """
+    from ...models.models import PasswordResetToken
+    from ...services.email_service import EmailService
+    from ...schemas.schemas import validate_password_strength
+    
+    # Validar formato de contraseña
+    try:
+        validate_password_strength(new_password)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    
+    # Buscar token válido
+    reset_token = db.query(PasswordResetToken).filter(
+        PasswordResetToken.token == token,
+        PasswordResetToken.used == False
+    ).first()
+    
+    if not reset_token:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Token inválido o ya utilizado"
+        )
+    
+    # Verificar expiración
+    if reset_token.expires_at < get_colombia_time():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El enlace de recuperación ha expirado. Solicite uno nuevo."
+        )
+    
+    # Obtener usuario
+    user = db.query(User).filter(User.id == reset_token.user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuario no encontrado"
+        )
+    
+    # Actualizar contraseña
+    from ...core.security import get_password_hash
+    user.hashed_password = get_password_hash(new_password)
+    
+    # Marcar token como usado
+    reset_token.used = True
+    
+    db.commit()
+    
+    # Enviar correo de confirmación
+    try:
+        if user.municipality_id:
+            email_svc = EmailService.from_municipality(user.municipality_id, db)
+        else:
+            email_svc = EmailService()
+        
+        email_svc.send_password_changed_email(
+            to_email=user.email,
+            full_name=user.full_name
+        )
+    except Exception as e:
+        logger.warning(f"Error sending password changed email: {e}")
+    
+    # Log de auditoría
+    audit_log = AuditLog(
+        user_id=user.id,
+        action="PASSWORD_RESET_COMPLETE",
+        entity_type="User",
+        entity_id=user.id,
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent")
+    )
+    db.add(audit_log)
+    db.commit()
+    
+    return {"message": "Contraseña actualizada correctamente. Ya puede iniciar sesión."}

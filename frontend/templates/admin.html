@@ -748,6 +748,153 @@
                 </div>
             </div>
             
+            <!-- Configuración SMTP para Correos Electrónicos -->
+            <div class="row" style="margin-top: 2rem;">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header" style="background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white;">
+                            📧 Configuración de Correo Electrónico (SMTP)
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-info mb-3">
+                                <strong>📌 Importante:</strong> Configure el servidor SMTP de la alcaldía para habilitar el envío automático de correos electrónicos. 
+                                Los correos se enviarán automáticamente cuando:
+                                <ul style="margin-bottom: 0;">
+                                    <li>Un usuario se registra en la plataforma (envío de credenciales)</li>
+                                    <li>Un usuario firma y radica su declaración ICA (envío del PDF)</li>
+                                    <li>Un usuario solicita recuperación de contraseña</li>
+                                </ul>
+                            </div>
+                            
+                            <form id="smtp-config-form">
+                                <div class="form-group">
+                                    <label class="form-label">Municipio</label>
+                                    <div class="municipality-search-container">
+                                        <input type="text" 
+                                               id="smtp-municipality-search" 
+                                               class="municipality-search-input" 
+                                               placeholder="Buscar municipio por nombre..."
+                                               autocomplete="off">
+                                        <input type="hidden" id="smtp-municipality" value="">
+                                        <div id="smtp-municipality-dropdown" class="municipality-dropdown"></div>
+                                    </div>
+                                    <div id="smtp-municipality-selected" class="municipality-selected" style="display: none;">
+                                        <span id="smtp-municipality-name"></span>
+                                        <button type="button" class="clear-btn" onclick="clearMunicipalitySelection('smtp')">✕</button>
+                                    </div>
+                                </div>
+                                
+                                <div class="row" style="margin-top: 1.5rem;">
+                                    <div class="col-6">
+                                        <div class="form-group">
+                                            <label for="smtp-enabled" class="form-label">
+                                                <input type="checkbox" id="smtp-enabled" style="width: auto; margin-right: 0.5rem;">
+                                                <strong>✅ Habilitar envío de correos</strong>
+                                            </label>
+                                            <small class="form-text">Active esta opción para habilitar el envío de correos electrónicos desde el sistema.</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="section-title" style="margin-top: 1.5rem;">Servidor SMTP</div>
+                                
+                                <div class="row">
+                                    <div class="col-6">
+                                        <div class="form-group">
+                                            <label for="smtp-host" class="form-label">Servidor SMTP</label>
+                                            <input type="text" id="smtp-host" class="form-control" 
+                                                   placeholder="Ej: smtp.gmail.com, smtp.office365.com">
+                                            <small class="form-text">Dirección del servidor de correo</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-3">
+                                        <div class="form-group">
+                                            <label for="smtp-port" class="form-label">Puerto</label>
+                                            <input type="number" id="smtp-port" class="form-control" 
+                                                   value="587" min="1" max="65535">
+                                            <small class="form-text">587 (TLS) o 465 (SSL)</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-3">
+                                        <div class="form-group">
+                                            <label for="smtp-tls" class="form-label">Seguridad</label>
+                                            <select id="smtp-tls" class="form-control">
+                                                <option value="true">TLS (Recomendado)</option>
+                                                <option value="false">SSL</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="section-title" style="margin-top: 1.5rem;">Credenciales de Acceso</div>
+                                
+                                <div class="row">
+                                    <div class="col-6">
+                                        <div class="form-group">
+                                            <label for="smtp-user" class="form-label">Usuario SMTP (Email)</label>
+                                            <input type="email" id="smtp-user" class="form-control" 
+                                                   placeholder="correo@alcaldia.gov.co">
+                                            <small class="form-text">Email de la cuenta de correo de la alcaldía</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="form-group">
+                                            <label for="smtp-password" class="form-label">Contraseña / Clave de Aplicación</label>
+                                            <input type="password" id="smtp-password" class="form-control" 
+                                                   placeholder="••••••••">
+                                            <small class="form-text">Contraseña o clave de aplicación (Gmail/Outlook)</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="section-title" style="margin-top: 1.5rem;">Información del Remitente</div>
+                                
+                                <div class="row">
+                                    <div class="col-6">
+                                        <div class="form-group">
+                                            <label for="smtp-from-email" class="form-label">Email Remitente</label>
+                                            <input type="email" id="smtp-from-email" class="form-control" 
+                                                   placeholder="ica@alcaldia.gov.co">
+                                            <small class="form-text">Email que aparecerá como remitente (puede ser igual al usuario)</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="form-group">
+                                            <label for="smtp-from-name" class="form-label">Nombre del Remitente</label>
+                                            <input type="text" id="smtp-from-name" class="form-control" 
+                                                   placeholder="Ej: Alcaldía de Medellín - Sistema ICA">
+                                            <small class="form-text">Nombre que aparecerá en los correos enviados</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row" style="margin-top: 1.5rem;">
+                                    <div class="col-6">
+                                        <button type="submit" class="btn btn-primary">
+                                            💾 Guardar Configuración SMTP
+                                        </button>
+                                    </div>
+                                    <div class="col-6" style="text-align: right;">
+                                        <button type="button" class="btn btn-secondary" onclick="testSmtpConnection()">
+                                            🔌 Probar Conexión
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                            
+                            <div class="alert" style="margin-top: 1.5rem; background: #fef3c7; border-left: 4px solid #f59e0b;">
+                                <strong>💡 Ayuda para configurar SMTP:</strong>
+                                <ul style="margin-bottom: 0;">
+                                    <li><strong>Gmail:</strong> Use smtp.gmail.com, puerto 587, y genere una "Contraseña de aplicación" en la configuración de seguridad de su cuenta Google.</li>
+                                    <li><strong>Outlook/Office 365:</strong> Use smtp.office365.com, puerto 587 con TLS.</li>
+                                    <li><strong>Servidor propio:</strong> Consulte con su administrador de sistemas la configuración correcta.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             </div><!-- Fin TAB: Configuración -->
             
             <!-- TAB: Municipios -->
@@ -1207,7 +1354,8 @@
             const searchConfigs = [
                 { prefix: 'wl', onSelect: loadWhiteLabelConfig },
                 { prefix: 'act', onSelect: (id) => { loadCIIUSections(id); loadActivities(id, 1, '', ''); } },
-                { prefix: 'fp', onSelect: loadFormulaParameters }
+                { prefix: 'fp', onSelect: loadFormulaParameters },
+                { prefix: 'smtp', onSelect: loadSmtpConfig }
             ];
             
             searchConfigs.forEach(config => {
@@ -1329,13 +1477,18 @@
         }
         
         function syncMunicipalitySelectors(sourcePrefix) {
-            const prefixes = ['wl', 'act', 'fp'];
+            const prefixes = ['wl', 'act', 'fp', 'smtp'];
             prefixes.forEach(prefix => {
                 if (prefix !== sourcePrefix && selectedMunicipality) {
-                    document.getElementById(`${prefix}-municipality`).value = selectedMunicipality.id;
-                    document.getElementById(`${prefix}-municipality-name`).textContent = 
-                        `${selectedMunicipality.name} - ${selectedMunicipality.dept}`;
-                    document.getElementById(`${prefix}-municipality-selected`).style.display = 'flex';
+                    const municipalityInput = document.getElementById(`${prefix}-municipality`);
+                    const municipalityName = document.getElementById(`${prefix}-municipality-name`);
+                    const municipalitySelected = document.getElementById(`${prefix}-municipality-selected`);
+                    
+                    if (municipalityInput && municipalityName && municipalitySelected) {
+                        municipalityInput.value = selectedMunicipality.id;
+                        municipalityName.textContent = `${selectedMunicipality.name} - ${selectedMunicipality.dept}`;
+                        municipalitySelected.style.display = 'flex';
+                    }
                 }
             });
         }
@@ -1346,12 +1499,17 @@
                 return;
             }
             
-            const prefixes = ['wl', 'act', 'fp'];
+            const prefixes = ['wl', 'act', 'fp', 'smtp'];
             prefixes.forEach(prefix => {
-                document.getElementById(`${prefix}-municipality`).value = selectedMunicipality.id;
-                document.getElementById(`${prefix}-municipality-name`).textContent = 
-                    `${selectedMunicipality.name} - ${selectedMunicipality.dept}`;
-                document.getElementById(`${prefix}-municipality-selected`).style.display = 'flex';
+                const municipalityInput = document.getElementById(`${prefix}-municipality`);
+                const municipalityName = document.getElementById(`${prefix}-municipality-name`);
+                const municipalitySelected = document.getElementById(`${prefix}-municipality-selected`);
+                
+                if (municipalityInput && municipalityName && municipalitySelected) {
+                    municipalityInput.value = selectedMunicipality.id;
+                    municipalityName.textContent = `${selectedMunicipality.name} - ${selectedMunicipality.dept}`;
+                    municipalitySelected.style.display = 'flex';
+                }
             });
             
             // Cargar datos del municipio seleccionado
@@ -1359,6 +1517,7 @@
             loadCIIUSections(selectedMunicipality.id);
             loadActivities(selectedMunicipality.id, 1, '', '');
             loadFormulaParameters(selectedMunicipality.id);
+            loadSmtpConfig(selectedMunicipality.id);
         }
         
         // ==================== VISTA PREVIA DE CONSECUTIVO/RADICADO ====================
@@ -1444,7 +1603,7 @@
                 return;
             }
             
-            const prefixes = ['wl', 'act', 'fp'];
+            const prefixes = ['wl', 'act', 'fp', 'smtp'];
             
             prefixes.forEach(prefix => {
                 // Ocultar el buscador
@@ -1454,7 +1613,10 @@
                 }
                 
                 // Configurar el valor oculto
-                document.getElementById(`${prefix}-municipality`).value = municipality.id;
+                const municipalityInput = document.getElementById(`${prefix}-municipality`);
+                if (municipalityInput) {
+                    municipalityInput.value = municipality.id;
+                }
                 
                 // Mostrar el municipio seleccionado (bloqueado)
                 const selectedDiv = document.getElementById(`${prefix}-municipality-selected`);
@@ -1486,6 +1648,7 @@
             loadCIIUSections(municipality.id);
             loadActivities(municipality.id, 1, '', '');
             loadFormulaParameters(municipality.id);
+            loadSmtpConfig(municipality.id);
             
             // Mostrar mensaje informativo
             const alertContainer = document.getElementById('alert-container');
@@ -1776,6 +1939,92 @@
                 console.error('Error loading formula parameters:', error);
             }
         }
+        
+        // ==================== CONFIGURACIÓN SMTP ====================
+        
+        async function loadSmtpConfig(municipalityId) {
+            if (!municipalityId) return;
+            
+            try {
+                const config = await AdminAPI.getWhiteLabelConfig(municipalityId);
+                
+                document.getElementById('smtp-host').value = config.smtp_host || '';
+                document.getElementById('smtp-port').value = config.smtp_port || 587;
+                document.getElementById('smtp-user').value = config.smtp_user || '';
+                document.getElementById('smtp-password').value = config.smtp_password || '';
+                document.getElementById('smtp-from-email').value = config.smtp_from_email || '';
+                document.getElementById('smtp-from-name').value = config.smtp_from_name || '';
+                document.getElementById('smtp-tls').value = config.smtp_tls !== false ? 'true' : 'false';
+                document.getElementById('smtp-enabled').checked = config.smtp_enabled || false;
+            } catch (error) {
+                console.error('Error loading SMTP config:', error);
+            }
+        }
+        
+        async function saveSmtpConfig() {
+            const municipalityId = document.getElementById('smtp-municipality').value;
+            if (!municipalityId) {
+                alert('Seleccione un municipio');
+                return;
+            }
+            
+            try {
+                showLoading();
+                
+                const smtpConfig = {
+                    smtp_host: document.getElementById('smtp-host').value,
+                    smtp_port: parseInt(document.getElementById('smtp-port').value) || 587,
+                    smtp_user: document.getElementById('smtp-user').value,
+                    smtp_password: document.getElementById('smtp-password').value,
+                    smtp_from_email: document.getElementById('smtp-from-email').value,
+                    smtp_from_name: document.getElementById('smtp-from-name').value,
+                    smtp_tls: document.getElementById('smtp-tls').value === 'true',
+                    smtp_enabled: document.getElementById('smtp-enabled').checked
+                };
+                
+                await AdminAPI.updateWhiteLabelConfig(municipalityId, smtpConfig);
+                
+                hideLoading();
+                showAlert('✅ Configuración SMTP guardada correctamente', 'success');
+            } catch (error) {
+                hideLoading();
+                showAlert('❌ Error al guardar configuración SMTP: ' + error.message, 'danger');
+            }
+        }
+        
+        async function testSmtpConnection() {
+            const municipalityId = document.getElementById('smtp-municipality').value;
+            if (!municipalityId) {
+                showAlert('⚠️ Seleccione un municipio primero', 'warning');
+                return;
+            }
+            
+            const smtpEnabled = document.getElementById('smtp-enabled').checked;
+            const smtpHost = document.getElementById('smtp-host').value;
+            const smtpUser = document.getElementById('smtp-user').value;
+            const smtpPassword = document.getElementById('smtp-password').value;
+            
+            if (!smtpEnabled) {
+                showAlert('⚠️ Active primero la opción "Habilitar envío de correos"', 'warning');
+                return;
+            }
+            
+            if (!smtpHost || !smtpUser || !smtpPassword) {
+                showAlert('⚠️ Complete todos los campos obligatorios (servidor, usuario y contraseña)', 'warning');
+                return;
+            }
+            
+            // Guardar primero la configuración
+            await saveSmtpConfig();
+            
+            showAlert('ℹ️ Para probar la conexión, el sistema intentará enviar un correo de prueba la próxima vez que se registre un usuario o se firme un formulario.', 'info');
+        }
+        
+        // Formulario de configuración SMTP
+        document.getElementById('smtp-config-form')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await saveSmtpConfig();
+        });
         
         // ==================== EVENT LISTENERS ====================
         
