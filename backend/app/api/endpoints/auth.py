@@ -555,10 +555,22 @@ async def get_csrf_token():
 
 # ===================== RECUPERACIÓN DE CONTRASEÑA =====================
 
+from pydantic import BaseModel, EmailStr
+
+class ForgotPasswordRequest(BaseModel):
+    """Schema para solicitud de recuperación de contraseña."""
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    """Schema para restablecer contraseña."""
+    token: str
+    new_password: str
+
+
 @router.post("/forgot-password")
 async def request_password_reset(
     request: Request,
-    email: str,
+    data: ForgotPasswordRequest,
     db: Session = Depends(get_db)
 ):
     """
@@ -571,6 +583,8 @@ async def request_password_reset(
     from ...services.email_service import EmailService
     import secrets
     from datetime import timedelta
+    
+    email = data.email
     
     # Buscar usuario por email
     user = db.query(User).filter(User.email == email).first()
@@ -648,8 +662,7 @@ async def request_password_reset(
 @router.post("/reset-password")
 async def reset_password(
     request: Request,
-    token: str,
-    new_password: str,
+    data: ResetPasswordRequest,
     db: Session = Depends(get_db)
 ):
     """
@@ -658,6 +671,9 @@ async def reset_password(
     from ...models.models import PasswordResetToken
     from ...services.email_service import EmailService
     from ...schemas.schemas import validate_password_strength
+    
+    token = data.token
+    new_password = data.new_password
     
     # Validar formato de contraseña
     try:

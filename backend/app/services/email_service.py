@@ -187,18 +187,22 @@ class EmailService:
         Envía correo de bienvenida al nuevo usuario registrado.
         Incluye las credenciales si se proporciona la contraseña.
         """
+        import html
+        
         colombia_time = get_colombia_time()
         date_str = colombia_time.strftime('%d/%m/%Y %H:%M:%S')
         
-        # Información de credenciales
+        # Información de credenciales (con HTML escape para prevenir XSS)
         credentials_info = ""
         if password:
+            escaped_password = html.escape(password)
+            escaped_email = html.escape(to_email)
             credentials_info = f"""
                 <div style="background: #dbeafe; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #2563eb;">
                     <h3 style="margin: 0 0 10px 0; color: #1e40af;">🔐 Sus credenciales de acceso:</h3>
                     <table style="width: 100%;">
-                        <tr><td><strong>Usuario (Email):</strong></td><td>{to_email}</td></tr>
-                        <tr><td><strong>Contraseña:</strong></td><td><code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">{password}</code></td></tr>
+                        <tr><td><strong>Usuario (Email):</strong></td><td>{escaped_email}</td></tr>
+                        <tr><td><strong>Contraseña:</strong></td><td><code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">{escaped_password}</code></td></tr>
                     </table>
                     <p style="margin: 10px 0 0 0; font-size: 0.9rem; color: #1e40af;">
                         <strong>⚠️ Por seguridad:</strong> Le recomendamos cambiar su contraseña después de iniciar sesión por primera vez.
@@ -209,19 +213,23 @@ class EmailService:
         if person_type == 'juridica':
             subject = f"Bienvenido al Sistema ICA - {company_name}"
             user_info = f"""
-                <tr><td><strong>Empresa:</strong></td><td>{company_name}</td></tr>
-                <tr><td><strong>NIT:</strong></td><td>{nit}</td></tr>
-                <tr><td><strong>Representante Legal:</strong></td><td>{full_name}</td></tr>
-                <tr><td><strong>Tipo de Documento:</strong></td><td>{document_type}</td></tr>
-                <tr><td><strong>Número de Documento:</strong></td><td>{document_number}</td></tr>
+                <tr><td><strong>Empresa:</strong></td><td>{html.escape(company_name or '')}</td></tr>
+                <tr><td><strong>NIT:</strong></td><td>{html.escape(nit or '')}</td></tr>
+                <tr><td><strong>Representante Legal:</strong></td><td>{html.escape(full_name or '')}</td></tr>
+                <tr><td><strong>Tipo de Documento:</strong></td><td>{html.escape(document_type or '')}</td></tr>
+                <tr><td><strong>Número de Documento:</strong></td><td>{html.escape(document_number or '')}</td></tr>
             """
         else:
             subject = f"Bienvenido al Sistema ICA - {full_name}"
             user_info = f"""
-                <tr><td><strong>Nombre:</strong></td><td>{full_name}</td></tr>
-                <tr><td><strong>Tipo de Documento:</strong></td><td>{document_type}</td></tr>
-                <tr><td><strong>Número de Documento:</strong></td><td>{document_number}</td></tr>
+                <tr><td><strong>Nombre:</strong></td><td>{html.escape(full_name or '')}</td></tr>
+                <tr><td><strong>Tipo de Documento:</strong></td><td>{html.escape(document_type or '')}</td></tr>
+                <tr><td><strong>Número de Documento:</strong></td><td>{html.escape(document_number or '')}</td></tr>
             """
+        
+        # Escape remaining user data
+        escaped_to_email = html.escape(to_email)
+        escaped_municipality = html.escape(municipality_name or 'No asignado')
         
         html_content = f"""
         <!DOCTYPE html>
@@ -252,8 +260,8 @@ class EmailService:
                     
                     <table class="info-table">
                         {user_info}
-                        <tr><td><strong>Correo Electrónico:</strong></td><td>{to_email}</td></tr>
-                        <tr><td><strong>Municipio:</strong></td><td>{municipality_name or 'No asignado'}</td></tr>
+                        <tr><td><strong>Correo Electrónico:</strong></td><td>{escaped_to_email}</td></tr>
+                        <tr><td><strong>Municipio:</strong></td><td>{escaped_municipality}</td></tr>
                         <tr><td><strong>Fecha de Registro:</strong></td><td>{date_str} (Hora Colombia)</td></tr>
                     </table>
                     
