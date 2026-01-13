@@ -230,6 +230,23 @@ class TokenPayload(BaseModel):
     type: str
 
 
+# ===================== RECUPERACIÓN DE CONTRASEÑA =====================
+
+class PasswordResetRequest(BaseModel):
+    """Solicitud de recuperación de contraseña."""
+    email: EmailStr
+
+
+class PasswordResetConfirm(BaseModel):
+    """Confirmación de nueva contraseña."""
+    token: str = Field(..., min_length=1)
+    new_password: str = Field(..., min_length=8, max_length=100)
+    
+    @validator('new_password')
+    def password_strength(cls, v):
+        return validate_password_strength(v)
+
+
 # ===================== ALCALDÍA / MUNICIPIO =====================
 
 class MunicipalityBase(BaseModel):
@@ -279,6 +296,16 @@ class WhiteLabelConfigBase(BaseModel):
     radicado_prefijo: Optional[str] = Field(default="", max_length=10)
     radicado_actual: Optional[int] = Field(default=1, ge=1)
     radicado_digitos: Optional[int] = Field(default=16, ge=6, le=20)
+    
+    # Configuración SMTP para envío de correos
+    smtp_host: Optional[str] = Field(default="", max_length=255)
+    smtp_port: Optional[int] = Field(default=587, ge=1, le=65535)
+    smtp_user: Optional[str] = Field(default="", max_length=255)
+    smtp_password: Optional[str] = Field(default="", max_length=500)
+    smtp_from_email: Optional[str] = Field(default="", max_length=255)
+    smtp_from_name: Optional[str] = Field(default="", max_length=255)
+    smtp_tls: Optional[bool] = Field(default=True)
+    smtp_enabled: Optional[bool] = Field(default=False)
 
 
 class WhiteLabelConfigUpdate(WhiteLabelConfigBase):

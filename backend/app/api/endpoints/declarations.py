@@ -1052,8 +1052,15 @@ async def generate_pdf(
     email_sent = False
     if declaration.is_signed and declaration.taxpayer and declaration.taxpayer.email:
         try:
-            from ...services.email_service import email_service
-            email_sent = email_service.send_signed_form_email(
+            from ...services.email_service import EmailService
+            
+            # Usar configuración SMTP del municipio
+            if declaration.municipality_id:
+                email_svc = EmailService.from_municipality(declaration.municipality_id, db)
+            else:
+                email_svc = EmailService()
+            
+            email_sent = email_svc.send_signed_form_email(
                 to_email=declaration.taxpayer.email,
                 full_name=declaration.taxpayer.legal_name or "Contribuyente",
                 form_number=declaration.form_number or "",

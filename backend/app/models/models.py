@@ -185,6 +185,16 @@ class WhiteLabelConfig(Base):
     radicado_actual = Column(Integer, default=1)  # Número actual
     radicado_digitos = Column(Integer, default=16)  # Cantidad de dígitos (relleno con ceros)
     
+    # Configuración SMTP para envío de correos electrónicos
+    smtp_host = Column(String(255), default="")  # Servidor SMTP (ej: smtp.gmail.com)
+    smtp_port = Column(Integer, default=587)  # Puerto SMTP (587 para TLS, 465 para SSL)
+    smtp_user = Column(String(255), default="")  # Usuario SMTP (correo de la alcaldía)
+    smtp_password = Column(String(500), default="")  # Contraseña SMTP (encriptada)
+    smtp_from_email = Column(String(255), default="")  # Email remitente
+    smtp_from_name = Column(String(255), default="")  # Nombre remitente (ej: "Alcaldía de...")
+    smtp_tls = Column(Boolean, default=True)  # Usar TLS (True) o SSL (False)
+    smtp_enabled = Column(Boolean, default=False)  # Habilitar/deshabilitar envío de correos
+    
     # Metadatos
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     updated_by = Column(Integer, ForeignKey("users.id"))
@@ -735,3 +745,21 @@ class AuditLog(Base):
     
     # Relaciones
     declaration = relationship("ICADeclaration", back_populates="audit_logs")
+
+
+class PasswordResetToken(Base):
+    """
+    Token para recuperación de contraseña.
+    Permite a los usuarios restablecer su contraseña mediante un enlace enviado por correo.
+    """
+    __tablename__ = "password_reset_tokens"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    token = Column(String(255), unique=True, index=True, nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    used = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    # Relación
+    user = relationship("User")
